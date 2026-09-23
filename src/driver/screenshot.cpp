@@ -195,7 +195,10 @@ bool CScreenShot::GetData()
 		_yres = yres = 720;
 		get_osd      = false;
 		extra_osd    = true;
-		screenBuf    = new fb_pixel_t[_xres*_yres];
+		/* Zeroed, because SaveScreen below returns without writing a byte while
+		   the framebuffer is inactive, and mergeOsdScreen then blends whatever
+		   this process last left in that memory into the picture. */
+		screenBuf    = new fb_pixel_t[_xres * _yres]();
 		if (screenBuf == NULL) {
 			printf("[CScreenShot::%s:%d] memory error\n", __func__, __LINE__);
 			return false;
