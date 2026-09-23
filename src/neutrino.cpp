@@ -4832,6 +4832,12 @@ int CNeutrinoApp::handleMsg(const neutrino_msg_t _msg, neutrino_msg_data_t data)
 			if (!CRecordManager::getInstance()->RecordingStatus() || (channelList && channelList->SameTP(eventinfo->channel_id))) {
 				bool isTVMode = CServiceManager::getInstance()->IsChannelTVChannel(eventinfo->channel_id);
 
+				// The calls below write the mode, and one that writes it
+				// without this leaves a box that says it is running and looks
+				// like one in standby.
+				if (mode == NeutrinoModes::mode_standby)
+					standbyMode(false);
+
 				dvbsub_stop();
 
 				if ((!isTVMode) && (mode != NeutrinoModes::mode_radio) && (mode != NeutrinoModes::mode_webradio)) {
