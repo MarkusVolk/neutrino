@@ -1184,6 +1184,10 @@ void CInfoViewer::loop(bool show_dot)
 		} else if ((msg == NeutrinoMessages::EVT_RECORDMODE) && 
 			   (CMoviePlayerGui::getInstance().timeshift) && !CRecordManager::getInstance()->RecordingStatus()) {
 			res = CNeutrinoApp::getInstance()->handleMsg(msg, data);
+		} else if (msg == NeutrinoMessages::STANDBY_ON || msg == NeutrinoMessages::STANDBY_TOGGLE || msg == NeutrinoMessages::SHUTDOWN) {
+			// Standby entered from here would delete the clock this loop repaints.
+			g_RCInput->postMsg(msg, data);
+			res = messages_return::cancel_info;
 		} else if (!fileplay && !CMoviePlayerGui::getInstance().timeshift) {
 			CNeutrinoApp *neutrino = CNeutrinoApp::getInstance ();
 			if ((msg == (neutrino_msg_t) g_settings.key_quickzap_up) || (msg == (neutrino_msg_t) g_settings.key_quickzap_down) || (msg == CRCInput::RC_0) || (msg == NeutrinoMessages::SHOW_INFOBAR)) {
