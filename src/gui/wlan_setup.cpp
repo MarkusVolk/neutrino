@@ -198,6 +198,7 @@ bool CWlanSetup::askPassphrase(std::string &passphrase)
 {
 	passphrase.clear();
 	CKeyboardInput input(LOCALE_NETWORKMENU_PASSWORD, &passphrase, 63);
+	input.setMasked(true);
 	input.exec(this, "");
 
 	if (passphrase.empty())
@@ -264,6 +265,7 @@ void CWlanSetup::connectHidden()
 	/* empty for an open network */
 	std::string passphrase;
 	CKeyboardInput key_input(LOCALE_NETWORKMENU_PASSWORD, &passphrase, 63);
+	key_input.setMasked(true);
 	key_input.exec(this, "");
 	if (!passphrase.empty() && (passphrase.length() < 8 || passphrase.length() > 63))
 	{
