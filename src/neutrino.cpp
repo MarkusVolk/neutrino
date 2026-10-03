@@ -5748,6 +5748,11 @@ void CNeutrinoApp::standbyMode(bool bOnOff, bool fromDeepStandby)
 
 		if (g_InfoViewer->is_visible)
 			g_InfoViewer->killTitle();
+		/* paintBackground paints the mute icon back after clearing the
+		   screen, and the screen is frozen right after it, so a muted box
+		   kept showing the icon in standby. Off while in standby, as the
+		   screen saver does it; waking turns it on again. */
+		g_audioMute->enableMuteIcon(false);
 		frameBuffer->useBackground(false);
 		frameBuffer->paintBackground();
 		frameBuffer->setActive(false);
@@ -5847,6 +5852,7 @@ void CNeutrinoApp::standbyMode(bool bOnOff, bool fromDeepStandby)
 		if (access("/tmp/.standby", F_OK) == 0)
 			unlink("/tmp/.standby");
 
+		g_audioMute->enableMuteIcon(true);
 		g_audioMute->AudioMute(current_muted, true);
 		StartSubtitles();
 	}
