@@ -216,7 +216,8 @@ int CMediaPlayerMenu::initMenuMedia(CMenuWidget *m, CPersonalizeGui *p)
 	{
 		CMenuForwarder *fw_assistant = new CMenuForwarder(LOCALE_ASSISTANT_HEAD, true, NULL, CAssistant::getInstance());
 		fw_assistant->setHint(NEUTRINO_ICON_HINT_INFO, LOCALE_MENU_HINT_ASSISTANT);
-		personalize->addItem(multimedia_menu, fw_assistant, NULL, false, CPersonalizeGui::PERSONALIZE_SHOW_NO);
+		static const int assistant_visible = CPersonalizeGui::PERSONALIZE_MODE_VISIBLE;
+		personalize->addItem(multimedia_menu, fw_assistant, &assistant_visible, false, CPersonalizeGui::PERSONALIZE_SHOW_NO);
 	}
 #endif
 
