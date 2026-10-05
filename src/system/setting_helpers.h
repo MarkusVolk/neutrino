@@ -101,6 +101,10 @@ class CAudioSetupNotifier : public CChangeObserver
 {
 	public:
 		bool changeNotify(const neutrino_locale_t OptionName, void *);
+#if HAVE_GENERIC_HARDWARE
+		/* makes the output kind of g_settings.audio_output PipeWire's default */
+		static void applyOutput();
+#endif
 };
 
 class CFontSizeNotifier : public CChangeObserver

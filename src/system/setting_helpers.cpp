@@ -51,6 +51,7 @@
 #include <sys/ioctl.h>
 
 #include <config.h>
+#include <thread>
 
 #include <global.h>
 #include <neutrino.h>
@@ -380,6 +381,22 @@ bool CColorSetupNotifier::changeNotify(const neutrino_locale_t, void *)
 	return false;
 }
 
+#if HAVE_GENERIC_HARDWARE
+/* WirePlumber switches the output and keeps it; a profile switch can take a
+ * moment, so this runs beside the menu */
+void CAudioSetupNotifier::applyOutput()
+{
+	static const char *const kinds[] = { NULL, "hdmi", "spdif", "analog", "usb", "bt" };
+	int o = g_settings.audio_output;
+	if (o <= 0 || o >= (int)(sizeof(kinds) / sizeof(kinds[0])))
+		return;
+	std::string arg = std::string("{\"output\":\"") + kinds[o] + "\"}";
+	std::thread([arg]() {
+		my_system(3, "wpexec", DATADIR "/neutrino/scripts/audio-output.lua", arg.c_str());
+	}).detach();
+}
+#endif
+
 bool CAudioSetupNotifier::changeNotify(const neutrino_locale_t OptionName, void *)
 {
 	//printf("notify: %d\n", OptionName);
@@ -393,6 +410,12 @@ bool CAudioSetupNotifier::changeNotify(const neutrino_locale_t OptionName, void 
 	{
 		g_Zapit->setAudioMode(g_settings.audio_AnalogMode);
 	}
+#if HAVE_GENERIC_HARDWARE
+	else if (ARE_LOCALES_EQUAL(OptionName, LOCALE_AUDIOMENU_OUTPUT))
+	{
+		applyOutput();
+	}
+#endif
 	else if (ARE_LOCALES_EQUAL(OptionName, LOCALE_AUDIOMENU_ANALOG_OUT))
 	{
 		audioDecoder->EnableAnalogOut(g_settings.analog_out ? true : false);

@@ -207,6 +207,7 @@ audiomenu.hdmi_dd_auto auto
 audiomenu.hdmi_dd_force force
 audiomenu.monoleft mono left
 audiomenu.monoright mono right
+audiomenu.output Output
 audiomenu.pref_lang Prefered language
 audiomenu.pref_lang_head Audio/EPG language preferences
 audiomenu.pref_languages Language preferences
@@ -1379,6 +1380,7 @@ menu.hint_audio_avsync A/V sync
 menu.hint_audio_dd Auto-switch to DolbyDigital audio pid,\nif available
 menu.hint_audio_dts Pass DTS audio tracks unchanged
 menu.hint_audio_hdmi_dd DolbyDigital over HDMI: off - decoded\nauto  if supported by device, force
+menu.hint_audio_output Where the sound goes: auto lets PipeWire choose,\nthe others pick the first output of that kind
 menu.hint_audio_spdif_dd DolbyDigital over optical output
 menu.hint_audio_srs SRS TruVolume control volume jumps\nat content changes
 menu.hint_audio_srs_algo Amount of control, light or normal

@@ -207,6 +207,7 @@ audiomenu.hdmi_dd_auto automatisch
 audiomenu.hdmi_dd_force erzwingen
 audiomenu.monoleft mono links
 audiomenu.monoright mono rechts
+audiomenu.output Ausgang
 audiomenu.pref_lang Sprache
 audiomenu.pref_lang_head Tonwahl
 audiomenu.pref_languages Bevorzugte Sprachen
@@ -1379,6 +1380,7 @@ menu.hint_audio_avsync Diese Funktion synchronisiert Bild und Ton
 menu.hint_audio_dd Ist diese Option aktiviert, wird automatisch auf Dolby Digital Ton geschalten, sobald dieser verfügbar ist
 menu.hint_audio_dts DTS Tonspuren unverändert durchleiten
 menu.hint_audio_hdmi_dd Bei aktiver Option wird über den HDMI-Ausgang der Dolby Digital Ton ausgegeben
+menu.hint_audio_output Wohin der Ton geht: Auto lässt PipeWire wählen,\ndie anderen nehmen den ersten Ausgang dieser Art
 menu.hint_audio_spdif_dd Bei aktiver Option wird über den optischen Ausgang (S/PDIF) der Dolby Digital Ton ausgegeben
 menu.hint_audio_srs Schalten Sie SRS TruVolume ein oder aus
 menu.hint_audio_srs_algo Stellen Sie die Betriebsarten von SRS TruVolume ein

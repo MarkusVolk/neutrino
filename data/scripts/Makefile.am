@@ -8,6 +8,9 @@ EXTRA_DIST = \
 if BOXTYPE_GENERIC
 EXTRA_DIST += \
 	neutrino.sh neutrino.sh.in
+
+audiooutputdir = $(DATADIR)/neutrino/scripts
+audiooutput_DATA = audio-output.lua
 endif
 
 installdir = $(bindir)

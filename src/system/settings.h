@@ -625,6 +625,7 @@ struct SNeutrinoSettings
 
 	// audio
 	int audio_AnalogMode;
+	int audio_output; /* the PipeWire output of generic hardware, see audio_setup.cpp */
 	int audio_DolbyDigital;
 
 	int audiochannel_up_down_enable;

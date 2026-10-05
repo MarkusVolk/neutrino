@@ -125,6 +125,19 @@ const CMenuOptionChooser::keyval AUDIOMENU_HDMI_DD_OPTIONS[AUDIOMENU_HDMI_DD_OPT
 	{ HDMI_ENCODED_FORCED,		LOCALE_AUDIOMENU_HDMI_DD_FORCE	}
 };
 
+#if HAVE_GENERIC_HARDWARE
+#define AUDIOMENU_OUTPUT_OPTION_COUNT 6
+const CMenuOptionChooser::keyval_ext AUDIOMENU_OUTPUT_OPTIONS[AUDIOMENU_OUTPUT_OPTION_COUNT] =
+{
+	{ 0, LOCALE_AUDIOMENU_HDMI_DD_AUTO,	NULL		},
+	{ 1, NONEXISTANT_LOCALE,	"HDMI"		},
+	{ 2, NONEXISTANT_LOCALE,	"S/PDIF"	},
+	{ 3, NONEXISTANT_LOCALE,	"Analog"	},
+	{ 4, NONEXISTANT_LOCALE,	"USB"		},
+	{ 5, NONEXISTANT_LOCALE,	"Bluetooth"	}
+};
+#endif
+
 /* audio settings menu */
 int CAudioSetup::showAudioSetup()
 {
@@ -217,6 +230,11 @@ int CAudioSetup::showAudioSetup()
 	//paint items
 	audioSettings->addIntroItems(LOCALE_MAINSETTINGS_AUDIO);
 	//---------------------------------------------------------
+#if HAVE_GENERIC_HARDWARE
+	CMenuOptionChooser *as_output = new CMenuOptionChooser(LOCALE_AUDIOMENU_OUTPUT, &g_settings.audio_output, AUDIOMENU_OUTPUT_OPTIONS, AUDIOMENU_OUTPUT_OPTION_COUNT, true, audioSetupNotifier);
+	as_output->setHint("", LOCALE_MENU_HINT_AUDIO_OUTPUT);
+	audioSettings->addItem(as_output);
+#endif
 	audioSettings->addItem(as_oj_analogmode);
 	audioSettings->addItem(GenericMenuSeparatorLine);
 	//---------------------------------------------------------

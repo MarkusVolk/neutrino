@@ -743,6 +743,8 @@ int CNeutrinoApp::loadSetup(const char *fname)
 
 	// audio
 	g_settings.audio_AnalogMode = configfile.getInt32("audio_AnalogMode", 0);
+	/* HDMI on a box; under a desktop the desktop's own choice stays */
+	g_settings.audio_output = configfile.getInt32("audio_output", getenv("WAYLAND_DISPLAY") || getenv("DISPLAY") ? 0 : 1);
 	g_settings.audio_DolbyDigital = configfile.getBool("audio_DolbyDigital", true);
 
 	g_settings.audiochannel_up_down_enable = configfile.getBool("audiochannel_up_down_enable", false);
@@ -1847,6 +1849,7 @@ void CNeutrinoApp::saveSetup(const char *fname)
 
 	// audio
 	configfile.setInt32("audio_AnalogMode", g_settings.audio_AnalogMode);
+	configfile.setInt32("audio_output", g_settings.audio_output);
 	configfile.setBool("audio_DolbyDigital", g_settings.audio_DolbyDigital);
 
 	configfile.setBool("audiochannel_up_down_enable", g_settings.audiochannel_up_down_enable);
@@ -3234,6 +3237,10 @@ TIMER_START();
 #endif
 	audioDecoder->EnableAnalogOut(g_settings.analog_out ? true : false);
 	audioSetupNotifier        = new CAudioSetupNotifier;
+#if HAVE_GENERIC_HARDWARE
+	if (!getenv("WAYLAND_DISPLAY") && !getenv("DISPLAY"))
+		CAudioSetupNotifier::applyOutput();
+#endif
 	// trigger a change
 	if(g_settings.avsync != (AVSYNC_TYPE) AVSYNC_ENABLED)
 		audioSetupNotifier->changeNotify(LOCALE_AUDIOMENU_AVSYNC, NULL);
