@@ -64,6 +64,13 @@ extern cVideo *videoDecoder;
 #include "plugins.h"
 
 #include <daemonc/remotecontrol.h>
+#include <gui/channellist.h>
+#include <gui/movieplayer.h>
+#include <zapit/zapit.h>
+#if HAVE_GENERIC_HARDWARE
+#include <glfb.h>
+extern GLFramebuffer *glfb;
+#endif
 #include <gui/lua/luainstance.h>
 
 extern CPlugins *g_Plugins;
@@ -119,7 +126,7 @@ void CPlugins::scanDir(const char *dir)
 			if (plugin_ok)
 			{
 				new_plugin.pluginfile = fname;
-				if (new_plugin.type == CPlugins::P_TYPE_SCRIPT || new_plugin.terminal)
+				if (new_plugin.type == CPlugins::P_TYPE_SCRIPT || new_plugin.terminal || new_plugin.fullscreen)
 					new_plugin.pluginfile.append(".sh");
 				else if (new_plugin.type == CPlugins::P_TYPE_LUA)
 					new_plugin.pluginfile.append(".lua");
@@ -208,6 +215,7 @@ bool CPlugins::parseCfg(plugin *plugin_data)
 	plugin_data->description = "";
 	plugin_data->shellwindow = false;
 	plugin_data->terminal = false;
+	plugin_data->fullscreen = false;
 	plugin_data->hide = false;
 	plugin_data->menu_return = menu_return::RETURN_REPAINT;
 	plugin_data->type = CPlugins::P_TYPE_DISABLED;
@@ -272,6 +280,10 @@ bool CPlugins::parseCfg(plugin *plugin_data)
 		else if (cmd == "terminal")
 		{
 			plugin_data->terminal = atoi(parm);
+		}
+		else if (cmd == "fullscreen")
+		{
+			plugin_data->fullscreen = atoi(parm);
 		}
 		else if (cmd == "hide")
 		{
@@ -408,6 +420,48 @@ int CPlugins::startTerminalPlugin(int number)
 	return plugin_list[number].menu_return;
 }
 
+/*
+	A program that draws on the display itself, a game for instance: live
+	TV stops, and on generic hardware the display and the input devices
+	are given to it until it ends.
+*/
+int CPlugins::startFullscreenPlugin(int number)
+{
+	const char *script = plugin_list[number].pluginfile.c_str();
+	printf("[CPlugins] executing %s on the whole display\n", script);
+	if (!file_exists(script))
+	{
+		printf("[CPlugins] could not find %s\n", script);
+		return menu_return::RETURN_REPAINT;
+	}
+	t_channel_id channel = CZapit::getInstance()->GetCurrentChannelID();
+	g_RCInput->clearRCMsg();
+	g_RCInput->stopInput();
+	CMoviePlayerGui::getInstance().stopPlayBack();
+	g_Zapit->lockPlayBack();
+	frameBuffer->Lock();
+#if HAVE_GENERIC_HARDWARE
+	if (glfb)
+		glfb->suspend();
+#endif
+
+	my_system(2, "/bin/sh", script);
+
+#if HAVE_GENERIC_HARDWARE
+	if (glfb)
+		glfb->resume();
+#endif
+	frameBuffer->Unlock();
+	frameBuffer->paintBackground();
+	frameBuffer->blit();
+	g_Zapit->unlockPlayBack();
+	if (channel && CNeutrinoApp::getInstance()->channelList)
+		CNeutrinoApp::getInstance()->channelList->zapTo_ChannelID(channel, true);
+	g_RCInput->restartInput();
+	g_RCInput->clearRCMsg();
+	return plugin_list[number].menu_return;
+}
+
 int CPlugins::startLuaPlugin(int number)
 {
 	const char *script = plugin_list[number].pluginfile.c_str();
@@ -478,6 +532,10 @@ int CPlugins::startPlugin(int number)
 	if (plugin_list[number].terminal)
 	{
 		return startTerminalPlugin(number);
+	}
+	if (plugin_list[number].fullscreen)
+	{
+		return startFullscreenPlugin(number);
 	}
 	if (plugin_list[number].type == CPlugins::P_TYPE_SCRIPT)
 	{
