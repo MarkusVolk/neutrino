@@ -2051,6 +2051,63 @@ std::string randomFile(std::string suffix, std::string directory, unsigned int l
 	return directory + "/" + randomString(length) + "." + suffix;
 }
 
+static bool readFileContent(const std::string &name, std::string &content)
+{
+	FILE *f = fopen(name.c_str(), "rb");
+	if (!f)
+		return false;
+	char buf[32 * 1024];
+	size_t n;
+	content.clear();
+	while ((n = fread(buf, 1, sizeof(buf), f)) > 0)
+		content.append(buf, n);
+	bool ok = !ferror(f);
+	fclose(f);
+	return ok;
+}
+
+/*
+	A channel list or a programme guide that comes from the network can
+	be kept, so that it is there at the next start before the network is,
+	or without it. Whoever puts a box together decides with the directory
+	whether there is room for that: without it nothing is kept.
+*/
+std::string downloadCacheFile(const std::string &url)
+{
+	if (url.find("://") == std::string::npos || access(DOWNLOAD_CACHE_DIR, W_OK))
+		return "";
+	uint64_t hash = 0xcbf29ce484222325ULL;
+	for (size_t i = 0; i < url.size(); i++)
+		hash = (hash ^ (unsigned char)url[i]) * 0x100000001b3ULL;
+	std::string u = url;
+	std::string ext = getFileExt(u);
+	if (ext.empty() || ext.size() > 8 || ext.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789") != std::string::npos)
+		ext = "data";
+	char name[32];
+	snprintf(name, sizeof(name), "%016llx", (unsigned long long)hash);
+	return std::string(DOWNLOAD_CACHE_DIR) + "/" + name + "." + ext;
+}
+
+bool updateDownloadCache(const std::string &file, const std::string &cache_file)
+{
+	std::string fresh, kept;
+	if (!readFileContent(file, fresh) || fresh.empty())
+		return true;
+	if (readFileContent(cache_file, kept) && kept == fresh)
+		return false;
+
+	std::string tmp = cache_file + ".new";
+	FILE *f = fopen(tmp.c_str(), "wb");
+	if (!f)
+		return true;
+	bool ok = fwrite(fresh.data(), 1, fresh.size(), f) == fresh.size();
+	if (fclose(f))
+		ok = false;
+	if (!ok || rename(tmp.c_str(), cache_file.c_str()))
+		unlink(tmp.c_str());
+	return true;
+}
+
 std::string downloadUrlToRandomFile(std::string url, std::string directory, unsigned int length, unsigned int timeout)
 {
 	if (strstr(url.c_str(), "://"))

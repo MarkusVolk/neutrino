@@ -1292,13 +1292,28 @@ void CBouquetManager::loadWebchannels(int mode)
 			tmp_name = filename;
 		else
 		{
+			/* a list that was kept from the last download stands in while the network is not there */
+			std::string kept = downloadCacheFile(filename);
 			if (::downloadUrl(filename, tmp_name))
+			{
 				remove_tmp = true;
+				if (!kept.empty())
+					updateDownloadCache(tmp_name, kept);
+			}
 			else
 			{
-				ok = false;
-				fail_reason = "download";
 				sources_failed_download++;
+				remove(tmp_name.c_str());
+				if (!kept.empty() && !access(kept.c_str(), R_OK))
+				{
+					INFO("[webchannels] download failed, using the kept list for %s", filename.c_str());
+					tmp_name = kept;
+				}
+				else
+				{
+					ok = false;
+					fail_reason = "download";
+				}
 			}
 		}
 

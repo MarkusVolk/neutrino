@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <dirent.h>
 #include <string>
+#include <set>
 #include <system/helpers.h>
 
 #include <system/helpers.h>
@@ -785,6 +786,10 @@ static void readEventsFromXMLTVFile(std::string &name, int &ev_count, bool delet
 #endif
 }
 
+/* the addresses whose kept download has been read since the start */
+static std::set<std::string> xmltv_cache_read;
+static pthread_mutex_t xmltv_cache_lock = PTHREAD_MUTEX_INITIALIZER;
+
 void *insertEventsfromXMLTV(void * data)
 {
 	set_threadname(__func__);
@@ -805,17 +810,43 @@ void *insertEventsfromXMLTV(void * data)
 	{
 		readEventsFromXMLTVFile(url, ev_count, false);
 	}
-	else if (::downloadUrl(url, tmp_name))
-	{
-		if (!access(tmp_name.c_str(), R_OK))
-		{
-			readEventsFromXMLTVFile(tmp_name, ev_count, true);
-		}
-	}
 	else
 	{
-		reader_ready = true;
-		pthread_exit(NULL);
+		/*
+			The programme guide is there at once from the download
+			that was kept, also without a network. What comes from
+			the network afterwards is only read when it has changed.
+		*/
+		std::string cache_name = downloadCacheFile(url);
+		if (!cache_name.empty() && !access(cache_name.c_str(), R_OK))
+		{
+			pthread_mutex_lock(&xmltv_cache_lock);
+			bool first = xmltv_cache_read.insert(url).second;
+			pthread_mutex_unlock(&xmltv_cache_lock);
+			if (first)
+			{
+				readEventsFromXMLTVFile(cache_name, ev_count, false);
+				debug(DEBUG_NORMAL, "Read %d events kept from %s", ev_count, url.c_str());
+			}
+		}
+		if (!::downloadUrl(url, tmp_name))
+		{
+			unlink(tmp_name.c_str());
+			reader_ready = true;
+			pthread_exit(NULL);
+		}
+		if (!access(tmp_name.c_str(), R_OK))
+		{
+			if (cache_name.empty() || updateDownloadCache(tmp_name, cache_name))
+			{
+				pthread_mutex_lock(&xmltv_cache_lock);
+				xmltv_cache_read.insert(url);
+				pthread_mutex_unlock(&xmltv_cache_lock);
+				readEventsFromXMLTVFile(tmp_name, ev_count, true);
+			}
+			else
+				unlink(tmp_name.c_str());
+		}
 	}
 
 	debug(DEBUG_NORMAL, "Reading data finished after %" PRId64 " ms (%d events) from %s",
