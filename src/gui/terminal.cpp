@@ -531,7 +531,8 @@ int CTerminal::drawCell(const uint32_t *ch, size_t len, unsigned int width,
 
 	fb_pixel_t fg = pixel(attr->fr, attr->fg, attr->fb);
 	fb_pixel_t bg = pixel(attr->br, attr->bg, attr->bb);
-	if (attr->inverse != cursor)
+	/* libtsm has inverted the cell under the cursor already */
+	if (attr->inverse)
 	{
 		fb_pixel_t t = fg;
 		fg = bg;
