@@ -295,14 +295,10 @@ std::string CyhookHandler::BuildHeader(bool cache) {
 		// cache
 		if (!cache && (HookVarList["CacheCategory"]).empty())
 			result += "Cache-Control: no-cache\r\n";
-		else {
-			time_t x_time = time(NULL);
-			struct tm *ptm = gmtime(&x_time);
-			ptm->tm_mday += 1;
-			x_time = mktime(ptm);
-			strftime(timeStr, sizeof(timeStr), RFC1123FMT, gmtime(&x_time));
-			result += string_printf("Expires: %s\r\n", timeStr);
-		}
+		else
+			/* kept, but asked for again each time: a file that changed with
+			 * an update is seen at once, an unchanged one costs a 304 */
+			result += "Cache-Control: no-cache\r\n";
 		result += "Server: " WEBSERVERNAME "\r\n";
 		// actual date
 		strftime(timeStr, sizeof(timeStr), RFC1123FMT, gmtime(&timer));

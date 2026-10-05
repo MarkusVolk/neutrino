@@ -211,6 +211,6 @@ check_Y_Web_conf()
 {
 	if ! [ -e $y_config_Y_Web ]
 	then
-		echo "skin=Tuxbox"  >$y_config_Y_Web
+		echo "style=Tokyonight"  >$y_config_Y_Web
 	fi
 }
