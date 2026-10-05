@@ -193,6 +193,9 @@ void CTextKeyboard::openKeyboards()
 	closeKeyboards();
 	struct stat st;
 	inputChanged = stat("/dev/input", &st) == 0 ? st.st_mtime : 0;
+	/* under a desktop the keyboards belong to all its windows, ours gets its keys from libstb-hal */
+	if (getenv("WAYLAND_DISPLAY") || getenv("DISPLAY"))
+		return;
 	DIR *dir = opendir("/dev/input");
 	if (!dir)
 		return;

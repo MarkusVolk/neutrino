@@ -47,7 +47,8 @@ struct text_key
  * from neutrino and its keys are turned into characters with xkbcommon, in
  * the layout of /etc/vconsole.conf. A remote control stays with neutrino.
  * On generic hardware the keyboard of the window comes from libstb-hal as
- * well, for a desktop, where the devices cannot be opened. */
+ * well, for a desktop: there the devices are left alone, as taking them
+ * would take the keyboard from every other window. */
 class CTextKeyboard
 {
 	public:
