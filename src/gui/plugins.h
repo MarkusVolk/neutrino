@@ -66,6 +66,7 @@ class CPlugins
 			CPlugins::p_type_t type;
 			int integration;
 			bool shellwindow;
+			bool terminal;
 			bool hide;
 			int menu_return;
 			bool operator< (const plugin &a) const
@@ -141,6 +142,7 @@ class CPlugins
 		int startPlugin(const char *const filename);		// start plugins by filename
 		int startPlugin_by_name(const std::string &name);	// start plugins by "name=" in .cfg
 		int startScriptPlugin(int number);
+		int startTerminalPlugin(int number);
 		int popenScriptPlugin(int number, const char *script);
 		int startLuaPlugin(int number);
 		bool hasPlugin(CPlugins::p_type_t type);

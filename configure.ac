@@ -476,6 +476,18 @@ if test "$enable_iwd" = "yes" -o "$enable_bluetooth" = "yes"; then
 fi
 AM_CONDITIONAL(USE_DBUS, test "$enable_iwd" = "yes" -o "$enable_bluetooth" = "yes")
 
+AC_ARG_ENABLE(terminal,
+	AS_HELP_STRING([--enable-terminal], [run plugins with a text user interface in a terminal on the OSD @<:@default=no@:>@]),
+	[enable_terminal="$enableval"],
+	[enable_terminal="no"])
+
+if test "$enable_terminal" = "yes"; then
+	PKG_CHECK_MODULES([TSM], [libtsm])
+	PKG_CHECK_MODULES([XKBCOMMON], [xkbcommon])
+	AC_DEFINE(ENABLE_TERMINAL, 1, [run plugins with a text user interface in a terminal on the OSD])
+fi
+AM_CONDITIONAL(ENABLE_TERMINAL, test "$enable_terminal" = "yes")
+
 AC_ARG_ENABLE(freesatepg,
 	AS_HELP_STRING([--enable-freesatepg], [enable Freesat EPG code @<:@default=no@:>@]),
 	AC_DEFINE(ENABLE_FREESATEPG, 1, [enable Freesat EPG code]))

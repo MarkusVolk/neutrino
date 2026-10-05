@@ -135,6 +135,10 @@ neutrino_LDADD = \
 	-lrt -lpthread \
 	-lz
 
+if ENABLE_TERMINAL
+neutrino_LDADD += @TSM_LIBS@
+endif
+
 # LCD display
 if ENABLE_LCD
 neutrino_LDADD += $(top_builddir)/lib/liblcddisplay/liblcddisplay.a

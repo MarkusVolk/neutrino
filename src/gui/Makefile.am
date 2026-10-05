@@ -138,6 +138,12 @@ libneutrino_gui_a_SOURCES += \
 	wlan_setup.cpp
 endif
 
+if ENABLE_TERMINAL
+AM_CPPFLAGS += @TSM_CFLAGS@ @XKBCOMMON_CFLAGS@
+libneutrino_gui_a_SOURCES += \
+	terminal.cpp
+endif
+
 if ENABLE_BLUETOOTH
 libneutrino_gui_a_SOURCES += \
 	bluetooth_setup.cpp
