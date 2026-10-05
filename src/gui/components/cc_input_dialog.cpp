@@ -22,6 +22,11 @@
 #include <driver/display.h>
 #include <driver/fontrenderer.h>
 #include <driver/rcinput.h>
+#ifdef ENABLE_TERMINAL
+#include <driver/abstime.h>
+#include <driver/textkeyboard.h>
+#include <xkbcommon/xkbcommon-keysyms.h>
+#endif
 #include <gui/widget/menue.h>
 #include <gui/widget/msgbox.h>
 #include <gui/widget/stringinput.h>
@@ -828,9 +833,112 @@ int CCTextInputDialog::exec(CMenuTarget *parent, const std::string & /*actionKey
 	uint64_t timeoutEnd =
 		CRCInput::calcTimeoutEnd(g_settings.timing[SNeutrinoSettings::TIMING_MENU]);
 
+#ifdef ENABLE_TERMINAL
+	/* a keyboard types into the field, as it does on the on-screen keyboard of CKeyboardInput */
+	CTextKeyboard keyboard;
+	keyboard.open();
+#endif
+
 	bool loop = true;
 	while (loop)
 	{
+#ifdef ENABLE_TERMINAL
+		struct text_key k;
+		if (keyboard.read(k))
+		{
+			timeoutEnd = CRCInput::calcTimeoutEnd(g_settings.timing[SNeutrinoSettings::TIMING_MENU]);
+			data = 0;
+			msg = CRCInput::RC_nokey;
+			bool edited = true;
+			switch (k.keysym)
+			{
+				case XKB_KEY_Return:
+				case XKB_KEY_KP_Enter:
+					msg = CRCInput::RC_red;
+					break;
+				case XKB_KEY_Escape:
+				case XKB_KEY_Menu:
+					msg = CRCInput::RC_home;
+					break;
+				case XKB_KEY_Up:
+					msg = CRCInput::RC_up;
+					break;
+				case XKB_KEY_Down:
+					msg = CRCInput::RC_down;
+					break;
+				case XKB_KEY_Left:
+					cid_buffer.moveLeft();
+					break;
+				case XKB_KEY_Right:
+					cid_buffer.moveRight();
+					break;
+				case XKB_KEY_Home:
+					cid_buffer.moveHome();
+					break;
+				case XKB_KEY_End:
+					cid_buffer.moveEnd();
+					break;
+				case XKB_KEY_BackSpace:
+					cid_buffer.backspace();
+					break;
+				case XKB_KEY_Delete:
+					cid_buffer.erase();
+					break;
+				default:
+					edited = false;
+					if (k.unicode >= 0x20 && k.unicode != 0x7f && !(k.mods & (TEXT_KEY_CTRL | TEXT_KEY_ALT)))
+					{
+						std::string glyph;
+						uint32_t c = k.unicode;
+						if (c < 0x80)
+							glyph += (char)c;
+						else if (c < 0x800)
+						{
+							glyph += (char)(0xc0 | (c >> 6));
+							glyph += (char)(0x80 | (c & 0x3f));
+						}
+						else if (c < 0x10000)
+						{
+							glyph += (char)(0xe0 | (c >> 12));
+							glyph += (char)(0x80 | ((c >> 6) & 0x3f));
+							glyph += (char)(0x80 | (c & 0x3f));
+						}
+						else
+						{
+							glyph += (char)(0xf0 | (c >> 18));
+							glyph += (char)(0x80 | ((c >> 12) & 0x3f));
+							glyph += (char)(0x80 | ((c >> 6) & 0x3f));
+							glyph += (char)(0x80 | (c & 0x3f));
+						}
+						if (!cid_buffer.insert(glyph))
+							showMaxCharsError();
+						edited = true;
+					}
+					break;
+			}
+			if (msg == CRCInput::RC_nokey)
+			{
+				if (edited)
+				{
+					/* what is typed belongs to the field, also while the keys on the screen had the focus */
+					if (cid_keyboard && cid_keyboard->hasKeyFocus())
+						setFieldFocus(true);
+					cid_field->setErrorState(false);
+					clearInlineError();
+					refreshField();
+				}
+				continue;
+			}
+		}
+		else if (timeoutEnd > time_monotonic_us() + 50000)
+		{
+			/* short waits, so that the keyboard is read in between */
+			g_RCInput->getMsg_us(&msg, &data, 50000, true);
+			if (msg == CRCInput::RC_timeout)
+				continue;
+		}
+		else
+#endif
 		g_RCInput->getMsgAbsoluteTimeout(&msg, &data, &timeoutEnd, true);
 
 		if (msg <= CRCInput::RC_MaxRC)

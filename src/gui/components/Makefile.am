@@ -50,3 +50,7 @@ libneutrino_gui_components_a_SOURCES = \
 	cc_item_tvpic.cpp \
 	cc_timer.cpp\
 	cc_types.cpp
+
+if ENABLE_TERMINAL
+AM_CPPFLAGS += @XKBCOMMON_CFLAGS@
+endif
