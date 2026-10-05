@@ -467,20 +467,73 @@ bool CTerminal::drawShape(uint32_t c, int px, int py, int w, uint32_t fg, uint32
 		case 0x2580:
 			frameBuffer->paintBoxRel(px, py, w, h / 2, fg);
 			return true;
-		case 0x2584:
-			frameBuffer->paintBoxRel(px, py + h / 2, w, h - h / 2, fg);
-			return true;
 		case 0x2588:
 			frameBuffer->paintBoxRel(px, py, w, h, fg);
-			return true;
-		case 0x258c:
-			frameBuffer->paintBoxRel(px, py, w / 2, h, fg);
 			return true;
 		case 0x2590:
 			frameBuffer->paintBoxRel(px + w / 2, py, w - w / 2, h, fg);
 			return true;
+		case 0x2591: case 0x2592: case 0x2593:
+			frameBuffer->paintBoxRel(px, py, w, h, mix(bg, fg, (c - 0x2590) / 4.0f));
+			return true;
+		case 0x2594:
+			frameBuffer->paintBoxRel(px, py, w, h / 8 > 0 ? h / 8 : 1, fg);
+			return true;
+		case 0x2595:
+			frameBuffer->paintBoxRel(px + w - (w / 8 > 0 ? w / 8 : 1), py, w / 8 > 0 ? w / 8 : 1, h, fg);
+			return true;
 		default:
 			break;
+	}
+
+	/* lower eighths, ▁ to ▇, and left eighths, ▉ to ▏, as graphs and bars use them */
+	if (c >= 0x2581 && c <= 0x2587)
+	{
+		int part = h * (int)(c - 0x2580) / 8;
+		frameBuffer->paintBoxRel(px, py + h - part, w, part, fg);
+		return true;
+	}
+	if (c >= 0x2589 && c <= 0x258f)
+	{
+		int part = w * (int)(0x2590 - c) / 8;
+		frameBuffer->paintBoxRel(px, py, part > 0 ? part : 1, h, fg);
+		return true;
+	}
+
+	/* quadrants, ▖ to ▟: upper left, upper right, lower left, lower right */
+	static const unsigned char quadrants[] = { 4, 8, 1, 13, 9, 7, 11, 2, 6, 14 };
+	if (c >= 0x2596 && c <= 0x259f)
+	{
+		int q = quadrants[c - 0x2596];
+		int hw = w / 2, hh = h / 2;
+		if (q & 1)
+			frameBuffer->paintBoxRel(px, py, hw, hh, fg);
+		if (q & 2)
+			frameBuffer->paintBoxRel(px + hw, py, w - hw, hh, fg);
+		if (q & 4)
+			frameBuffer->paintBoxRel(px, py + hh, hw, h - hh, fg);
+		if (q & 8)
+			frameBuffer->paintBoxRel(px + hw, py + hh, w - hw, h - hh, fg);
+		return true;
+	}
+
+	/* braille, two columns of four dots, as btop draws its graphs with them */
+	if (c >= 0x2800 && c <= 0x28ff)
+	{
+		static const int dot_col[8] = { 0, 0, 0, 1, 1, 1, 0, 1 };
+		static const int dot_row[8] = { 0, 1, 2, 0, 1, 2, 3, 3 };
+		int bits = c - 0x2800;
+		for (int i = 0; i < 8; i++)
+		{
+			if (!(bits & (1 << i)))
+				continue;
+			int x0 = px + w * dot_col[i] / 2;
+			int x1 = px + w * (dot_col[i] + 1) / 2;
+			int y0 = py + h * dot_row[i] / 4;
+			int y1 = py + h * (dot_row[i] + 1) / 4;
+			frameBuffer->paintBoxRel(x0, y0, x1 - x0, y1 - y0, fg);
+		}
+		return true;
 	}
 
 	enum { U = 1, D = 2, L = 4, R = 8, HEAVY = 16 };
