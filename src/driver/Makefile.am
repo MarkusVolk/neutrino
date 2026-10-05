@@ -53,6 +53,12 @@ libneutrino_driver_a_SOURCES = \
 	streamts.cpp \
 	volume.cpp
 
+if ENABLE_TERMINAL
+AM_CPPFLAGS += @XKBCOMMON_CFLAGS@
+libneutrino_driver_a_SOURCES += \
+	textkeyboard.cpp
+endif
+
 if ENABLE_LCD
 AM_CPPFLAGS += -I$(top_srcdir)/lib/liblcddisplay
 endif

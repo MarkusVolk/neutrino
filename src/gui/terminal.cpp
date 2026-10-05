@@ -41,7 +41,7 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <linux/input.h>
-#include <xkbcommon/xkbcommon.h>
+#include <xkbcommon/xkbcommon-keysyms.h>
 #include <vector>
 
 #include <global.h>
@@ -51,14 +51,11 @@
 #include <driver/framebuffer.h>
 #include <driver/neutrinofonts.h>
 #include <driver/rcinput.h>
+#include <driver/textkeyboard.h>
 #include <gui/infoviewer.h>
 #include <gui/terminal.h>
 #include <gui/widget/keyboard_input.h>
 
-#if HAVE_GENERIC_HARDWARE
-#include <glfb.h>
-extern GLFramebuffer *glfb;
-#endif
 
 extern std::string font_file_monospace;
 
@@ -101,11 +98,6 @@ CTerminal::CTerminal(const std::string &Program)
 	vte = NULL;
 	pid = -1;
 	master = -1;
-	keys[0] = keys[1] = -1;
-	inputChanged = 0;
-	xkbContext = NULL;
-	xkbKeymap = NULL;
-	xkbState = NULL;
 	layoutShown = 0;
 	x = y = cols = rows = cellWidth = cellHeight = 0;
 	age = 0;
@@ -120,13 +112,6 @@ CTerminal::~CTerminal()
 		tsm_vte_unref(vte);
 	if (screen)
 		tsm_screen_unref(screen);
-	closeKeyboards();
-	if (xkbState)
-		xkb_state_unref(xkbState);
-	if (xkbKeymap)
-		xkb_keymap_unref(xkbKeymap);
-	if (xkbContext)
-		xkb_context_unref(xkbContext);
 	delete font;
 	delete fontRenderer;
 }
@@ -292,280 +277,31 @@ bool CTerminal::readOutput()
 	}
 }
 
-#if HAVE_GENERIC_HARDWARE
-static uint32_t keysym(uint32_t code, uint32_t mods)
-{
-	switch (code)
-	{
-		case KEY_ENTER:		return XKB_KEY_Return;
-		case KEY_ESC:		return XKB_KEY_Escape;
-		case KEY_BACKSPACE:	return XKB_KEY_BackSpace;
-		case KEY_TAB:		return (mods & GLFB_MOD_SHIFT) ? XKB_KEY_ISO_Left_Tab : XKB_KEY_Tab;
-		case KEY_UP:		return XKB_KEY_Up;
-		case KEY_DOWN:		return XKB_KEY_Down;
-		case KEY_LEFT:		return XKB_KEY_Left;
-		case KEY_RIGHT:		return XKB_KEY_Right;
-		case KEY_HOME:		return XKB_KEY_Home;
-		case KEY_END:		return XKB_KEY_End;
-		case KEY_PAGEUP:	return XKB_KEY_Prior;
-		case KEY_PAGEDOWN:	return XKB_KEY_Next;
-		case KEY_INSERT:	return XKB_KEY_Insert;
-		case KEY_DELETE:	return XKB_KEY_Delete;
-		case KEY_F1:		return XKB_KEY_F1;
-		case KEY_F2:		return XKB_KEY_F2;
-		case KEY_F3:		return XKB_KEY_F3;
-		case KEY_F4:		return XKB_KEY_F4;
-		case KEY_F5:		return XKB_KEY_F5;
-		case KEY_F6:		return XKB_KEY_F6;
-		case KEY_F7:		return XKB_KEY_F7;
-		case KEY_F8:		return XKB_KEY_F8;
-		case KEY_F9:		return XKB_KEY_F9;
-		case KEY_F10:		return XKB_KEY_F10;
-		case KEY_F11:		return XKB_KEY_F11;
-		case KEY_F12:		return XKB_KEY_F12;
-		default:		return XKB_KEY_NoSymbol;
-	}
-}
-#endif
-
-void CTerminal::readKeys()
-{
-#if HAVE_GENERIC_HARDWARE
-	struct glfb_term_key k;
-	while (read(keys[0], &k, sizeof(k)) == sizeof(k))
-	{
-		unsigned int mods = 0;
-		if (k.mods & GLFB_MOD_SHIFT)
-			mods |= TSM_SHIFT_MASK;
-		if (k.mods & GLFB_MOD_CTRL)
-			mods |= TSM_CONTROL_MASK;
-		if (k.mods & GLFB_MOD_ALT)
-			mods |= TSM_ALT_MASK;
-		if (k.code)
-		{
-			uint32_t sym = keysym(k.code, k.mods);
-			if (sym != XKB_KEY_NoSymbol)
-				tsm_vte_handle_keyboard(vte, sym, TSM_VTE_INVALID, mods, TSM_VTE_INVALID);
-		}
-		else if (k.unicode < 0x80)
-			tsm_vte_handle_keyboard(vte, k.unicode, k.unicode, mods, k.unicode);
-		else
-			tsm_vte_handle_keyboard(vte, 0x01000000 | k.unicode, TSM_VTE_INVALID, mods, k.unicode);
-	}
-#endif
-}
-
-/* the layout switched to last, for the next keyboard and the next terminal */
-static xkb_layout_index_t layoutIndex = 0;
-
-static bool has_key(const unsigned long *bits, int key)
-{
-	const int n = 8 * sizeof(long);
-	return bits[key / n] & (1UL << (key % n));
-}
-
-/* a full keyboard has letters, space and shift. A remote control has not,
- * so it stays with neutrino and its menu key still ends the terminal. */
-static bool is_keyboard(int fd)
-{
-	unsigned long bits[KEY_MAX / (8 * sizeof(long)) + 1];
-	memset(bits, 0, sizeof(bits));
-	if (ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(bits)), bits) < 0)
-		return false;
-	for (int k = KEY_Q; k <= KEY_P; k++)
-		if (!has_key(bits, k))
-			return false;
-	for (int k = KEY_A; k <= KEY_L; k++)
-		if (!has_key(bits, k))
-			return false;
-	for (int k = KEY_Z; k <= KEY_M; k++)
-		if (!has_key(bits, k))
-			return false;
-	return has_key(bits, KEY_SPACE) && has_key(bits, KEY_LEFTSHIFT);
-}
-
-static std::string vconsole(const char *key)
-{
-	FILE *f = fopen("/etc/vconsole.conf", "r");
-	if (!f)
-		return "";
-	std::string value;
-	char line[256];
-	size_t len = strlen(key);
-	while (fgets(line, sizeof(line), f))
-	{
-		if (strncmp(line, key, len) || line[len] != '=')
-			continue;
-		value = line + len + 1;
-		value.erase(value.find_last_not_of(" \t\r\n\"'") + 1);
-		value.erase(0, value.find_first_not_of(" \t\"'"));
-	}
-	fclose(f);
-	return value;
-}
-
-/* the layout of the console, as systemd keeps it in vconsole.conf */
-bool CTerminal::setupKeymap()
-{
-	if (xkbState)
-		return true;
-	if (!xkbContext)
-		xkbContext = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-	if (!xkbContext)
-		return false;
-	std::string layout = vconsole("XKBLAYOUT");
-	std::string variant = vconsole("XKBVARIANT");
-	std::string model = vconsole("XKBMODEL");
-	std::string options = vconsole("XKBOPTIONS");
-	if (layout.empty())
-	{
-		layout = vconsole("KEYMAP");
-		layout = layout.substr(0, layout.find('-'));
-	}
-	struct xkb_rule_names names;
-	memset(&names, 0, sizeof(names));
-	names.layout = layout.empty() ? NULL : layout.c_str();
-	names.variant = variant.empty() ? NULL : variant.c_str();
-	names.model = model.empty() ? NULL : model.c_str();
-	names.options = options.empty() ? NULL : options.c_str();
-	xkbKeymap = xkb_keymap_new_from_names(xkbContext, &names, XKB_KEYMAP_COMPILE_NO_FLAGS);
-	if (!xkbKeymap)
-	{
-		memset(&names, 0, sizeof(names));
-		xkbKeymap = xkb_keymap_new_from_names(xkbContext, &names, XKB_KEYMAP_COMPILE_NO_FLAGS);
-	}
-	if (!xkbKeymap)
-		return false;
-	xkbState = xkb_state_new(xkbKeymap);
-	for (size_t start = 0; start <= layout.size(); )
-	{
-		size_t end = layout.find(',', start);
-		if (end == std::string::npos)
-			end = layout.size();
-		std::string name = layout.substr(start, end - start);
-		for (size_t i = 0; i < name.size(); i++)
-			name[i] = toupper((unsigned char)name[i]);
-		layouts.push_back(name);
-		start = end + 1;
-	}
-	printf("[terminal] keyboard layout %s\n", layout.empty() ? "default" : layout.c_str());
-	return xkbState != NULL;
-}
-
-void CTerminal::openKeyboards()
-{
-	closeKeyboards();
-	struct stat st;
-	inputChanged = stat("/dev/input", &st) == 0 ? st.st_mtime : 0;
-	DIR *dir = opendir("/dev/input");
-	if (!dir)
-		return;
-	struct dirent *d;
-	while ((d = readdir(dir)) != NULL)
-	{
-		if (strncmp(d->d_name, "event", 5))
-			continue;
-		std::string path = std::string("/dev/input/") + d->d_name;
-		int fd = open(path.c_str(), O_RDONLY | O_NONBLOCK | O_CLOEXEC);
-		if (fd < 0)
-			continue;
-		if (!is_keyboard(fd) || ioctl(fd, EVIOCGRAB, 1) < 0)
-		{
-			close(fd);
-			continue;
-		}
-		keyboards.push_back(fd);
-	}
-	closedir(dir);
-	if (!keyboards.empty() && !setupKeymap())
-	{
-		printf("[terminal] no keymap\n");
-		closeKeyboards();
-	}
-	if (xkbState)
-	{
-		/* no modifier stays held from before, the layout chosen last does */
-		xkb_state_unref(xkbState);
-		xkbState = xkb_state_new(xkbKeymap);
-		if (xkbState)
-			xkb_state_update_mask(xkbState, 0, 0, 0, 0, 0, layoutIndex);
-	}
-	/* modifiers that are held right now count, the others do not */
-	static const int modifiers[] = { KEY_LEFTSHIFT, KEY_RIGHTSHIFT, KEY_LEFTCTRL, KEY_RIGHTCTRL,
-					 KEY_LEFTALT, KEY_RIGHTALT, KEY_LEFTMETA, KEY_RIGHTMETA };
-	for (size_t i = 0; xkbState && i < keyboards.size(); i++)
-	{
-		unsigned long held[KEY_MAX / (8 * sizeof(long)) + 1];
-		memset(held, 0, sizeof(held));
-		if (ioctl(keyboards[i], EVIOCGKEY(sizeof(held)), held) < 0)
-			continue;
-		for (size_t m = 0; m < sizeof(modifiers) / sizeof(modifiers[0]); m++)
-			if (has_key(held, modifiers[m]))
-				xkb_state_update_key(xkbState, modifiers[m] + 8, XKB_KEY_DOWN);
-	}
-	printf("[terminal] %d keyboards\n", (int)keyboards.size());
-}
-
-void CTerminal::closeKeyboards()
-{
-	for (size_t i = 0; i < keyboards.size(); i++)
-	{
-		ioctl(keyboards[i], EVIOCGRAB, 0);
-		close(keyboards[i]);
-	}
-	keyboards.clear();
-}
-
 /* false for the menu key, which ends the terminal as on the remote control */
-bool CTerminal::readKeyboards()
+bool CTerminal::readKeyboard()
 {
-	struct stat st;
-	if (stat("/dev/input", &st) == 0 && st.st_mtime != inputChanged)
-		openKeyboards();
-	struct input_event ev;
-	for (size_t i = 0; i < keyboards.size(); i++)
+	struct text_key k;
+	while (keyboard.read(k))
 	{
-		while (read(keyboards[i], &ev, sizeof(ev)) == sizeof(ev))
-		{
-			if (ev.type != EV_KEY || !xkbState)
-				continue;
-			if (ev.code == KEY_MENU)
-			{
-				if (ev.value == 1)
-					return false;
-				continue;
-			}
-			xkb_keycode_t kc = ev.code + 8;
-			if (ev.value == 0)
-			{
-				xkb_state_update_key(xkbState, kc, XKB_KEY_UP);
-				continue;
-			}
-			if (ev.value == 1)
-			{
-				xkb_state_update_key(xkbState, kc, XKB_KEY_DOWN);
-				xkb_layout_index_t now = xkb_state_serialize_layout(xkbState, XKB_STATE_LAYOUT_EFFECTIVE);
-				if (now != layoutIndex)
-				{
-					layoutIndex = now;
-					layoutShown = time_monotonic_ms() + 1500;
-				}
-			}
-			xkb_keysym_t sym = xkb_state_key_get_one_sym(xkbState, kc);
-			if (sym == XKB_KEY_NoSymbol)
-				continue;
-			unsigned int mods = 0;
-			if (xkb_state_mod_name_is_active(xkbState, XKB_MOD_NAME_SHIFT, XKB_STATE_MODS_EFFECTIVE) > 0)
-				mods |= TSM_SHIFT_MASK;
-			if (xkb_state_mod_name_is_active(xkbState, XKB_MOD_NAME_CTRL, XKB_STATE_MODS_EFFECTIVE) > 0)
-				mods |= TSM_CONTROL_MASK;
-			if (xkb_state_mod_name_is_active(xkbState, XKB_MOD_NAME_ALT, XKB_STATE_MODS_EFFECTIVE) > 0)
-				mods |= TSM_ALT_MASK;
-			if (xkb_state_mod_name_is_active(xkbState, XKB_MOD_NAME_LOGO, XKB_STATE_MODS_EFFECTIVE) > 0)
-				mods |= TSM_LOGO_MASK;
-			uint32_t uc = xkb_keysym_to_utf32(sym);
-			tsm_vte_handle_keyboard(vte, sym, uc && uc < 0x80 ? uc : TSM_VTE_INVALID, mods, uc ? uc : TSM_VTE_INVALID);
-		}
+		if (k.keysym == XKB_KEY_Menu)
+			return false;
+		unsigned int mods = 0;
+		if (k.mods & TEXT_KEY_SHIFT)
+			mods |= TSM_SHIFT_MASK;
+		if (k.mods & TEXT_KEY_CTRL)
+			mods |= TSM_CONTROL_MASK;
+		if (k.mods & TEXT_KEY_ALT)
+			mods |= TSM_ALT_MASK;
+		if (k.mods & TEXT_KEY_LOGO)
+			mods |= TSM_LOGO_MASK;
+		tsm_vte_handle_keyboard(vte, k.keysym, k.unicode && k.unicode < 0x80 ? k.unicode : TSM_VTE_INVALID,
+					mods, k.unicode ? k.unicode : TSM_VTE_INVALID);
+	}
+	std::string name = keyboard.switchedLayout();
+	if (!name.empty())
+	{
+		layoutName = name;
+		layoutShown = time_monotonic_ms() + 1500;
 	}
 	return true;
 }
@@ -574,18 +310,10 @@ bool CTerminal::readKeyboards()
 void CTerminal::typeText()
 {
 	std::string text;
-	closeKeyboards();
-#if HAVE_GENERIC_HARDWARE
-	if (glfb)
-		glfb->setTerminalFd(-1);
-#endif
+	keyboard.close();
 	CKeyboardInput input(std::string("Terminal"), &text, 255, NULL, NULL, std::string("OK sends the text to the program"), std::string(""));
 	input.exec(NULL, "");
-#if HAVE_GENERIC_HARDWARE
-	if (glfb && keys[1] >= 0)
-		glfb->setTerminalFd(keys[1]);
-#endif
-	openKeyboards();
+	keyboard.open();
 	g_RCInput->clearRCMsg();
 	repaint();
 	if (!text.empty())
@@ -832,12 +560,7 @@ int CTerminal::drawCell(const uint32_t *ch, size_t len, unsigned int width,
 /* the layout Alt+Shift switched to, in the top right corner for a moment */
 void CTerminal::drawLayout()
 {
-	std::string name = layoutIndex < layouts.size() ? layouts[layoutIndex] : "";
-	if (name.empty())
-	{
-		const char *n = xkbKeymap ? xkb_keymap_layout_get_name(xkbKeymap, layoutIndex) : NULL;
-		name = n ? n : "?";
-	}
+	std::string name = layoutName;
 	int w = font->getRenderWidth(name.c_str()) + 2 * cellWidth;
 	int h = cellHeight * 3 / 2;
 	int bx = x + cols * cellWidth - w - cellWidth;
@@ -883,11 +606,9 @@ void CTerminal::waitForKey()
 			return;
 		if (msg > CRCInput::RC_MaxRC && msg != CRCInput::RC_timeout)
 			CNeutrinoApp::getInstance()->handleMsg(msg, data);
-#if HAVE_GENERIC_HARDWARE
-		struct glfb_term_key k;
-		if (read(keys[0], &k, sizeof(k)) == sizeof(k))
+		struct text_key k;
+		if (keyboard.read(k))
 			return;
-#endif
 	}
 }
 
@@ -909,19 +630,9 @@ int CTerminal::exec()
 	tsm_vte_set_backspace_sends_delete(vte, true);
 	tsm_vte_set_custom_palette(vte, palette);
 	tsm_vte_set_palette(vte, "custom");
-	if (pipe2(keys, O_CLOEXEC | O_NONBLOCK))
-		keys[0] = keys[1] = -1;
 	if (!start())
-	{
-		close(keys[0]);
-		close(keys[1]);
 		return -1;
-	}
-#if HAVE_GENERIC_HARDWARE
-	if (glfb && keys[1] >= 0)
-		glfb->setTerminalFd(keys[1]);
-#endif
-	openKeyboards();
+	keyboard.open();
 	if (g_InfoViewer)
 		g_InfoViewer->killTitle();
 	g_RCInput->clearRCMsg();
@@ -932,8 +643,7 @@ int CTerminal::exec()
 	{
 		if (!readOutput())
 			break;
-		readKeys();
-		if (!readKeyboards())
+		if (!readKeyboard())
 		{
 			running = false;
 			break;
@@ -975,7 +685,6 @@ int CTerminal::exec()
 		}
 	}
 
-	closeKeyboards();
 	bool ended = running;
 	if (ended)
 	{
@@ -992,14 +701,8 @@ int CTerminal::exec()
 			waitForKey();
 		}
 	}
+	keyboard.close();
 	stop(&status);
-#if HAVE_GENERIC_HARDWARE
-	if (glfb)
-		glfb->setTerminalFd(-1);
-#endif
-	close(keys[0]);
-	close(keys[1]);
-	keys[0] = keys[1] = -1;
 	g_RCInput->clearRCMsg();
 	frameBuffer->paintBackground();
 	frameBuffer->blit();

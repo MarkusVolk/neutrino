@@ -41,6 +41,11 @@
 
 #include <system/helpers.h>
 #include "keyboard_input.h"
+#ifdef ENABLE_TERMINAL
+#include <driver/abstime.h>
+#include <driver/textkeyboard.h>
+#include <xkbcommon/xkbcommon-keysyms.h>
+#endif
 #include "keyboard_keys.h"
 
 std::string UTF8ToString(const char * &text)
@@ -521,6 +526,113 @@ void CKeyboardInput::insertChar()
 	changed = true;
 }
 
+/* a character typed on a keyboard goes in at the cursor */
+void CKeyboardInput::typeChar(const std::string &c)
+{
+	if (focus == FOCUS_KEY)
+	{
+		focus = FOCUS_STRING;
+		paintKey(srow, scol);
+	}
+	insertChar();
+	inputString->at(selected) = c;
+	if (selected < (inputSize - 1))
+	{
+		selected++;
+		paintChar(selected - 1);
+	}
+	paintChar(selected);
+	changed = true;
+}
+
+#ifdef ENABLE_TERMINAL
+static std::string utf8(uint32_t c)
+{
+	std::string s;
+	if (c < 0x80)
+		s += (char)c;
+	else if (c < 0x800)
+	{
+		s += (char)(0xc0 | (c >> 6));
+		s += (char)(0x80 | (c & 0x3f));
+	}
+	else if (c < 0x10000)
+	{
+		s += (char)(0xe0 | (c >> 12));
+		s += (char)(0x80 | ((c >> 6) & 0x3f));
+		s += (char)(0x80 | (c & 0x3f));
+	}
+	else
+	{
+		s += (char)(0xf0 | (c >> 18));
+		s += (char)(0x80 | ((c >> 12) & 0x3f));
+		s += (char)(0x80 | ((c >> 6) & 0x3f));
+		s += (char)(0x80 | (c & 0x3f));
+	}
+	return s;
+}
+#endif
+
+/* a key of a keyboard: the editing keys work on the text, Enter saves and
+ * Escape leaves as the remote control's keys do; RC_nokey when it is done */
+neutrino_msg_t CKeyboardInput::typedKey(const struct text_key &k)
+{
+#ifdef ENABLE_TERMINAL
+	switch (k.keysym)
+	{
+		case XKB_KEY_Return:
+		case XKB_KEY_KP_Enter:
+			return CRCInput::RC_red;
+		case XKB_KEY_Escape:
+		case XKB_KEY_Menu:
+			return CRCInput::RC_home;
+		case XKB_KEY_Up:
+			return CRCInput::RC_up;
+		case XKB_KEY_Down:
+			return CRCInput::RC_down;
+		case XKB_KEY_Left:
+		case XKB_KEY_Right:
+			if (focus == FOCUS_KEY)
+			{
+				focus = FOCUS_STRING;
+				paintKey(srow, scol);
+				paintChar(selected);
+			}
+			if (k.keysym == XKB_KEY_Left)
+				keyLeftPressed();
+			else
+				keyRightPressed();
+			return CRCInput::RC_nokey;
+		case XKB_KEY_Home:
+		case XKB_KEY_End:
+		{
+			int old = selected;
+			selected = 0;
+			if (k.keysym == XKB_KEY_End)
+				for (int i = 0; i < inputSize; i++)
+					if (inputString->at(i) != " ")
+						selected = (i + 1 < inputSize) ? i + 1 : i;
+			paintChar(old);
+			paintChar(selected);
+			return CRCInput::RC_nokey;
+		}
+		case XKB_KEY_BackSpace:
+			keyBackspacePressed();
+			return CRCInput::RC_nokey;
+		case XKB_KEY_Delete:
+			deleteChar();
+			return CRCInput::RC_nokey;
+		default:
+			break;
+	}
+	if (k.unicode >= 0x20 && k.unicode != 0x7f && !(k.mods & (TEXT_KEY_CTRL | TEXT_KEY_ALT)))
+		typeChar(utf8(k.unicode));
+#else
+	(void)k;
+#endif
+	return CRCInput::RC_nokey;
+}
+
 void CKeyboardInput::forceSaveScreen(bool enable)
 {
 	force_saveScreen = enable;
@@ -559,6 +671,11 @@ int CKeyboardInput::exec(CMenuTarget* parent, const std::string &)
 
 	uint64_t timeoutEnd = CRCInput::calcTimeoutEnd(g_settings.timing[SNeutrinoSettings::TIMING_MENU]);
 
+#ifdef ENABLE_TERMINAL
+	CTextKeyboard keyboard;
+	keyboard.open();
+#endif
+
 	bool loop=true;
 	while (loop)
 	{
@@ -570,6 +687,25 @@ int CKeyboardInput::exec(CMenuTarget* parent, const std::string &)
 			cGLCD::lockChannel(inputString->c_str(), "", 0);
 #endif
 		}
+#ifdef ENABLE_TERMINAL
+		struct text_key k;
+		if (keyboard.read(k))
+		{
+			timeoutEnd = CRCInput::calcTimeoutEnd(g_settings.timing[SNeutrinoSettings::TIMING_MENU]);
+			msg = typedKey(k);
+			data = 0;
+			if (msg == CRCInput::RC_nokey)
+				continue;
+		}
+		else if (timeoutEnd > time_monotonic_us() + 50000)
+		{
+			/* short waits, so that the keyboard is read in between */
+			g_RCInput->getMsg_us(&msg, &data, 50000, true);
+			if (msg == CRCInput::RC_timeout)
+				continue;
+		}
+		else
+#endif
 		g_RCInput->getMsgAbsoluteTimeout(&msg, &data, &timeoutEnd, true);
 
 		if (msg <= CRCInput::RC_MaxRC)
@@ -626,8 +762,14 @@ int CKeyboardInput::exec(CMenuTarget* parent, const std::string &)
 		}
 		else if (CNeutrinoApp::getInstance()->backKey(msg) || (msg == CRCInput::RC_timeout))
 		{
+#ifdef ENABLE_TERMINAL
+			keyboard.close();
+#endif
 			if ((inputString->getValue() != oldval) &&
 					(ShowMsg(title, LOCALE_MESSAGEBOX_DISCARD, CMsgBox::mbrYes, CMsgBox::mbYes | CMsgBox::mbCancel) == CMsgBox::mbrCancel)) {
+#ifdef ENABLE_TERMINAL
+				keyboard.open();
+#endif
 				timeoutEnd = CRCInput::calcTimeoutEnd(g_settings.timing[SNeutrinoSettings::TIMING_MENU]);
 				continue;
 			}

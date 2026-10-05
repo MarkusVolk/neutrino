@@ -26,10 +26,8 @@
 #include <vector>
 #include <time.h>
 #include <libtsm.h>
+#include <driver/textkeyboard.h>
 
-struct xkb_context;
-struct xkb_keymap;
-struct xkb_state;
 class CFrameBuffer;
 class FBFontRenderClass;
 class Font;
@@ -52,13 +50,8 @@ class CTerminal
 		struct tsm_vte *vte;
 		pid_t pid;
 		int master;
-		int keys[2];
-		std::vector<int> keyboards; /* taken from neutrino while the terminal is open */
-		time_t inputChanged;
-		struct xkb_context *xkbContext;
-		struct xkb_keymap *xkbKeymap;
-		struct xkb_state *xkbState;
-		std::vector<std::string> layouts;
+		CTextKeyboard keyboard;
+		std::string layoutName;
 		int64_t layoutShown; /* until when the layout switched to is shown */
 		int x, y, cols, rows, cellWidth, cellHeight;
 		tsm_age_t age;
@@ -70,12 +63,8 @@ class CTerminal
 		bool start();
 		void stop(int *status);
 		bool readOutput();
-		void readKeys();
-		bool setupKeymap();
-		void openKeyboards();
-		void closeKeyboards();
-		bool readKeyboards();
 		void drawLayout();
+		bool readKeyboard();
 		bool rcKey(uint32_t msg);
 		void typeText();
 		void draw();

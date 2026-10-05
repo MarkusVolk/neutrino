@@ -34,6 +34,8 @@
 #include "keyboard_layout.h"
 
 class CFrameBuffer;
+struct text_key;
+
 class CInputString
 {
 	private:
@@ -116,6 +118,8 @@ class CKeyboardInput : public CMenuTarget,  public sigc::trackable
 		void insertChar();
 		void deleteChar();
 		void keyBackspacePressed();
+		void typeChar(const std::string &c);
+		neutrino_msg_t typedKey(const struct text_key &k);
 		void switchLayout();
 		void setLayout();
 
