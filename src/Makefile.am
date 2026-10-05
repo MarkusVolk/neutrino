@@ -136,7 +136,7 @@ neutrino_LDADD = \
 	-lz
 
 if ENABLE_TERMINAL
-neutrino_LDADD += @TSM_LIBS@
+neutrino_LDADD += @TSM_LIBS@ @XKBCOMMON_LIBS@
 endif
 
 # LCD display
