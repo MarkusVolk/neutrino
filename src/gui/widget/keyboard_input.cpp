@@ -586,6 +586,15 @@ neutrino_msg_t CKeyboardInput::typedKey(const struct text_key &k)
 		case XKB_KEY_Escape:
 		case XKB_KEY_Menu:
 			return CRCInput::RC_home;
+		/* the color keys, as a keyboard has them where it is read as a remote control */
+		case XKB_KEY_F1:
+			return CRCInput::RC_red;
+		case XKB_KEY_F2:
+			return CRCInput::RC_green;
+		case XKB_KEY_F3:
+			return CRCInput::RC_yellow;
+		case XKB_KEY_F4:
+			return CRCInput::RC_blue;
 		case XKB_KEY_Up:
 			return CRCInput::RC_up;
 		case XKB_KEY_Down:
@@ -749,8 +758,14 @@ int CKeyboardInput::exec(CMenuTarget* parent, const std::string &)
 		}
 		else if (msg == CRCInput::RC_ok)
 		{
+			/* on the keys OK types, in the text it confirms like red */
 			if (focus == FOCUS_KEY)
 				NormalKeyPressed();
+			else
+			{
+				msg = CRCInput::RC_red;
+				loop = false;
+			}
 		}
 		else if (msg == CRCInput::RC_setup)
 		{

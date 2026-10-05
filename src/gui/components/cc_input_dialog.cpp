@@ -860,6 +860,18 @@ int CCTextInputDialog::exec(CMenuTarget *parent, const std::string & /*actionKey
 				case XKB_KEY_Menu:
 					msg = CRCInput::RC_home;
 					break;
+				case XKB_KEY_F1:
+					msg = CRCInput::RC_red;
+					break;
+				case XKB_KEY_F2:
+					msg = CRCInput::RC_green;
+					break;
+				case XKB_KEY_F3:
+					msg = CRCInput::RC_yellow;
+					break;
+				case XKB_KEY_F4:
+					msg = CRCInput::RC_blue;
+					break;
 				case XKB_KEY_Up:
 					msg = CRCInput::RC_up;
 					break;
