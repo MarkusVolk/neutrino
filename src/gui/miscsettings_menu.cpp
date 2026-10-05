@@ -718,6 +718,15 @@ int CMiscMenue::showMiscSettingsMenuOnlineServices()
 	ms_oservices->addItem(mf_yt);
 #endif
 
+#ifdef ENABLE_ASSISTANT
+	ms_oservices->addItem(GenericMenuSeparator);
+
+	// assistant
+	CMenuOptionChooser *assistant_onoff = new CMenuOptionChooser(LOCALE_ASSISTANT_ENABLED, &g_settings.assistant_enabled, OPTIONS_OFF0_ON1_OPTIONS, OPTIONS_OFF0_ON1_OPTION_COUNT, true);
+	assistant_onoff->setHint(NEUTRINO_ICON_HINT_SETTINGS, LOCALE_MENU_HINT_ASSISTANT_ENABLED);
+	ms_oservices->addItem(assistant_onoff);
+#endif
+
 	int res = ms_oservices->exec(NULL, "");
 	delete ms_oservices;
 	return res;

@@ -122,6 +122,66 @@ adzap.zap_off Off
 adzap.zap_to_last_channel to last channel
 adzap.zap_to_start_channel to start channel
 apidselector.head Select language
+assistant.ask Ask
+assistant.cancelled cancelled
+assistant.connecting Connecting to
+assistant.enabled Assistant
+assistant.head Assistant
+assistant.help Without a language model the assistant understands commands like these:\n   switch to BBC One\n   what's on\n   what's on BBC Two\n   what's on tonight\n   find Newsnight\n   record this\n   record Newsnight\n   timers\n   delete timer 5\n   louder, quieter, mute\n   standby\nFor anything else, set up a language model in the settings.
+assistant.hint Red or OK: type a question or a request.
+assistant.listening Listening
+assistant.new New conversation
+assistant.no_speech nothing heard
+assistant.no_stt No server for speech recognition is set up.
+assistant.not_understood I did not understand that. "Help" shows the commands I know; anything else needs a language model, to be set up in the settings.
+assistant.settings Settings
+assistant.speak Speak
+assistant.thinking Thinking
+assistant.too_many_steps given up after too many steps
+assistant.tool_channel Channel
+assistant.tool_conflict Another recording is planned for that time.
+assistant.tool_in_standby The box is in standby.
+assistant.tool_is_radio is a radio channel and the box is in TV mode.
+assistant.tool_is_tv is a TV channel and the box is in radio mode.
+assistant.tool_mode Mode
+assistant.tool_more more, search for a part of the name
+assistant.tool_muted muted
+assistant.tool_next Next
+assistant.tool_no_channel There is no channel
+assistant.tool_no_channel_on No channel is on.
+assistant.tool_no_channels No channels found.
+assistant.tool_no_epg No programme information.
+assistant.tool_no_timer There is no timer
+assistant.tool_no_timers No timers.
+assistant.tool_not_muted sound on
+assistant.tool_nothing_found Nothing found.
+assistant.tool_now Now
+assistant.tool_record_times A recording needs an end that is after its start and not over yet.
+assistant.tool_removed removed
+assistant.tool_standby Going into standby.
+assistant.tool_started That has already started.
+assistant.tool_switched Switched to
+assistant.tool_time Time
+assistant.tool_volume Volume
+assistant.transcribing Transcribing
+assistant_setup.backend Language model
+assistant_setup.backend_claude Claude
+assistant_setup.backend_openai OpenAI compatible server
+assistant_setup.effort Effort
+assistant_setup.effort_default Default of the model
+assistant_setup.effort_high high
+assistant_setup.effort_low low
+assistant_setup.effort_medium medium
+assistant_setup.key API key
+assistant_setup.mcp MCP servers
+assistant_setup.mcp_name Name
+assistant_setup.mcp_server Server
+assistant_setup.mcp_token Access token
+assistant_setup.model Model
+assistant_setup.stt_device Microphone
+assistant_setup.stt_language Language
+assistant_setup.url Address
+assistant_setup.voice Voice input
 audio.srs_algo Type
 audio.srs_algo_heavy Heavy
 audio.srs_algo_light Light
@@ -1295,6 +1355,20 @@ menu.hint_adzap_writedata Write data according to adzap status to /tmp/adzap.dat
 menu.hint_adzap_zap Zap to last viewed channel or to start channel during timer activation
 menu.hint_aplay Audio player
 menu.hint_aplay_setup Change title display, start directory, screen saver etc.
+menu.hint_assistant Ask a language model: it answers and operates the box
+menu.hint_assistant_backend Which language model answers: Claude, or a server in your network that speaks the OpenAI protocol
+menu.hint_assistant_claude_key The key of your Anthropic account. It is stored on the box in plain text.
+menu.hint_assistant_effort How thoroughly Claude thinks before it answers. Low answers fastest.
+menu.hint_assistant_enabled Offer the assistant in the multimedia menu: a language model that answers and operates the box, or its built-in commands
+menu.hint_assistant_mcp Servers with the Model Context Protocol, whose tools the assistant may use
+menu.hint_assistant_mcp_name A short name, shown when a tool of this server is used
+menu.hint_assistant_mcp_token Sent as bearer token when the server asks for one
+menu.hint_assistant_mcp_url Address of the server's MCP endpoint (Streamable HTTP)
+menu.hint_assistant_openai_url Address of the server up to /v1, for example http://192.168.1.10:11434/v1
+menu.hint_assistant_stt_device ALSA device to record from, for example default or plughw:1,0
+menu.hint_assistant_stt_language Language that is spoken, as a code such as de or en. Empty: the server finds out.
+menu.hint_assistant_stt_url Server that turns speech into text (OpenAI audio protocol), up to /v1
+menu.hint_assistant_voice Speech recognition server and microphone
 menu.hint_audio Audio output, DD\nSRS True volume options
 menu.hint_audio_ac3 Pass AC3 audio tracks unchanged
 menu.hint_audio_adjust_vol_ac3 Channel specific volume adjustment for AC3 streams

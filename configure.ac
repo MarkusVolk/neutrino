@@ -499,6 +499,29 @@ if test "$enable_xmltv_xz" = "yes"; then
 fi
 AM_CONDITIONAL(ENABLE_XMLTV_XZ, test "$enable_xmltv_xz" = "yes")
 
+AC_ARG_ENABLE(assistant,
+	AS_HELP_STRING([--enable-assistant], [ask a language model that operates the box, with tools of MCP servers @<:@default=no@:>@]),
+	[enable_assistant="$enableval"],
+	[enable_assistant="no"])
+
+AC_ARG_ENABLE(assistant-voice,
+	AS_HELP_STRING([--enable-assistant-voice], [ask the assistant by voice, recorded from an ALSA device @<:@default=no@:>@]),
+	[enable_assistant_voice="$enableval"],
+	[enable_assistant_voice="no"])
+
+if test "$enable_assistant_voice" = "yes" -a "$enable_assistant" != "yes"; then
+	AC_MSG_ERROR([--enable-assistant-voice needs --enable-assistant])
+fi
+if test "$enable_assistant" = "yes"; then
+	AC_DEFINE(ENABLE_ASSISTANT, 1, [ask a language model that operates the box, with tools of MCP servers])
+fi
+if test "$enable_assistant_voice" = "yes"; then
+	PKG_CHECK_MODULES([ALSA], [alsa])
+	AC_DEFINE(ENABLE_ASSISTANT_VOICE, 1, [ask the assistant by voice, recorded from an ALSA device])
+fi
+AM_CONDITIONAL(ENABLE_ASSISTANT, test "$enable_assistant" = "yes")
+AM_CONDITIONAL(ENABLE_ASSISTANT_VOICE, test "$enable_assistant_voice" = "yes")
+
 AC_ARG_ENABLE(freesatepg,
 	AS_HELP_STRING([--enable-freesatepg], [enable Freesat EPG code @<:@default=no@:>@]),
 	AC_DEFINE(ENABLE_FREESATEPG, 1, [enable Freesat EPG code]))

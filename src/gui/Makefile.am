@@ -144,6 +144,14 @@ libneutrino_gui_a_SOURCES += \
 	terminal.cpp
 endif
 
+if ENABLE_ASSISTANT
+libneutrino_gui_a_SOURCES += \
+	assistant.cpp \
+	assistant_commands.cpp \
+	assistant_setup.cpp \
+	assistant_tools.cpp
+endif
+
 if ENABLE_BLUETOOTH
 libneutrino_gui_a_SOURCES += \
 	bluetooth_setup.cpp

@@ -948,6 +948,26 @@ struct SNeutrinoSettings
 	std::string softupdate_proxyusername;
 	std::string softupdate_proxypassword;
 
+#ifdef ENABLE_ASSISTANT
+#define ASSISTANT_MCP_SERVERS 4
+	int assistant_enabled;
+	int assistant_backend;
+	std::string assistant_claude_key;
+	std::string assistant_claude_model;
+	int assistant_claude_effort;
+	std::string assistant_openai_url;
+	std::string assistant_openai_key;
+	std::string assistant_openai_model;
+	std::string assistant_mcp_name[ASSISTANT_MCP_SERVERS];
+	std::string assistant_mcp_url[ASSISTANT_MCP_SERVERS];
+	std::string assistant_mcp_token[ASSISTANT_MCP_SERVERS];
+	std::string assistant_stt_url;
+	std::string assistant_stt_key;
+	std::string assistant_stt_model;
+	std::string assistant_stt_language;
+	std::string assistant_stt_device;
+#endif
+
 	int flashupdate_createimage_add_env;
 	int flashupdate_createimage_add_kernel;
 	int flashupdate_createimage_add_root1;

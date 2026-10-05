@@ -1109,6 +1109,29 @@ int CNeutrinoApp::loadSetup(const char *fname)
 	setSettingsText(g_settings.softupdate_proxyusername, configfile.getString("softupdate_proxyusername", ""));
 	setSettingsText(g_settings.softupdate_proxypassword, configfile.getString("softupdate_proxypassword", ""));
 
+#ifdef ENABLE_ASSISTANT
+	g_settings.assistant_enabled = configfile.getInt32("assistant_enabled", 0);
+	g_settings.assistant_backend = configfile.getInt32("assistant_backend", 0);
+	setSettingsText(g_settings.assistant_claude_key, configfile.getString("assistant_claude_key", ""));
+	setSettingsText(g_settings.assistant_claude_model, configfile.getString("assistant_claude_model", "claude-opus-5-5"));
+	g_settings.assistant_claude_effort = configfile.getInt32("assistant_claude_effort", 1);
+	setSettingsText(g_settings.assistant_openai_url, configfile.getString("assistant_openai_url", ""));
+	setSettingsText(g_settings.assistant_openai_key, configfile.getString("assistant_openai_key", ""));
+	setSettingsText(g_settings.assistant_openai_model, configfile.getString("assistant_openai_model", ""));
+	for (int i = 0; i < ASSISTANT_MCP_SERVERS; i++)
+	{
+		std::string n = to_string(i);
+		setSettingsText(g_settings.assistant_mcp_name[i], configfile.getString("assistant_mcp_name_" + n, ""));
+		setSettingsText(g_settings.assistant_mcp_url[i], configfile.getString("assistant_mcp_url_" + n, ""));
+		setSettingsText(g_settings.assistant_mcp_token[i], configfile.getString("assistant_mcp_token_" + n, ""));
+	}
+	setSettingsText(g_settings.assistant_stt_url, configfile.getString("assistant_stt_url", ""));
+	setSettingsText(g_settings.assistant_stt_key, configfile.getString("assistant_stt_key", ""));
+	setSettingsText(g_settings.assistant_stt_model, configfile.getString("assistant_stt_model", "whisper-1"));
+	setSettingsText(g_settings.assistant_stt_language, configfile.getString("assistant_stt_language", ""));
+	setSettingsText(g_settings.assistant_stt_device, configfile.getString("assistant_stt_device", "default"));
+#endif
+
 	if (g_settings.softupdate_proxyserver.empty())
 		unsetenv("http_proxy");
 	else
@@ -2060,6 +2083,29 @@ void CNeutrinoApp::saveSetup(const char *fname)
 	configfile.setString("softupdate_proxyserver", g_settings.softupdate_proxyserver);
 	configfile.setString("softupdate_proxyusername", g_settings.softupdate_proxyusername);
 	configfile.setString("softupdate_proxypassword", g_settings.softupdate_proxypassword);
+
+#ifdef ENABLE_ASSISTANT
+	configfile.setInt32("assistant_enabled", g_settings.assistant_enabled);
+	configfile.setInt32("assistant_backend", g_settings.assistant_backend);
+	configfile.setString("assistant_claude_key", g_settings.assistant_claude_key);
+	configfile.setString("assistant_claude_model", g_settings.assistant_claude_model);
+	configfile.setInt32("assistant_claude_effort", g_settings.assistant_claude_effort);
+	configfile.setString("assistant_openai_url", g_settings.assistant_openai_url);
+	configfile.setString("assistant_openai_key", g_settings.assistant_openai_key);
+	configfile.setString("assistant_openai_model", g_settings.assistant_openai_model);
+	for (int i = 0; i < ASSISTANT_MCP_SERVERS; i++)
+	{
+		std::string n = to_string(i);
+		configfile.setString("assistant_mcp_name_" + n, g_settings.assistant_mcp_name[i]);
+		configfile.setString("assistant_mcp_url_" + n, g_settings.assistant_mcp_url[i]);
+		configfile.setString("assistant_mcp_token_" + n, g_settings.assistant_mcp_token[i]);
+	}
+	configfile.setString("assistant_stt_url", g_settings.assistant_stt_url);
+	configfile.setString("assistant_stt_key", g_settings.assistant_stt_key);
+	configfile.setString("assistant_stt_model", g_settings.assistant_stt_model);
+	configfile.setString("assistant_stt_language", g_settings.assistant_stt_language);
+	configfile.setString("assistant_stt_device", g_settings.assistant_stt_device);
+#endif
 
 	configfile.setInt32("flashupdate_createimage_add_env", g_settings.flashupdate_createimage_add_env);
 	configfile.setInt32("flashupdate_createimage_add_kernel", g_settings.flashupdate_createimage_add_kernel);

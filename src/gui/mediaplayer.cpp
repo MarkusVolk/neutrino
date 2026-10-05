@@ -38,6 +38,9 @@
 #include <neutrino_menue.h>
 #include <neutrinoMessages.h>
 
+#ifdef ENABLE_ASSISTANT
+#include <gui/assistant.h>
+#endif
 #include <gui/audiomute.h>
 #include <gui/infoclock.h>
 #include <gui/movieplayer.h>
@@ -205,6 +208,16 @@ int CMediaPlayerMenu::initMenuMedia(CMenuWidget *m, CPersonalizeGui *p)
 	CMenuForwarder *fw_upnp = new CMenuForwarder(LOCALE_UPNPBROWSER_HEAD, enabled, NULL, upnpbrowsergui, NULL, CRCInput::RC_0);
 	fw_upnp->setHint(NEUTRINO_ICON_HINT_A_PIC, LOCALE_MENU_HINT_UPNP);
 	personalize->addItem(multimedia_menu, fw_upnp, &g_settings.personalize[SNeutrinoSettings::P_MEDIA_UPNP]);
+#endif
+
+#ifdef ENABLE_ASSISTANT
+	// assistant, when it is switched on in the online services
+	if (g_settings.assistant_enabled)
+	{
+		CMenuForwarder *fw_assistant = new CMenuForwarder(LOCALE_ASSISTANT_HEAD, true, NULL, CAssistant::getInstance());
+		fw_assistant->setHint(NEUTRINO_ICON_HINT_INFO, LOCALE_MENU_HINT_ASSISTANT);
+		personalize->addItem(multimedia_menu, fw_assistant, NULL, false, CPersonalizeGui::PERSONALIZE_SHOW_NO);
+	}
 #endif
 
 	int res = menu_return::RETURN_NONE;

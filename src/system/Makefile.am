@@ -75,3 +75,16 @@ if ENABLE_BLUETOOTH
 libneutrino_system_a_SOURCES += \
 	bluez_client.cpp
 endif
+
+if ENABLE_ASSISTANT
+libneutrino_system_a_SOURCES += \
+	http_request.cpp \
+	llm_client.cpp \
+	mcp_client.cpp
+endif
+
+if ENABLE_ASSISTANT_VOICE
+libneutrino_system_a_SOURCES += \
+	voice_input.cpp
+AM_CPPFLAGS += @ALSA_CFLAGS@
+endif
