@@ -24,3 +24,7 @@ libsectionsd_a_SOURCES = \
 	SIsections.cpp \
 	SIutils.cpp \
 	xmlutil.cpp
+
+if ENABLE_XMLTV_XZ
+AM_CPPFLAGS += @LZMA_CFLAGS@
+endif

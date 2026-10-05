@@ -488,6 +488,17 @@ if test "$enable_terminal" = "yes"; then
 fi
 AM_CONDITIONAL(ENABLE_TERMINAL, test "$enable_terminal" = "yes")
 
+AC_ARG_ENABLE(xmltv-xz,
+	AS_HELP_STRING([--enable-xmltv-xz], [read XMLTV files that are packed with xz @<:@default=no@:>@]),
+	[enable_xmltv_xz="$enableval"],
+	[enable_xmltv_xz="no"])
+
+if test "$enable_xmltv_xz" = "yes"; then
+	PKG_CHECK_MODULES([LZMA], [liblzma])
+	AC_DEFINE(ENABLE_XMLTV_XZ, 1, [read XMLTV files that are packed with xz])
+fi
+AM_CONDITIONAL(ENABLE_XMLTV_XZ, test "$enable_xmltv_xz" = "yes")
+
 AC_ARG_ENABLE(freesatepg,
 	AS_HELP_STRING([--enable-freesatepg], [enable Freesat EPG code @<:@default=no@:>@]),
 	AC_DEFINE(ENABLE_FREESATEPG, 1, [enable Freesat EPG code]))

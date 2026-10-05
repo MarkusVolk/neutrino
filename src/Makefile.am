@@ -139,6 +139,10 @@ if ENABLE_TERMINAL
 neutrino_LDADD += @TSM_LIBS@ @XKBCOMMON_LIBS@
 endif
 
+if ENABLE_XMLTV_XZ
+neutrino_LDADD += @LZMA_LIBS@
+endif
+
 # LCD display
 if ENABLE_LCD
 neutrino_LDADD += $(top_builddir)/lib/liblcddisplay/liblcddisplay.a

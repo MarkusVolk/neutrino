@@ -45,6 +45,9 @@
 #include "eitd.h"
 #include "debug.h"
 #include <system/set_threadname.h>
+#ifdef ENABLE_XMLTV_XZ
+#include <lzma.h>
+#endif
 
 void addEvent(const SIevent &evt, const time_t zeit, bool cn = false);
 extern MySIeventsOrderServiceUniqueKeyFirstStartTimeEventUniqueKey mySIeventsOrderServiceUniqueKeyFirstStartTimeEventUniqueKey;
@@ -709,6 +712,79 @@ void *insertEventsfromFile(void * data)
 	pthread_exit(NULL);
 }
 
+#ifdef ENABLE_XMLTV_XZ
+/* the XML readers know gzip only, so a file that is packed with xz is unpacked into a file first */
+static bool unpackXz(const std::string &from, const std::string &to)
+{
+	FILE *in = fopen(from.c_str(), "rb");
+	FILE *out = in ? fopen(to.c_str(), "wb") : NULL;
+	lzma_stream strm = LZMA_STREAM_INIT;
+	bool ok = out && lzma_stream_decoder(&strm, UINT64_MAX, LZMA_CONCATENATED) == LZMA_OK;
+	if (ok)
+	{
+		uint8_t inbuf[32 * 1024], outbuf[32 * 1024];
+		lzma_action action = LZMA_RUN;
+		lzma_ret ret = LZMA_OK;
+		strm.next_out = outbuf;
+		strm.avail_out = sizeof(outbuf);
+		while (ret == LZMA_OK)
+		{
+			if (strm.avail_in == 0 && action == LZMA_RUN)
+			{
+				strm.next_in = inbuf;
+				strm.avail_in = fread(inbuf, 1, sizeof(inbuf), in);
+				if (ferror(in))
+					break;
+				if (feof(in))
+					action = LZMA_FINISH;
+			}
+			ret = lzma_code(&strm, action);
+			if (strm.avail_out == 0 || ret == LZMA_STREAM_END)
+			{
+				size_t len = sizeof(outbuf) - strm.avail_out;
+				if (fwrite(outbuf, 1, len, out) != len)
+					break;
+				strm.next_out = outbuf;
+				strm.avail_out = sizeof(outbuf);
+			}
+		}
+		ok = ret == LZMA_STREAM_END;
+		lzma_end(&strm);
+	}
+	if (in)
+		fclose(in);
+	if (out && fclose(out))
+		ok = false;
+	if (!ok)
+		unlink(to.c_str());
+	return ok;
+}
+#endif
+
+/* reads the file as it is, or what is in it when it is packed with xz */
+static void readEventsFromXMLTVFile(std::string &name, int &ev_count, bool delete_after)
+{
+	if (getFileExt(name) != "xz")
+	{
+		readEventsFromXMLTV(name, ev_count, delete_after);
+		return;
+	}
+#ifdef ENABLE_XMLTV_XZ
+	std::string xml_name = randomFile("xml", "/tmp", 8);
+	bool unpacked = unpackXz(name, xml_name);
+	if (delete_after)
+		unlink(name.c_str());
+	if (unpacked)
+		readEventsFromXMLTV(xml_name, ev_count, true);
+	else
+		printf("[sectionsd] unable to unpack %s\n", name.c_str());
+#else
+	printf("[sectionsd] %s: built without --enable-xmltv-xz\n", name.c_str());
+	if (delete_after)
+		unlink(name.c_str());
+#endif
+}
+
 void *insertEventsfromXMLTV(void * data)
 {
 	set_threadname(__func__);
@@ -727,13 +803,13 @@ void *insertEventsfromXMLTV(void * data)
 
 	if (url.compare(0, 1, "/") == 0)
 	{
-		readEventsFromXMLTV(url, ev_count);
+		readEventsFromXMLTVFile(url, ev_count, false);
 	}
 	else if (::downloadUrl(url, tmp_name))
 	{
 		if (!access(tmp_name.c_str(), R_OK))
 		{
-			readEventsFromXMLTV(tmp_name, ev_count, true);
+			readEventsFromXMLTVFile(tmp_name, ev_count, true);
 		}
 	}
 	else
