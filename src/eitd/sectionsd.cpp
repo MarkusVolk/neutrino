@@ -1248,21 +1248,21 @@ static void commandReadSIfromXMLTV(int connfd, char *data, const unsigned dataLe
 
 	sendEmptyResponse(connfd, NULL, 0);
 
-	if (dataLength > 100)
+	if (dataLength == 0)
 		return ;
-	static std::string url_tmp = "";
-	writeLockMessaging();
-	data[dataLength] = '\0';
-	url_tmp = (std::string)data;
-	unlockMessaging();
+	/* a URL may be long, and the next one may come before this one is read: the thread gets its own copy and frees it */
+	char *url = strndup(data, dataLength);
+	if (url == NULL)
+		return ;
 
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-	if (pthread_create (&thrInsertXMLTV, &attr, insertEventsfromXMLTV, (void *)url_tmp.c_str() ))
+	if (pthread_create (&thrInsertXMLTV, &attr, insertEventsfromXMLTV, (void *)url ))
 	{
 		perror("sectionsd: pthread_create()");
+		free(url);
 	}
 
 	pthread_attr_destroy(&attr);

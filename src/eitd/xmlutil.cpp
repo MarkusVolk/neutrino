@@ -720,6 +720,7 @@ void *insertEventsfromXMLTV(void * data)
 		pthread_exit(NULL);
 	}
 	std::string url = (std::string)(char *) data;
+	free(data);
 	std::string tmp_name = randomFile(getFileExt(url), "/tmp", 8);
 
 	int64_t now = time_monotonic_ms();
