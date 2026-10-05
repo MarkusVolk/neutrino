@@ -108,93 +108,6 @@ zapit_upload()
 	y_format_message_html
 }
 
-# -----------------------------------------------------------
-# Mount from Neutrino-Settings $1=nr
-# -----------------------------------------------------------
-do_mount()
-{
-	config_open $y_config_neutrino
-	fstype=`config_get_value "network_nfs_type_$1"`
-	ip=`config_get_value "network_nfs_ip_$1"`
-	local_dir=`config_get_value "network_nfs_local_dir_$1"`
-	dir=`config_get_value "network_nfs_dir_$1"`
-	options1=`config_get_value "network_nfs_mount_options1_$1"`
-	options2=`config_get_value "network_nfs_mount_options2_$1"`
-	username=`config_get_value "network_nfs_username_$1"`
-	password=`config_get_value "network_nfs_password_$1"`
-
-	# check options
-	if [ "$options1" = "" ]
-	then
-		options1=options2
-		options2=""
-	fi
-
-	# default options
-	if [ "$options1" = "" -a "$options2" = "" ]
-	then
-		if [ "$fstype" = "0" ] # nfs
-		then
-			options1="soft"
-			options2="nolock"
-		elif [ "$fstype" = "1" ] # cifs
-		then
-			options1="ro"
-			options2=""
-		elif [ "$fstype" = "2" ] # lufs
-		then
-			options1=""
-			options2=""
-		fi
-	fi
-
-	# build mount command
-	case "$fstype" in
-		0) # nfs
-			cmd="mount -t nfs $ip:$dir $local_dir"
-		;;
-		1) # cifs
-			cmd="mount -t cifs //$ip/$dir $local_dir -o username=$username,password=$password";
-		;;
-		2) # lufs
-			cmd="lufsd none $local_dir -o fs=ftpfs,username=$username,password=$password,host=$ip,root=/$dir";
-		;;
-		default)
-			echo "mount type not supported"
-	esac
-
-	if [ "$options1" != "" ]
-	then
-		if [ "$fstype" = "0" ] # nfs
-		then
-			cmd="$cmd -o $options1"
-		else
-			cmd="$cmd,$options1"
-		fi
-	fi
-
-	if [ "$options2" != "" ]
-	then
-		cmd="$cmd,$options2"
-	fi
-
-	res=`$cmd`
-	echo "$cmd" >/tmp/mount.log
-	echo "$res" >>/tmp/mount.log
-	echo "$res"
-	echo "view mounts"
-	m=`mount`
-	msg="mount cmd:$cmd<br><br>res=$res<br>view Mounts;<br>$m"
-	y_format_message_html
-}
-
-# -----------------------------------------------------------
-# unmount $1=local_dir
-# -----------------------------------------------------------
-do_unmount()
-{
-	umount $1
-}
 
 # -----------------------------------------------------------
 # AutoMount
@@ -498,8 +411,6 @@ case "$1" in
 	yreboot)			reboot; echo "Reboot..." ;;
 	check_yWeb_conf) 		check_Y_Web_conf ;;
 	rcsim)				rcsim $2 >/dev/null ;;
-	domount)			shift 1; do_mount $* ;;
-	dounmount)			shift 1; do_unmount $* ;;
 	cmd)				shift 1; do_cmd $* ;;
 	installer)			shift 1; do_installer $* 2>&1 ;;
 	ext_uninstaller)		shift 1; do_ext_uninstaller $* 2>&1 ;;

@@ -36,6 +36,7 @@
 #include <cs_api.h>
 #include <gui/plugins.h>//for relodplugins
 #include <neutrino.h>
+#include <system/fsmounter.h>
 #include <driver/display.h>
 #include <driver/screenshot.h>
 #include <gui/rc_lock.h>
@@ -75,6 +76,15 @@ extern CBouquetManager *g_bouquetManager;
 #define RC_DEVICE_FALLBACK "/dev/input/event1"
 #endif
 
+#elif HAVE_GENERIC_HARDWARE
+/* the input FIFO that libstb-hal reads next to the window's own keys */
+#ifndef RC_DEVICE
+#define RC_DEVICE "/tmp/neutrino.input"
+#endif
+#ifndef RC_DEVICE_FALLBACK
+#define RC_DEVICE_FALLBACK "/tmp/neutrino.input"
+#endif
+
 #elif BOXMODEL_MULTIBOX || BOXMODEL_MULTIBOXSE || BOXMODEL_OSMIO4K || BOXMODEL_OSMIO4KPLUS
 #ifndef RC_DEVICE
 #define RC_DEVICE "/dev/input/event0"
@@ -106,6 +116,33 @@ static const char *getVersionInfoPath()
 
 	return IMAGE_VERSION_FILE;
 }
+/* the start of a stream address on the streaming port, for this request's host */
+static std::string stream_base(CyhookHandler *hh)
+{
+	std::string url;
+	if (!hh->ParamList["host"].empty())
+		url = "http://" + hh->ParamList["host"];
+	else
+		url = "http://" + hh->HeaderList["Host"];
+	/* strip off optional custom port */
+	if (url.rfind(":") != 4)
+		url = url.substr(0, url.rfind(":"));
+	return url + ":" + to_string(g_settings.streaming_port) + "/id=";
+}
+
+/* a web channel plays from its own source, the others from the streaming port */
+static std::string stream_url(const std::string &base, CZapitChannel *channel)
+{
+	if (IS_WEBCHAN(channel->getChannelID()) && !channel->getUrl().empty())
+		return channel->getUrl();
+	return base + string_printf(PRINTF_CHANNEL_ID_TYPE_NO_LEADING_ZEROS, channel->getChannelID());
+}
+
+static bool stream_bouquet(CZapitBouquet *bouquet)
+{
+	return !bouquet->bHidden && (bouquet->bUser || bouquet->bWebtv || bouquet->bWebradio);
+}
+
 
 //=============================================================================
 // constructor und destructor
@@ -277,6 +314,8 @@ const CControlAPI::TyCgiCall CControlAPI::yCgiCallList[]=
 	// utils
 	{"build_live_url",	&CControlAPI::build_live_url,		""},
 	{"build_playlist",	&CControlAPI::build_playlist,		""},
+	{"streamurl",		&CControlAPI::streamUrlCGI,		"text/plain"},
+	{"netmount",		&CControlAPI::netmountCGI,		"text/plain"},
 	{"get_logo",		&CControlAPI::logoCGI,			"text/plain"},
 	// settings
 	{"config",		&CControlAPI::ConfigCGI,		"text/plain"},
@@ -3554,7 +3593,7 @@ void CControlAPI::xmltvm3uCGI(CyhookHandler *hh)
 			else
 				g_bouquetManager->Bouquets[i]->getTvChannels(chanlist);
 
-			if (!chanlist.empty() && !g_bouquetManager->Bouquets[i]->bHidden && g_bouquetManager->Bouquets[i]->bUser)
+			if (!chanlist.empty() && stream_bouquet(g_bouquetManager->Bouquets[i]))
 			{
 				for (unsigned int j = 0; j < chanlist.size(); j++)
 				{
@@ -3575,7 +3614,7 @@ void CControlAPI::xmltvm3uCGI(CyhookHandler *hh)
 					result += " group-prefix=\"" + std::string(hostname) + "\"";
 					result += " group-title=\"" + bouq_name + "\",";
 					result += channel->getName() + "\n";
-					result += url + string_printf(PRINTF_CHANNEL_ID_TYPE_NO_LEADING_ZEROS, channel->getChannelID()) + "\n";
+					result += stream_url(url, channel) + "\n";
 				}
 			}
 
@@ -3651,22 +3690,97 @@ void CControlAPI::xmltvlistCGI(CyhookHandler *hh)
 }
 //-------------------------------------------------------------------------
 // host : (optional) ip of dbox
+/* the address a player plays the given channel from, the current one without id */
+void CControlAPI::streamUrlCGI(CyhookHandler *hh)
+{
+	t_channel_id channel_id = 0;
+	if (!hh->ParamList["id"].empty())
+		sscanf(hh->ParamList["id"].c_str(), SCANF_CHANNEL_ID_TYPE, &channel_id);
+	else
+		channel_id = CZapit::getInstance()->GetCurrentChannelID();
+	CZapitChannel *channel = CServiceManager::getInstance()->FindChannel(channel_id);
+	if (!channel)
+	{
+		hh->SendError();
+		return;
+	}
+	hh->Write(stream_url(stream_base(hh), channel));
+}
+
+/* the network shares of the network settings, as Neutrino holds them:
+ *	netmount			one line per entry: nr, type, server, share,
+ *					local directory, automount, mounted, user,
+ *					options 1 and 2, MAC, separated by tabs
+ *	netmount?action=set&nr=	type, ip, dir, local_dir, automount, username,
+ *					password (kept when empty), options1, options2, mac
+ *	netmount?action=mount&nr=, netmount?action=umount&nr= */
+void CControlAPI::netmountCGI(CyhookHandler *hh)
+{
+	std::string action = hh->ParamList["action"];
+	int nr = hh->ParamList["nr"].empty() ? -1 : atoi(hh->ParamList["nr"].c_str());
+	if (!action.empty() && (nr < 0 || nr >= NETWORK_NFS_NR_OF_ENTRIES))
+	{
+		hh->SendError();
+		return;
+	}
+	if (action.empty())
+	{
+		for (int i = 0; i < NETWORK_NFS_NR_OF_ENTRIES; i++)
+		{
+			const auto &n = g_settings.network_nfs[i];
+			bool mounted = !n.local_dir.empty() && !n.ip.empty() && CFSMounter::isMounted(n.local_dir);
+			hh->printf("%d\t%s\t%s\t%s\t%s\t%d\t%d\t%s\t%s\t%s\t%s\n", i,
+				   n.type == CFSMounter::CIFS ? "cifs" : n.type == CFSMounter::NFS ? "nfs" : "ftpfs",
+				   n.ip.c_str(), n.dir.c_str(), n.local_dir.c_str(), n.automount, mounted,
+				   n.username.c_str(), n.mount_options1.c_str(), n.mount_options2.c_str(), n.mac.c_str());
+		}
+		return;
+	}
+	auto &n = g_settings.network_nfs[nr];
+	if (action == "set")
+	{
+		n.type = hh->ParamList["type"] == "cifs" ? CFSMounter::CIFS : CFSMounter::NFS;
+		n.ip = hh->ParamList["ip"];
+		n.dir = hh->ParamList["dir"];
+		n.local_dir = hh->ParamList["local_dir"];
+		n.automount = atoi(hh->ParamList["automount"].c_str()) ? 1 : 0;
+		n.username = hh->ParamList["username"];
+		if (!hh->ParamList["password"].empty() || n.username.empty())
+			n.password = hh->ParamList["password"];
+		n.mount_options1 = hh->ParamList["options1"];
+		n.mount_options2 = hh->ParamList["options2"];
+		n.mac = hh->ParamList["mac"];
+		CNeutrinoApp::getInstance()->saveSetup(NEUTRINO_SETTINGS_FILE);
+		hh->WriteLn("ok");
+	}
+	else if (action == "mount")
+	{
+		if (n.ip.empty() || n.local_dir.empty())
+		{
+			hh->WriteLn("The entry has no server or no local directory.");
+			return;
+		}
+		CFSMounter::MountRes res = CFSMounter::mount(n.ip, n.dir, n.local_dir, (CFSMounter::FSType) n.type,
+							     n.username, n.password, n.mount_options1, n.mount_options2);
+		switch (res)
+		{
+			case CFSMounter::MRES_OK:			hh->WriteLn("ok"); break;
+			case CFSMounter::MRES_FS_ALREADY_MOUNTED:	hh->WriteLn("Already mounted."); break;
+			case CFSMounter::MRES_FS_NOT_SUPPORTED:		hh->WriteLn("This system cannot mount that type of share."); break;
+			case CFSMounter::MRES_TIMEOUT:			hh->WriteLn("The server did not answer in time."); break;
+			default:					hh->WriteLn("Mounting failed. Check server, share, user and password."); break;
+		}
+	}
+	else if (action == "umount")
+		hh->WriteLn(CFSMounter::umount(n.local_dir.c_str()) == CFSMounter::UMRES_OK ? "ok" : "Unmounting failed. Is the share still in use?");
+	else
+		hh->SendError();
+}
+
 void CControlAPI::build_live_url(CyhookHandler *hh)
 {
 	int mode = NeutrinoAPI->Zapit->getMode();
-	// build url
-	std::string url = "";
-	if(!hh->ParamList["host"].empty())
-		url = "http://"+hh->ParamList["host"];
-	else
-		url = "http://"+hh->HeaderList["Host"];
-	/* strip off optional custom port */
-	if (url.rfind(":") != 4)
-		url = url.substr(0, url.rfind(":"));
-
-	url += ":";
-	url += to_string(g_settings.streaming_port);
-	url += "/id=";
+	std::string url = stream_base(hh);
 
 	// response url
 	if(!hh->ParamList["vlc_link"].empty())
@@ -3679,14 +3793,14 @@ void CControlAPI::build_live_url(CyhookHandler *hh)
 				g_bouquetManager->Bouquets[i]->getRadioChannels(chanlist);
 			else
 				g_bouquetManager->Bouquets[i]->getTvChannels(chanlist);
-			if (!chanlist.empty() && !g_bouquetManager->Bouquets[i]->bHidden && g_bouquetManager->Bouquets[i]->bUser)
+			if (!chanlist.empty() && stream_bouquet(g_bouquetManager->Bouquets[i]))
 			{
 				for (int j = 0; j < (int) chanlist.size(); j++)
 				{
 					CZapitChannel * channel = chanlist[j];
 					//printf("---> %s/n",channel->getName().c_str());
 					write_to_file("/tmp/vlc.m3u", "#EXTINF:-1,"+channel->getName()+"\n",true);
-					write_to_file("/tmp/vlc.m3u", url+string_printf(PRINTF_CHANNEL_ID_TYPE_NO_LEADING_ZEROS, channel->getChannelID())+"\n",true);
+					write_to_file("/tmp/vlc.m3u", stream_url(url, channel) + "\n", true);
 				}
 			}
 		}
@@ -3698,25 +3812,17 @@ void CControlAPI::build_live_url(CyhookHandler *hh)
 //-------------------------------------------------------------------------
 void CControlAPI::build_playlist(CyhookHandler *hh)
 {
-	// build url
-	std::string url = "";
-	if(!hh->ParamList["host"].empty())
-		url = "http://"+hh->ParamList["host"];
-	else
-		url = "http://"+hh->HeaderList["Host"];
-	/* strip off optional custom port */
-	if (url.rfind(":") != 4)
-		url = url.substr(0, url.rfind(":"));
-
-	url += ":";
-	url += to_string(g_settings.streaming_port);
-	url += "/id=";
+	std::string url = stream_base(hh);
 
 	if (!hh->ParamList["id"].empty())
 	{
-		url += hh->ParamList["id"];
 		t_channel_id channel_id;
 		sscanf(hh->ParamList["id"].c_str(), SCANF_CHANNEL_ID_TYPE, &channel_id);
+		CZapitChannel *channel = CServiceManager::getInstance()->FindChannel(channel_id);
+		if (channel)
+			url = stream_url(url, channel);
+		else
+			url += hh->ParamList["id"];
 		std::string chan_name = NeutrinoAPI->Zapit->getChannelName(channel_id);
 		std::string illegalChars = "\\/:?\"<>|+ ";
 		std::string::iterator it;

@@ -363,6 +363,12 @@ void Cyhttpd::ReadConfig(void) {
 			Config->setInt32("configfile.version", CONF_VERSION);
 			Config->saveConfig(HTTPD_CONFIGFILE);
 		}
+		// Version 6: the media types players and browsers expect, playlists among them
+		if (Config->getInt32("configfile.version") < 6) {
+			Config->setString("mod_sendfile.mime_types", HTTPD_SENDFILE_EXT);
+			Config->setInt32("configfile.version", CONF_VERSION);
+			Config->saveConfig(HTTPD_CONFIGFILE);
+		}
 	}
 	if (Config->getString("WebsiteMain.host", "").empty()) {
 		Config->setString("WebsiteMain.host", HTTPD_DEFAULT_HOST);

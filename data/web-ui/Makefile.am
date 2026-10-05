@@ -47,11 +47,9 @@ install_DATA =	channels.js \
 		Y_Settings_lcd.yhtm \
 		Y_Settings_Menue.yhtm \
 		Y_Settings_mount_list.yhtm \
-		Y_Settings_mount.yhtm \
 		Y_Settings_neutrino_forms.yhtm \
 		Y_Settings_nhttpd.yhtm \
 		Y_Settings_personalize.yhtm \
-		Y_Settings_umount_list.yhtm \
 		Y_Settings_video_audio.yhtm \
 		Y_Settings_wol.yhtm \
 		Y_Settings_xmltv.yhtm \

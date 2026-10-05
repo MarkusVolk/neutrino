@@ -317,11 +317,11 @@ function do_submit()
 //]]>
 </script>
 </head>
-<body">
+<body>
 {=var-set:wait_text={=L:save_values=}=}{=include-block:Y_Blocks.txt;snip_wait=}
 <div class="work_box">
 	<div class="work_box_head"><div class="work_box_head_h2">
-	{=var-set:help_url=NeutrinoHD:Inbetriebnahme#Inbetriebnahme=}{=var-set:menu={=L:start.head=}Start Wizard=}{=include-block:Y_Blocks.txt;work_menu=}</div></div>
+	{=var-set:help_url=NeutrinoHD:Inbetriebnahme#Inbetriebnahme=}{=var-set:menu=Start Wizard=}{=include-block:Y_Blocks.txt;work_menu=}</div></div>
 	<div class="work_box_body">
 	<form name="f" class="y_form" action="/y/cgi">
 		<table border="0" width="100%">

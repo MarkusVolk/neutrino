@@ -210,6 +210,12 @@ function loadSyncURL2(_url)
 	return myAjax.responseText;
 }
 
+/* hands a stream address to mpv through the mpv: link scheme */
+function play_in_mpv(_url)
+{
+	if (_url)
+		window.location.href = "mpv:" + encodeURIComponent(_url);
+}
 function loadSyncURL(_url)
 {
 	var _req;

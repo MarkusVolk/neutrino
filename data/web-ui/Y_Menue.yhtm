@@ -66,15 +66,14 @@ function nav(_prim, _work){
 	nav_prim(_prim);
 	window.setTimeout("_nav_work()",300);
 }
-function vlc() {
-	var vlc_url = loadSyncURL("/control/build_live_url?vlc_link=true");
-	window.open("/tmp/vlc.m3u?"+Math.random(),"_blank");
+function stream_current() {
+	play_in_mpv(loadSyncURL("/control/streamurl"));
 }
 //]]>
 </script>
 <style>
 #prim{
-	background: url(/images/tux-yweb.png) no-repeat left top;
+	background: url(/images/neutrino.png) no-repeat 6px center;
 	height:38px;
 }
 </style>
@@ -109,7 +108,7 @@ function vlc() {
 			<td>
 				<span class="control_icon">
 					<a target="base" href="Y_Tools_Screenshot.yhtm?osd=1" title="{=L:main.remote_full_desc=}"><img src="/images/fb.png"></a>
-					<a href="javascript:vlc()" title="{=L:main.stream_to_vlc_client_desc=}"><img src="/images/vlc.png"></a>
+					<a href="javascript:stream_current()" title="{=L:main.stream_to_player_desc=}"><img src="/images/mpv.png"></a>
 				</span>
 			</td>
 			<td align="right">

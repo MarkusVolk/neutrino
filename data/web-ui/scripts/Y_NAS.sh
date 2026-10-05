@@ -47,10 +47,6 @@ case "$1" in
 		shift 1
 		grep "neutrino commandversion" $*
 	;;
-	filemgr_vlc_file)
-		shift 1
-		echo "$*" >/tmp/vlc.m3u
-	;; 		
 	nhttpd_can_sendall)
 		grep sendAll=true %(CONFIGDIR)/nhttpd.conf
 	;;

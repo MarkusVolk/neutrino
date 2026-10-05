@@ -39,10 +39,10 @@ images_DATA = \
 	time_add.png \
 	time_down.png \
 	time_up.png \
-	tux-yweb.png \
+	neutrino.png \
 	unlock.png \
 	visible.png \
-	vlc.png \
+	mpv.png \
 	volumedown.png \
 	volumemute.png \
 	volumeunmute.png \

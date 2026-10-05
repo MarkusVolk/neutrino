@@ -72,7 +72,8 @@ main.extensions_desc=Installierte Erweiterungen und Verwaltung
 main.info=Info
 main.info_desc=Information &uuml;ber das yWeb, Version
 main.remote_full_desc=Fernbedienung & OSD Vollbild
-main.stream_to_vlc_client_desc=Live TV direkt im VLC Client
+main.stream_to_player_desc=Aktuellen Sender in mpv abspielen
+main.play_in_mpv=In mpv abspielen
 
 # ===== Boxcontrol Menue
 bc.menue.bouquets_desc=Sender ausw&auml;hlen

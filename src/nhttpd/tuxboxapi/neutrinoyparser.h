@@ -29,8 +29,6 @@ private:
 	const static TyFuncCall yFuncCallList[];
 
 	// func TUXBOX
-	std::string func_mount_get_list(CyhookHandler *hh, std::string para);
-	std::string func_mount_set_values(CyhookHandler *hh, std::string para);
 	std::string func_get_bouquets_as_dropdown(CyhookHandler *hh, std::string para);
 	std::string func_get_bouquets_as_templatelist(CyhookHandler *hh, std::string para);
 	std::string func_get_actual_bouquet_number(CyhookHandler *hh, std::string para);
@@ -42,7 +40,6 @@ private:
 	std::string func_get_video_pids(CyhookHandler *hh, std::string para);
 	std::string func_get_radio_pid(CyhookHandler *hh, std::string para);
 	std::string func_get_audio_pids_as_dropdown(CyhookHandler *hh, std::string para);
-	std::string func_unmount_get_list(CyhookHandler *hh, std::string para);
 	std::string func_get_partition_list(CyhookHandler *hh, std::string para);
 	std::string func_get_current_stream_info(CyhookHandler *hh, std::string para);
 	std::string func_get_timer_list(CyhookHandler *hh, std::string para);

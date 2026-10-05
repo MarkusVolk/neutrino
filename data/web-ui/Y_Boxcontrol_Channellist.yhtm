@@ -12,12 +12,7 @@ function do_epg(channelid,logoid) {
 }
 function do_stream(channelid, channelname)
 {
-	var title = "livestream.m3u"
-	var type = "application/octet-stream"
-	var plist = "#EXTM3U\n";
-	plist += "#EXTINF:-1," + channelname + "\n";
-	plist += "http://" + window.location.hostname + ":31339/id=" + channelid  + "\n";
-	saveTextAsFile(plist, title, type);
+	play_in_mpv(loadSyncURL("/control/streamurl?id=" + channelid));
 }
 function do_streaminfo() {
 	window.open("Y_StreamInfo.yhtm", "stream", "width=400");

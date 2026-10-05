@@ -105,8 +105,6 @@ THandleStatus CNeutrinoYParser::Hook_ReadConfig(CConfigFile *Config, CStringList
 //=============================================================================
 const CNeutrinoYParser::TyFuncCall CNeutrinoYParser::yFuncCallList[]=
 {
-	{"mount-get-list",			&CNeutrinoYParser::func_mount_get_list},
-	{"mount-set-values",			&CNeutrinoYParser::func_mount_set_values},
 	{"get_bouquets_as_dropdown",		&CNeutrinoYParser::func_get_bouquets_as_dropdown},
 	{"get_bouquets_as_templatelist",	&CNeutrinoYParser::func_get_bouquets_as_templatelist},
 	{"get_actual_bouquet_number",		&CNeutrinoYParser::func_get_actual_bouquet_number},
@@ -118,7 +116,6 @@ const CNeutrinoYParser::TyFuncCall CNeutrinoYParser::yFuncCallList[]=
 	{"get_video_pids",			&CNeutrinoYParser::func_get_video_pids},
 	{"get_audio_pid",			&CNeutrinoYParser::func_get_radio_pid},
 	{"get_audio_pids_as_dropdown",		&CNeutrinoYParser::func_get_audio_pids_as_dropdown},
-	{"umount_get_list",			&CNeutrinoYParser::func_unmount_get_list},
 	{"get_partition_list",			&CNeutrinoYParser::func_get_partition_list},
 	{"get_boxtype",				&CNeutrinoYParser::func_get_boxtype},
 	{"get_boxmodel",			&CNeutrinoYParser::func_get_boxmodel},
@@ -159,60 +156,6 @@ std::string  CNeutrinoYParser::YWeb_cgi_func(CyhookHandler *hh, std::string ycmd
 //=============================================================================
 // y-func : Functions for Neutrino
 //=============================================================================
-//-------------------------------------------------------------------------
-// y-func : mount_get_list
-//-------------------------------------------------------------------------
-std::string  CNeutrinoYParser::func_mount_get_list(CyhookHandler *, std::string)
-{
-	CConfigFile *Config = new CConfigFile(',');
-	std::string ysel, ytype, yip, ylocal_dir, ydir, ynr, yresult;
-	int yitype;
-
-	Config->loadConfig(NEUTRINO_CONFIGFILE);
-	for(unsigned int i=0; i <= 7; i++)
-	{
-		ynr=itoa(i);
-		ysel = ((i==0) ? "checked=\"checked\"" : "");
-		yitype = Config->getInt32("network_nfs_type_"+ynr,0);
-		ytype = ( (yitype==0) ? "NFS" :((yitype==1) ? "CIFS" : "FTPFS") );
-		yip = Config->getString("network_nfs_ip_"+ynr,"");
-		ydir = Config->getString("network_nfs_dir_"+ynr,"");
-		ylocal_dir = Config->getString("network_nfs_local_dir_"+ynr,"");
-		if(!ydir.empty())
-			ydir="("+ydir+")";
-
-		yresult += string_printf("<input type='radio' name='R1' value='%d' %s />%d %s - %s %s %s<br/>",
-			i,ysel.c_str(),i,ytype.c_str(),yip.c_str(),ylocal_dir.c_str(), ydir.c_str());
-	}
-	delete Config;
-	return yresult;
-}
-
-//-------------------------------------------------------------------------
-// y-func : mount_set_values
-//-------------------------------------------------------------------------
-std::string  CNeutrinoYParser::func_mount_set_values(CyhookHandler *hh, std::string)
-{
-	CConfigFile *Config = new CConfigFile(',');
-	std::string ynr, yresult;
-
-	Config->loadConfig(NEUTRINO_CONFIGFILE);
-	ynr = hh->ParamList["nr"];
-	Config->setString("network_nfs_type_"+ynr,hh->ParamList["type"]);
-	Config->setString("network_nfs_ip_"+ynr,hh->ParamList["ip"]);
-	Config->setString("network_nfs_dir_"+ynr,hh->ParamList["dir"]);
-	Config->setString("network_nfs_local_dir_"+ynr,hh->ParamList["localdir"]);
-	Config->setString("network_nfs_mac_"+ynr,hh->ParamList["mac"]);
-	Config->setString("network_nfs_mount_options1_"+ynr,hh->ParamList["opt1"]);
-	Config->setString("network_nfs_mount_options2_"+ynr,hh->ParamList["opt2"]);
-	Config->setString("network_nfs_automount_"+ynr,hh->ParamList["automount"]);
-	Config->setString("network_nfs_username_"+ynr,hh->ParamList["username"]);
-	Config->setString("network_nfs_password_"+ynr,hh->ParamList["password"]);
-	Config->saveConfig(NEUTRINO_CONFIGFILE);
-
-	delete Config;
-	return yresult;
-}
 //-------------------------------------------------------------------------
 // y-func : get_bouquets_as_dropdown [<bouquet>] <doshowhidden>
 //-------------------------------------------------------------------------
@@ -798,33 +741,6 @@ std::string  CNeutrinoYParser::func_get_audio_pids_as_dropdown(CyhookHandler *, 
 	return yresult;
 }
 
-//-------------------------------------------------------------------------
-// y-func : build umount list
-//-------------------------------------------------------------------------
-std::string  CNeutrinoYParser::func_unmount_get_list(CyhookHandler *, std::string)
-{
-	std::string ysel, ymount, ylocal_dir, yfstype, yresult, mounts;
-
-	std::ifstream in;
-	in.open("/proc/mounts", std::ifstream::in);
-	int j=0;
-	while(in.good() && (j<8))
-	{
-		yfstype="";
-		in >> ymount >> ylocal_dir >> yfstype;
-		in.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-		yfstype = trim(yfstype);
-		if( (yfstype == "nfs") || (yfstype == "ftp") || (yfstype == "lufsd") )
-		{
-			mounts=ylocal_dir +" on "+ ymount + " ("+yfstype+")";
-			ysel = ((j==0) ? "checked=\"checked\"" : "");
-			yresult += string_printf("<input type='radio' name='R1' value='%s' %s />%d %.120s<br/>",
-				ylocal_dir.c_str(),ysel.c_str(),j,mounts.c_str());
-			j++;
-		}
-	}
-	return yresult;
-}
 
 //-------------------------------------------------------------------------
 // y-func : build partition list
