@@ -58,6 +58,7 @@ class CTerminal
 		unsigned int cursorX, cursorY;
 		unsigned int leftX, leftY; /* where the cursor was at the last draw */
 		bool dirty;
+		bool scrolled; /* the scroll-back buffer is shown */
 
 		bool setupFont();
 		bool start();
@@ -67,6 +68,8 @@ class CTerminal
 		bool readKeyboard();
 		bool rcKey(uint32_t msg);
 		void typeText();
+		void scrollBack(bool up, unsigned int lines = 0);
+		void scrollBottom();
 		void draw();
 		bool drawShape(uint32_t c, int px, int py, int w, uint32_t fg, uint32_t bg);
 		void repaint();

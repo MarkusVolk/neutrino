@@ -104,6 +104,7 @@ CTerminal::CTerminal(const std::string &Program)
 	cursorX = cursorY = 0;
 	leftX = leftY = 0;
 	dirty = true;
+	scrolled = false;
 }
 
 CTerminal::~CTerminal()
@@ -285,6 +286,17 @@ bool CTerminal::readKeyboard()
 	{
 		if (k.keysym == XKB_KEY_Menu)
 			return false;
+		if ((k.mods & TEXT_KEY_SHIFT) && (k.keysym == XKB_KEY_Prior || k.keysym == XKB_KEY_Next))
+		{
+			scrollBack(k.keysym == XKB_KEY_Prior);
+			continue;
+		}
+		if ((k.mods & TEXT_KEY_SHIFT) && (k.keysym == XKB_KEY_Up || k.keysym == XKB_KEY_Down))
+		{
+			scrollBack(k.keysym == XKB_KEY_Up, rows / 2);
+			continue;
+		}
+		scrollBottom();
 		unsigned int mods = 0;
 		if (k.mods & TEXT_KEY_SHIFT)
 			mods |= TSM_SHIFT_MASK;
@@ -306,6 +318,30 @@ bool CTerminal::readKeyboard()
 	return true;
 }
 
+/* Shift+Page Up/Down, Shift+Up/Down and rewind/forward page through the
+ * lines that went out at the top, a whole page or the given lines */
+void CTerminal::scrollBack(bool up, unsigned int lines)
+{
+	if (lines)
+		up ? tsm_screen_sb_up(screen, lines) : tsm_screen_sb_down(screen, lines);
+	else if (up)
+		tsm_screen_sb_page_up(screen, 1);
+	else
+		tsm_screen_sb_page_down(screen, 1);
+	scrolled = true;
+	repaint();
+}
+
+/* any other key goes back to what the program shows now */
+void CTerminal::scrollBottom()
+{
+	if (!scrolled)
+		return;
+	tsm_screen_sb_reset(screen);
+	scrolled = false;
+	repaint();
+}
+
 /* text typed on the on-screen keyboard goes to the program as it is */
 void CTerminal::typeText()
 {
@@ -322,7 +358,7 @@ void CTerminal::typeText()
 
 /* the remote control: the cursor keys, OK, exit and the digits are what a
  * text user interface needs most, red opens the on-screen keyboard, green
- * is Ctrl+C and yellow Tab. A keyboard that neutrino reads as a remote
+ * is Ctrl+C and yellow Tab, rewind and forward page through the scroll-back. A keyboard that neutrino reads as a remote
  * control types lower case letters. False for the menu key, which ends. */
 bool CTerminal::rcKey(uint32_t msg)
 {
@@ -333,7 +369,12 @@ bool CTerminal::rcKey(uint32_t msg)
 	{
 		case CRCInput::RC_setup:
 			return false;
+		case CRCInput::RC_rewind:
+		case CRCInput::RC_forward:
+			scrollBack(msg == CRCInput::RC_rewind);
+			return true;
 		case CRCInput::RC_red:
+			scrollBottom();
 			typeText();
 			return true;
 		case CRCInput::RC_green:
@@ -365,6 +406,7 @@ bool CTerminal::rcKey(uint32_t msg)
 			}
 			break;
 	}
+	scrollBottom();
 	if (ch != TSM_VTE_INVALID)
 		tsm_vte_handle_keyboard(vte, ch, ch, mods, ch);
 	else if (sym != XKB_KEY_NoSymbol)
@@ -681,6 +723,7 @@ int CTerminal::exec()
 		printf("[terminal] libtsm failed\n");
 		return -1;
 	}
+	tsm_screen_set_max_sb(screen, 2000);
 	tsm_vte_set_backspace_sends_delete(vte, true);
 	tsm_vte_set_custom_palette(vte, palette);
 	tsm_vte_set_palette(vte, "custom");
