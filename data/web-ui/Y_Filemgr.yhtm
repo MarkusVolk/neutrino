@@ -83,10 +83,12 @@ CyExplorer.prototype = {
 	},
 	parse_dirline : function(_line){
 		/* this may be overridden for different OSs */
-		var Ausdruck = /([^ ]*)[ ]*([^ ]*)[ ]*([^ ]*)[ ]*([^ ]*)[ ]*([^ ]*)[ ]*([^ ]*)[ ]*([^ ]*)[ ]*([^ ]*)[ ]*([^ ]*).*$/;
+		var Ausdruck = /([^ ]*)[ ]*([^ ]*)[ ]*([^ ]*)[ ]*([^ ]*)[ ]*([^ ]*)[ ]*([^ ]*)[ ]*([^ ]*)[ ]*([^ ]*)[ ]*(.*)$/;
 		Ausdruck.exec(_line);
 		var fileprops = new Hash();
 		var fname = RegExp.$9;
+		if ((RegExp.$1).charAt(0) == "l" && fname.indexOf(" -> ") >= 0)
+			fname = fname.substring(0, fname.indexOf(" -> "));
 		fileprops.set('fname', fname);
 		fileprops.set('access', RegExp.$1);
 		switch ( (RegExp.$1).charAt(0) ){
@@ -112,7 +114,7 @@ CyExplorer.prototype = {
 		this.wg_init();
 		this.wg_clear();
 		if(this.on_before_dirview) this.on_before_dirview();
-		var res = loadSyncURL("/y/cgi?execute=script:Y_NAS%20filemgr_list%20"+path);
+		var res = nas(["filemgr_list", path]);
 		var files = res.split("\n");
 	
 		/*every ls row*/
@@ -175,18 +177,18 @@ CyExplorer.prototype = {
 		var path = this.ac_path;
 		if(path != "/") path += "/";
 		path += rel_path;
-		var res= loadSyncURL("/y/cgi?execute=script:Y_NAS%20filemgr_mkdir%20"+path);
+		var res = nas(["filemgr_mkdir", path]);
 		if(res.length)
 			alert(res);
 		this.refresh();
 	},
 	chmod: function(_octal,_recusive){
-		var cmd="";
+		var args = ["filemgr_chmod"];
 		var file = this.build_fname();
 		if(typeof(_recursive) != "undefined" && _recursive)
-			cmd+= "-R%20";
-		cmd+=_octal+"%20"+file;
-		var res = loadSyncURL("/y/cgi?execute=script:Y_NAS%20filemgr_chmod%20"+cmd);
+			args.push("-R");
+		args.push(_octal, file);
+		var res = nas(args);
 		if(res.length)
 			alert(res);
 		this.refresh();
@@ -198,7 +200,7 @@ CyExplorer.prototype = {
 		if(ftype == "file"){
 			var msg = "Really delete file \""+fname+"\" ?";
 			if(confirm(msg)==true){
-				var res = loadSyncURL("/y/cgi?execute=script:Y_NAS%20filemgr_rm%20"+fname);
+				var res = nas(["filemgr_rm", fname]);
 				if(res.length)
 					alert(res);
 				this.refresh();
@@ -207,7 +209,7 @@ CyExplorer.prototype = {
 		else if(ftype == "folder"){
 			var msg = "Really delete directory \""+fname+"\" ? All sub-directories will be deleted too!";
 			if(confirm(msg)==true){
-				var res = loadSyncURL("/y/cgi?execute=script:Y_NAS%20filemgr_rmdir%20"+fname);
+				var res = nas(["filemgr_rmdir", fname]);
 				if(res.length)
 					alert(res);
 				this.refresh();
@@ -220,9 +222,7 @@ CyExplorer.prototype = {
 			if(path != "/") path += "/";
 			var filenew = path + newfname;
 			var fileorg = this.build_fname();
-			var res = loadSyncURL("/y/cgi?execute=script:Y_NAS%20filemgr_ren%20"
-				+fileorg+
-				"%20"+ filenew);
+			var res = nas(["filemgr_ren", fileorg, filenew]);
 			if(res.length)
 				alert(res);
 			this.refresh();
@@ -250,10 +250,7 @@ CyExplorer.prototype = {
 			msg += (this.source_prop.get('type') == "folder") ? "Verzeichnis " : "Datei ";
 			msg += this.sourcefname + " nach Verzeichnis " + dest;
 			if (confirm(msg) == true) {
-				var cmd = "/y/cgi?execute=script:Y_NAS%20";
-				cmd += (this.isCut) ? "filemgr_ren" : "filemgr_copy";
-				cmd += "%20" + this.sourcefname + "%20" + dest;
-				var res = loadSyncURL(cmd);
+				var res = nas([(this.isCut) ? "filemgr_ren" : "filemgr_copy", this.sourcefname, dest]);
 				this.source_prop = null;
 				this.sourcefname = "";
 				this.refresh();
@@ -264,6 +261,14 @@ CyExplorer.prototype = {
 	}	
 	
 };
+/* every argument encoded on its own, so that a space in a name does not split it; Y_NAS.sh decodes them */
+function nas(args)
+{
+	var line = "script:Y_NAS";
+	for (var i = 0; i < args.length; i++)
+		line += " " + encodeURIComponent(args[i]);
+	return loadSyncURL("/y/cgi?execute=" + encodeURIComponent(line));
+}
 /* --------------------------------------------------------------*/
 /* INIT */
 /* --------------------------------------------------------------*/
@@ -402,7 +407,7 @@ function _do_upload(){
 	var fname = extract_filename(document.upload.file.value);
 	document.upload.path.value = path;
 	document.upload.dummy.value = path;
-	document.upload.execute.value = "script:Y_NAS filemgr_upload "+path+" "+fname;
+	document.upload.execute.value = "script:Y_NAS filemgr_upload " + encodeURIComponent(path) + " " + encodeURIComponent(fname);
 	document.upload.submit();
 }
 
@@ -420,7 +425,7 @@ function  do_prop(prop){
 	var fullfname = explorer.build_fname();
 	switch(explorer.ac_prop.get('ext')){
 		case "xml":
-			var res = loadSyncURL("/y/cgi?execute=script:Y_NAS%20filemgr_check_movieplayer_xml%20"+fullfname);
+			var res = nas(["filemgr_check_movieplayer_xml", fullfname]);
 			if(res){
 				prop_plugin_mpxml(fullfname);
 			}

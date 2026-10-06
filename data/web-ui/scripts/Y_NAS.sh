@@ -3,6 +3,29 @@
 # yWeb Extension: Filemgr (by yjogol)
 # -----------------------------------------------------------
 
+# the file manager encodes every argument on its own (encodeURIComponent)
+decode() {
+	printf '%s' "$1" | awk 'BEGIN { for (i = 1; i < 256; i++) hex[sprintf("%02X", i)] = sprintf("%c", i) }
+	{
+		out = ""
+		while (match($0, /%[0-9A-Fa-f][0-9A-Fa-f]/)) {
+			out = out substr($0, 1, RSTART - 1) hex[toupper(substr($0, RSTART + 1, 2))]
+			$0 = substr($0, RSTART + 3)
+		}
+		printf "%s", out $0
+	}'
+}
+
+case "$1" in
+	filemgr_*)
+		n=$#
+		for arg do
+			set -- "$@" "$(decode "$arg")"
+		done
+		shift $n
+	;;
+esac
+
 # -----------------------------------------------------------
 # Main
 # -----------------------------------------------------------
@@ -12,23 +35,23 @@ case "$1" in
 	;;
 	filemgr_list)
 		shift 1
-		ls -al $*
+		ls -al "$@"
 	;;
 	filemgr_chmod)
 		shift 1
-		chmod $*
+		chmod "$@"
 	;;
 	filemgr_mkdir)
 		shift 1
-		mkdir $*
+		mkdir "$@"
 	;;
 	filemgr_rm)
 		shift 1
-		rm -f $*
+		rm -f "$@"
 	;;
 	filemgr_rmdir)
 		shift 1
-		rm -rf $*
+		rm -rf "$@"
 	;;
 	filemgr_upload)
 		shift 1
@@ -37,15 +60,15 @@ case "$1" in
 	;;
 	filemgr_ren)
 		shift 1
-		mv -f $1 $2
+		mv -f "$1" "$2"
 	;;
 	filemgr_copy)
 		shift 1
-		cp -r -f $1 $2
+		cp -r -f "$1" "$2"
 	;;
 	filemgr_check_movieplayer_xml)
 		shift 1
-		grep "neutrino commandversion" $*
+		grep "neutrino commandversion" "$@"
 	;;
 	nhttpd_can_sendall)
 		grep sendAll=true %(CONFIGDIR)/nhttpd.conf
