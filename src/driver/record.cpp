@@ -1368,8 +1368,15 @@ bool CRecordManager::StopAutoRecord(bool lock)
 	CRecordInstance * inst = FindTimeshift();
 	if (inst)
 	{
+		std::string file = inst->GetFileName();
 		StopInstance(inst);
 		CMoviePlayerGui::getInstance().stopTimeshift();
+		/* the player deletes only a timeshift it played; one that was
+		 * recorded but never watched would stay until the next start */
+		if (g_settings.timeshift_delete && file.size() > 5 && file.compare(file.size() - 5, 5, "_temp") == 0) {
+			unlink((file + ".ts").c_str());
+			unlink((file + ".xml").c_str());
+		}
 	}
 
 	if (lock)
@@ -2300,6 +2307,8 @@ bool CStreamRec::Stop(bool remove_event)
 	printf("%s: len %d\n", __FUNCTION__, recMovieInfo->length);
 
 	SaveXml();
+	if (autoshift && g_settings.timeshift_delete)
+		CMoviePlayerGui::getInstance().deleteTimeshift();
 	hintBox.hide();
 	return (ret == 0);
 }
