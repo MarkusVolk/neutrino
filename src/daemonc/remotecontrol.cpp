@@ -732,6 +732,7 @@ const std::string &CRemoteControl::subChannelDown(void)
 void CRemoteControl::zapTo_ChannelID(const t_channel_id channel_id, const std::string &channame, int channum, const bool start_video)
 {
 	//printf("zapTo_ChannelID: start_video: %d\n", start_video);
+	CMoviePlayerGui::ClearLiveHold();
 	if (start_video)
 		startvideo();
 	else

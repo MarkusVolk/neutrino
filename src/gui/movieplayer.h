@@ -267,9 +267,10 @@ class CMoviePlayerGui : public CMenuTarget
 	static OpenThreads::Condition cond;
 	static pthread_t bgThread;
 	static bool webtv_started;
-	static bool webtv_live_paused;
-	static int64_t webtv_pause_ms;
-	static int webtv_pause_buffer_ms;
+	static bool live_held;
+	static bool live_held_webtv;
+	static int64_t live_hold_ms;
+	static int live_hold_buffer_ms;
 	static bool webtv_starting;
 	static bool webtv_stopping;
 	static bool webtv_retry_pending;
@@ -372,12 +373,13 @@ class CMoviePlayerGui : public CMenuTarget
 	tshift_mode timeshift;
 	void deleteTimeshift() { timeshift_deletion = true; }
 	void setTimeshiftDelay(int ms) { timeshift_delay = ms; }
-	/* a web channel's live picture held while its timeshift records on */
-	bool PauseWebtvLive();
-	bool ResumeWebtvLive();
-	static bool WebtvLivePaused() { return webtv_live_paused; }
-	int WebtvPausedFor();
-	int WebtvLiveDelay();
+	/* the live picture held while the timeshift records on */
+	bool HoldLive();
+	bool ResumeLive();
+	static bool LiveHeld() { return live_held; }
+	static void ClearLiveHold() { live_held = false; }
+	int LiveHeldFor();
+	int LiveDelay();
 	int file_prozent;
 	static cPlayback *getPlayback();
 	void SetFile(std::string &name, std::string &file, std::string info1="", std::string info2="", std::string file2="") { pretty_name = name; file_name = file; info_1 = info1; info_2 = info2; second_file_name = file2; }

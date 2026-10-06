@@ -141,9 +141,10 @@ OpenThreads::Condition CMoviePlayerGui::cond;
 pthread_t CMoviePlayerGui::bgThread;
 cPlayback *CMoviePlayerGui::playback = NULL;
 bool CMoviePlayerGui::webtv_started = false;
-bool CMoviePlayerGui::webtv_live_paused = false;
-int64_t CMoviePlayerGui::webtv_pause_ms = 0;
-int CMoviePlayerGui::webtv_pause_buffer_ms = 0;
+bool CMoviePlayerGui::live_held = false;
+bool CMoviePlayerGui::live_held_webtv = false;
+int64_t CMoviePlayerGui::live_hold_ms = 0;
+int CMoviePlayerGui::live_hold_buffer_ms = 0;
 bool CMoviePlayerGui::webtv_starting = false;
 bool CMoviePlayerGui::webtv_stopping = false;
 bool CMoviePlayerGui::webtv_retry_pending = false;
@@ -2140,7 +2141,7 @@ void* CMoviePlayerGui::bgPlayThread(void *arg)
 			}
 
 			bool allow_eof_check = (saw_read_activity || mp->position > 0 || (time(NULL) - start_time) > 10);
-			if (pos == mp->position && mp->duration > 0 && !webtv_live_paused) {
+			if (pos == mp->position && mp->duration > 0 && !live_held) {
 				if (allow_eof_check) {
 					eof++;
 					printf("CMoviePlayerGui::bgPlayThread: eof counter: %d\n", eof);
@@ -2685,61 +2686,80 @@ bool CMoviePlayerGui::PlayBackgroundStart(const std::string &file, const std::st
 	return true;
 }
 
-bool CMoviePlayerGui::PauseWebtvLive()
-{
-	mutex.lock();
-	bool ok = webtv_started && playback;
-	if (ok) {
-		playback->SetSpeed(0);
-		webtv_live_paused = true;
-		webtv_pause_ms = time_monotonic_ms();
+/* what the live stream has read ahead of its picture: a web channel's
+ * playback, or the live TV session of generic hardware */
 #if HAVE_GENERIC_HARDWARE
-		webtv_pause_buffer_ms = playback->GetBufferedMs();
-#else
-		webtv_pause_buffer_ms = 0;
-#endif
-	}
-	mutex.unlock();
-	return ok;
+static int liveBufferedMs(cPlayback *playback, bool webtv)
+{
+	if (webtv)
+		return playback ? playback->GetBufferedMs() : 0;
+	return videoDecoder ? videoDecoder->LiveBufferedMs() : 0;
 }
+#endif
 
-/* The held stream reads on into its buffer; while that buffer reaches
- * from the held picture to now, it plays on without a switch. */
-bool CMoviePlayerGui::ResumeWebtvLive()
+bool CMoviePlayerGui::HoldLive()
 {
 	bool ok = false;
 #if HAVE_GENERIC_HARDWARE
 	mutex.lock();
-	/* HLS comes in segments of several seconds, so the buffer grows in
-	 * steps and may lack the newest one; it only must have kept growing */
-	if (webtv_live_paused && webtv_started && playback &&
-	    playback->GetBufferedMs() + 10000 >= webtv_pause_buffer_ms + WebtvPausedFor()) {
-		playback->SetSpeed(1);
-		webtv_live_paused = false;
+	bool webtv = webtv_started;
+	if (webtv && playback) {
+		playback->SetSpeed(0);
 		ok = true;
+	} else if (!webtv && videoDecoder)
+		ok = videoDecoder->LivePause(true);
+	if (ok) {
+		live_held = true;
+		live_held_webtv = webtv;
+		live_hold_ms = time_monotonic_ms();
+		live_hold_buffer_ms = liveBufferedMs(playback, webtv);
 	}
 	mutex.unlock();
 #endif
 	return ok;
 }
 
-int CMoviePlayerGui::WebtvPausedFor()
+/* The held stream reads on into its buffer; while that buffer reaches
+ * from the held picture to now, it plays on without a switch. HLS comes
+ * in segments of several seconds, so the buffer grows in steps and may
+ * lack the newest one; it only must have kept growing. */
+bool CMoviePlayerGui::ResumeLive()
 {
-	return webtv_live_paused ? (int)(time_monotonic_ms() - webtv_pause_ms) : 0;
+	bool ok = false;
+#if HAVE_GENERIC_HARDWARE
+	mutex.lock();
+	if (live_held && liveBufferedMs(playback, live_held_webtv) + 10000 >= live_hold_buffer_ms + LiveHeldFor()) {
+		if (live_held_webtv && webtv_started && playback) {
+			playback->SetSpeed(1);
+			ok = true;
+		} else if (!live_held_webtv && videoDecoder)
+			ok = videoDecoder->LivePause(false);
+		if (ok)
+			live_held = false;
+	}
+	mutex.unlock();
+#endif
+	return ok;
+}
+
+int CMoviePlayerGui::LiveHeldFor()
+{
+	return live_held ? (int)(time_monotonic_ms() - live_hold_ms) : 0;
 }
 
 /* How far the shown picture is behind the newest one, which is where the
  * timeshift recording ends: what the stream has read ahead, and the time
- * it was held. */
-int CMoviePlayerGui::WebtvLiveDelay()
+ * it was held. -1 where the live stream cannot tell, so the timeshift
+ * opens as it always did. */
+int CMoviePlayerGui::LiveDelay()
 {
-	if (webtv_live_paused)
-		return webtv_pause_buffer_ms + WebtvPausedFor();
 #if HAVE_GENERIC_HARDWARE
-	if (webtv_started && playback)
-		return playback->GetBufferedMs();
+	if (live_held)
+		return live_hold_buffer_ms + LiveHeldFor();
+	return liveBufferedMs(playback, webtv_started);
+#else
+	return -1;
 #endif
-	return 0;
 }
 
 bool CMoviePlayerGui::IsWebtvActive()
@@ -2867,7 +2887,7 @@ void CMoviePlayerGui::stopPlayBack(bool keep_webtv_failure)
 
 	repeat_mode = REPEAT_OFF;
 	mutex.lock();
-	webtv_live_paused = false;
+	live_held = false;
 	uint64_t stopping_generation = webtv_request.generation;
 	webtv_generation++;
 	if (stopping_generation)
