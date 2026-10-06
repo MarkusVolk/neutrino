@@ -101,6 +101,7 @@ class CStreamRec : public CRecordInstance, OpenThreads::Thread
 
 		int videoindex_v;
 		int videoindex_out;
+		std::vector<int> out_index;	/* input stream -> output stream, -1 when it is not recorded */
 		int audioindex_a;
 		int audioindex_out;
 		bool have2url;
@@ -2477,10 +2478,37 @@ bool CStreamRec::Open(CZapitChannel * channel)
 	ofcx->url = av_strdup(!tsfile.empty() ? tsfile.c_str() : "");
 #endif
 
+	/* HLS offers every quality as a program of its own; without a choice
+	 * every variant is downloaded and recorded, and the player takes the
+	 * first, smallest one. Keep the variant with the highest bitrate. */
+	if (ifcx->nb_programs > 1) {
+		int best = -1;
+		int64_t best_rate = -1;
+		for (unsigned p = 0; p < ifcx->nb_programs; p++) {
+			AVDictionaryEntry *e = av_dict_get(ifcx->programs[p]->metadata, "variant_bitrate", NULL, 0);
+			int64_t rate = e ? strtoll(e->value, NULL, 10) : 0;
+			if (rate > best_rate) {
+				best_rate = rate;
+				best = p;
+			}
+		}
+		if (best >= 0) {
+			for (unsigned i = 0; i < ifcx->nb_streams; i++)
+				ifcx->streams[i]->discard = AVDISCARD_ALL;
+			AVProgram *prog = ifcx->programs[best];
+			for (unsigned k = 0; k < prog->nb_stream_indexes; k++)
+				ifcx->streams[prog->stream_index[k]]->discard = AVDISCARD_DEFAULT;
+			printf("%s: recording variant %d of %u, %lld bit/s\n", __FUNCTION__, best, ifcx->nb_programs, (long long) best_rate);
+		}
+	}
+
 	videoindex_v = -1, videoindex_out = -1;
 	stream_index = -1;
 	int stid = 0x200;
+	out_index.assign(ifcx->nb_streams, -1);
 	for (unsigned i = 0; i < ifcx->nb_streams; i++) {
+		if (ifcx->streams[i]->discard == AVDISCARD_ALL)
+			continue;
 #if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(57, 25, 101)
 		AVCodecContext * iccx = ifcx->streams[i]->codec;
 		AVStream *ost = avformat_new_stream(ofcx, iccx->codec);
@@ -2493,13 +2521,16 @@ bool CStreamRec::Open(CZapitChannel * channel)
 		av_dict_copy(&ost->metadata, ifcx->streams[i]->metadata, 0);
 		ost->time_base = ifcx->streams[i]->time_base;
 		ost->id = stid++;
-		videoindex_out = ost->index;
+		out_index[i] = ost->index;
 		if (iccx->codec_type == AVMEDIA_TYPE_VIDEO) {
 			stream_index = i;
 			videoindex_v = i;
+			videoindex_out = ost->index;
 		} else if (stream_index < 0)
 			stream_index = i;
 	}
+	if (videoindex_out < 0 && stream_index >= 0)
+		videoindex_out = out_index[stream_index];
 	if(have2url) {
 		audioindex_a = -1, audioindex_out = -1;
 		for (unsigned i = 0; i < ifcx2->nb_streams; i++) {
@@ -2583,8 +2614,10 @@ void CStreamRec::run()
 #endif
 		if (av_read_frame(ifcx, &pkt) < 0)
 			break;
-		if (pkt.stream_index < 0)
+		if (pkt.stream_index < 0 || pkt.stream_index >= (int) out_index.size() || out_index[pkt.stream_index] < 0) {
+			av_packet_unref(&pkt);
 			continue;
+		}
 #if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(57, 25, 101)
 		AVCodecContext *codec = ifcx->streams[pkt.stream_index]->codec;
 #else
@@ -2613,13 +2646,15 @@ void CStreamRec::run()
 			}
 #endif
 		}
-		pkt.pts = av_rescale_q(pkt.pts, ifcx->streams[pkt.stream_index]->time_base, ofcx->streams[pkt.stream_index]->time_base);
-		pkt.dts = av_rescale_q(pkt.dts, ifcx->streams[pkt.stream_index]->time_base, ofcx->streams[pkt.stream_index]->time_base);
+		int out = out_index[pkt.stream_index];
+		pkt.pts = av_rescale_q(pkt.pts, ifcx->streams[pkt.stream_index]->time_base, ofcx->streams[out]->time_base);
+		pkt.dts = av_rescale_q(pkt.dts, ifcx->streams[pkt.stream_index]->time_base, ofcx->streams[out]->time_base);
 
 		if (pkt.stream_index == stream_index) {
 			total += (double) 1000 * pkt.duration * av_q2d(ifcx->streams[stream_index]->time_base);
 			//printf("PKT: duration %d (%f) total %f (ifcx->duration %016llx\n", pkt.duration, duration, total, ifcx->duration);
 		}
+		pkt.stream_index = out;
 
 		av_write_frame(ofcx, &pkt);
 		av_packet_unref(&pkt);
