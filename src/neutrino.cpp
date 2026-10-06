@@ -4279,6 +4279,8 @@ int CNeutrinoApp::handleMsg(const neutrino_msg_t _msg, neutrino_msg_data_t data)
 				}
 				if (CMoviePlayerGui::getInstance().RestartBackground(cc->getUrl(), cc->getName(), cc->getChannelID(), cc->getScriptName())) {
 					printf("[webtv] zap complete: restart accepted channel=%llx\n", (unsigned long long)chid);
+					/* automatic timeshift starts after a zap to a web channel as well */
+					CRecordManager::getInstance()->handleMsg(msg, data);
 					delete [] (unsigned char*) data;
 				}
 				else

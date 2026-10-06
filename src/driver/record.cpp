@@ -1555,7 +1555,7 @@ bool CRecordManager::Update(const t_channel_id channel_id)
 
 int CRecordManager::handleMsg(const neutrino_msg_t msg, neutrino_msg_data_t data)
 {
-	if(msg == NeutrinoMessages::EVT_ZAP_COMPLETE) {
+	if(msg == NeutrinoMessages::EVT_ZAP_COMPLETE || msg == NeutrinoMessages::EVT_WEBTV_ZAP_COMPLETE) {
 		g_RCInput->killTimer (shift_timer);
 		if (g_settings.timeshift_auto) {
 			int delay = g_settings.timeshift_auto;
