@@ -169,6 +169,9 @@
 #ifdef ENABLE_LUA
 #include <system/luaserver.h>
 #endif
+#ifdef ENABLE_MPRIS
+#include <system/mpris.h>
+#endif
 int old_b_id = -1;
 
 CInfoClock      *InfoClock;
@@ -3312,6 +3315,9 @@ TIMER_START();
 		pthread_detach (nhttpd_thread);
 
 	CStreamManager::getInstance()->Start();
+#ifdef ENABLE_MPRIS
+	CMprisServer::getInstance()->Start();
+#endif
 
 #ifndef DISABLE_SECTIONSD
 	CSectionsdClient::epg_config config;
@@ -6171,6 +6177,9 @@ void stop_daemons(bool stopall, bool for_flash)
 		delete g_Radiotext;
 		g_Radiotext = NULL;
 	}
+#ifdef ENABLE_MPRIS
+	CMprisServer::getInstance()->Stop();
+#endif
 	printf("streaming shutdown\n");
 	CStreamManager::getInstance()->Stop();
 	printf("streaming shutdown done\n");

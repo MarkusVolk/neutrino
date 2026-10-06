@@ -76,6 +76,11 @@ libneutrino_system_a_SOURCES += \
 	bluez_client.cpp
 endif
 
+if ENABLE_MPRIS
+libneutrino_system_a_SOURCES += \
+	mpris.cpp
+endif
+
 if ENABLE_ASSISTANT
 libneutrino_system_a_SOURCES += \
 	http_request.cpp \

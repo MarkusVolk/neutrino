@@ -471,10 +471,20 @@ if test "$enable_bluetooth" = "yes"; then
 fi
 AM_CONDITIONAL(ENABLE_BLUETOOTH, test "$enable_bluetooth" = "yes")
 
-if test "$enable_iwd" = "yes" -o "$enable_bluetooth" = "yes"; then
+AC_ARG_ENABLE(mpris,
+	AS_HELP_STRING([--enable-mpris], [let desktop media keys control playback through MPRIS on the session bus @<:@default=no@:>@]),
+	[enable_mpris="$enableval"],
+	[enable_mpris="no"])
+
+if test "$enable_mpris" = "yes"; then
+	AC_DEFINE(ENABLE_MPRIS, 1, [let desktop media keys control playback through MPRIS])
+fi
+AM_CONDITIONAL(ENABLE_MPRIS, test "$enable_mpris" = "yes")
+
+if test "$enable_iwd" = "yes" -o "$enable_bluetooth" = "yes" -o "$enable_mpris" = "yes"; then
 	PKG_CHECK_MODULES([DBUS], [dbus-1])
 fi
-AM_CONDITIONAL(USE_DBUS, test "$enable_iwd" = "yes" -o "$enable_bluetooth" = "yes")
+AM_CONDITIONAL(USE_DBUS, test "$enable_iwd" = "yes" -o "$enable_bluetooth" = "yes" -o "$enable_mpris" = "yes")
 
 AC_ARG_ENABLE(terminal,
 	AS_HELP_STRING([--enable-terminal], [run plugins with a text user interface in a terminal on the OSD @<:@default=no@:>@]),
