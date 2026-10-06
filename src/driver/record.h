@@ -240,6 +240,7 @@ class CRecordManager : public CMenuTarget /*, public CChangeObserver*/
 		// mimic old behavior for start/stop menu option chooser, still actual ?
 		int GetRecordCount() { return recmap.size(); };
 		void StartTimeshift();
+		bool PrepareTimeshift();
 		int GetRecordMode(const t_channel_id channel_id=0);
 		CRecordInstance* getRecordInstance(std::string file);
 		CRecordInstance* getUseCI();

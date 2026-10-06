@@ -27,6 +27,7 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
+#include <sys/stat.h>
 
 #ifndef __STDC_LIMIT_MACROS
 #define __STDC_LIMIT_MACROS
@@ -140,6 +141,9 @@ OpenThreads::Condition CMoviePlayerGui::cond;
 pthread_t CMoviePlayerGui::bgThread;
 cPlayback *CMoviePlayerGui::playback = NULL;
 bool CMoviePlayerGui::webtv_started = false;
+bool CMoviePlayerGui::webtv_live_paused = false;
+int64_t CMoviePlayerGui::webtv_pause_ms = 0;
+int CMoviePlayerGui::webtv_pause_buffer_ms = 0;
 bool CMoviePlayerGui::webtv_starting = false;
 bool CMoviePlayerGui::webtv_stopping = false;
 bool CMoviePlayerGui::webtv_retry_pending = false;
@@ -986,6 +990,7 @@ void CMoviePlayerGui::Init(void)
 
 	speed = 1;
 	timeshift = TSHIFT_MODE_OFF;
+	timeshift_delay = -1;
 	numpida = 0;
 	showStartingHint = false;
 
@@ -2135,7 +2140,7 @@ void* CMoviePlayerGui::bgPlayThread(void *arg)
 			}
 
 			bool allow_eof_check = (saw_read_activity || mp->position > 0 || (time(NULL) - start_time) > 10);
-			if (pos == mp->position && mp->duration > 0) {
+			if (pos == mp->position && mp->duration > 0 && !webtv_live_paused) {
 				if (allow_eof_check) {
 					eof++;
 					printf("CMoviePlayerGui::bgPlayThread: eof counter: %d\n", eof);
@@ -2680,6 +2685,63 @@ bool CMoviePlayerGui::PlayBackgroundStart(const std::string &file, const std::st
 	return true;
 }
 
+bool CMoviePlayerGui::PauseWebtvLive()
+{
+	mutex.lock();
+	bool ok = webtv_started && playback;
+	if (ok) {
+		playback->SetSpeed(0);
+		webtv_live_paused = true;
+		webtv_pause_ms = time_monotonic_ms();
+#if HAVE_GENERIC_HARDWARE
+		webtv_pause_buffer_ms = playback->GetBufferedMs();
+#else
+		webtv_pause_buffer_ms = 0;
+#endif
+	}
+	mutex.unlock();
+	return ok;
+}
+
+/* The held stream reads on into its buffer; while that buffer reaches
+ * from the held picture to now, it plays on without a switch. */
+bool CMoviePlayerGui::ResumeWebtvLive()
+{
+	bool ok = false;
+#if HAVE_GENERIC_HARDWARE
+	mutex.lock();
+	/* HLS comes in segments of several seconds, so the buffer grows in
+	 * steps and may lack the newest one; it only must have kept growing */
+	if (webtv_live_paused && webtv_started && playback &&
+	    playback->GetBufferedMs() + 10000 >= webtv_pause_buffer_ms + WebtvPausedFor()) {
+		playback->SetSpeed(1);
+		webtv_live_paused = false;
+		ok = true;
+	}
+	mutex.unlock();
+#endif
+	return ok;
+}
+
+int CMoviePlayerGui::WebtvPausedFor()
+{
+	return webtv_live_paused ? (int)(time_monotonic_ms() - webtv_pause_ms) : 0;
+}
+
+/* How far the shown picture is behind the newest one, which is where the
+ * timeshift recording ends: what the stream has read ahead, and the time
+ * it was held. */
+int CMoviePlayerGui::WebtvLiveDelay()
+{
+	if (webtv_live_paused)
+		return webtv_pause_buffer_ms + WebtvPausedFor();
+#if HAVE_GENERIC_HARDWARE
+	if (webtv_started && playback)
+		return playback->GetBufferedMs();
+#endif
+	return 0;
+}
+
 bool CMoviePlayerGui::IsWebtvActive()
 {
 	mutex.lock();
@@ -2805,6 +2867,7 @@ void CMoviePlayerGui::stopPlayBack(bool keep_webtv_failure)
 
 	repeat_mode = REPEAT_OFF;
 	mutex.lock();
+	webtv_live_paused = false;
 	uint64_t stopping_generation = webtv_request.generation;
 	webtv_generation++;
 	if (stopping_generation)
@@ -2967,6 +3030,24 @@ bool CMoviePlayerGui::PlayFileStart(void)
 	}
 #endif
 
+	/* Opening the timeshift at its start and seeking afterwards shows the
+	 * first picture of the recording for a moment. Its length is the time
+	 * between the .xml written at its start and the last write of the .ts,
+	 * so the playback can open at the held picture right away. */
+	bool timeshift_opened_there = false;
+	if (timeshift_delay >= 0 && playback) {
+		struct stat ts_stat, xml_stat;
+		std::string xml_name = file_name;
+		CMovieInfo mi;
+		if (mi.convertTs2XmlName(xml_name) && stat(file_name.c_str(), &ts_stat) == 0 && stat(xml_name.c_str(), &xml_stat) == 0) {
+			int length = (int)(ts_stat.st_mtime - xml_stat.st_mtime) * 1000;
+			if (length > timeshift_delay) {
+				playback->SetPosition(length - timeshift_delay, true);
+				timeshift_opened_there = true;
+			}
+		}
+	}
+
 	/* Start() without mutex — blocks on I/O in libstb-hal,
 	 * releasing the mutex allows ShowStartHint thread to call
 	 * RequestAbort() when the user presses Back/Stop. */
@@ -3011,7 +3092,10 @@ bool CMoviePlayerGui::PlayFileStart(void)
 				usleep(20000);
 			}
 			printf("CMoviePlayerGui::PlayFile: waiting for data: i=%d position %d duration %d (%d), start %d\n", i, position, duration, towait, startposition);
-			if (timeshift == TSHIFT_MODE_REWIND) {
+			if (timeshift_delay >= 0) {
+				/* go on from where the live picture was held */
+				startposition = timeshift_opened_there ? -1 : std::max(0, duration - timeshift_delay);
+			} else if (timeshift == TSHIFT_MODE_REWIND) {
 				startposition = duration;
 			} else {
 				if (g_settings.timeshift_pause)
@@ -3040,9 +3124,10 @@ bool CMoviePlayerGui::PlayFileStart(void)
 				time_forced = true;
 			}
 			FileTimeOSD->setMpTimeForced(true);
-		} else if (timeshift == TSHIFT_MODE_OFF || !g_settings.timeshift_pause) {
+		} else if (timeshift == TSHIFT_MODE_OFF || !g_settings.timeshift_pause || timeshift_delay >= 0) {
 			playback->SetSpeed(1);
 		}
+		timeshift_delay = -1;
 	}
 	getCurrentAudioName(is_file_player, currentaudioname);
 	if (is_file_player)

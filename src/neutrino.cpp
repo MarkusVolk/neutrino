@@ -3745,12 +3745,24 @@ void CNeutrinoApp::RealRun()
 				}
 			}
 #endif
+			else if (msg == (neutrino_msg_t) g_settings.key_timeshift && mode == NeutrinoModes::mode_webtv &&
+				 CMoviePlayerGui::WebtvLivePaused()) {
+				/* the held picture plays on, from the timeshift when the
+				 * stream's buffer does not reach that far */
+				if (!CMoviePlayerGui::getInstance().ResumeWebtvLive()) {
+					CMoviePlayerGui::getInstance().setTimeshiftDelay(CMoviePlayerGui::getInstance().WebtvLiveDelay());
+					CRecordManager::getInstance()->StartTimeshift();
+				}
+			}
 			else if(msg == (neutrino_msg_t) g_settings.key_timeshift) {
-#if 0
-				if (mode == NeutrinoModes::mode_webtv) {
-					CMoviePlayerGui::getInstance().Pause();
-				} else
-#endif
+				/* A web channel's live stream holds its picture at once while the
+				 * timeshift records on; switching to the recording before it
+				 * plays would blank the picture for a moment. */
+				if (mode == NeutrinoModes::mode_webtv && g_settings.timeshift_pause &&
+				    CRecordManager::getInstance()->PrepareTimeshift() &&
+				    CMoviePlayerGui::getInstance().PauseWebtvLive())
+					;
+				else
 					CRecordManager::getInstance()->StartTimeshift();
 			}
 #if ENABLE_PIP
@@ -3887,6 +3899,8 @@ void CNeutrinoApp::RealRun()
 				quickZap(msg == CRCInput::RC_page_up ? CRCInput::RC_right : CRCInput::RC_left);
 			}
 			else if(msg == CRCInput::RC_rewind /* && (mode != NeutrinoModes::mode_webtv) */) {
+				if (mode == NeutrinoModes::mode_webtv)
+					CMoviePlayerGui::getInstance().setTimeshiftDelay(CMoviePlayerGui::getInstance().WebtvLiveDelay());
 				if(g_RemoteControl->is_video_started) {
 					t_channel_id live_channel_id = CZapit::getInstance()->GetCurrentChannelID();
 					if(CRecordManager::getInstance()->RecordingStatus(live_channel_id))
@@ -3904,6 +3918,14 @@ void CNeutrinoApp::RealRun()
 				CAudioSelectMenuHandler as;
 				as.exec(NULL, "-1");
 				StartSubtitles();
+			}
+			else if ((msg == CRCInput::RC_play || msg == CRCInput::RC_playpause) && mode == NeutrinoModes::mode_webtv &&
+				 CMoviePlayerGui::WebtvLivePaused())
+			{
+				if (!CMoviePlayerGui::getInstance().ResumeWebtvLive()) {
+					CMoviePlayerGui::getInstance().setTimeshiftDelay(CMoviePlayerGui::getInstance().WebtvLiveDelay());
+					CRecordManager::getInstance()->StartTimeshift();
+				}
 			}
 			else if( msg == CRCInput::RC_video || msg == CRCInput::RC_play || msg == CRCInput::RC_playpause || msg == CRCInput::RC_pvr)
 			{

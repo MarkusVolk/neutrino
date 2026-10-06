@@ -1605,6 +1605,17 @@ int CRecordManager::handleMsg(const neutrino_msg_t msg, neutrino_msg_data_t data
 	return messages_return::unhandled;
 }
 
+/* the recording of a timeshift, without playing it yet */
+bool CRecordManager::PrepareTimeshift()
+{
+	if (!g_RemoteControl->is_video_started)
+		return false;
+	t_channel_id live_channel_id = CZapit::getInstance()->GetCurrentChannelID();
+	if (g_settings.timeshift_temp)
+		return FindTimeshift() || StartAutoRecord(false);
+	return RecordingStatus(live_channel_id) || Record(live_channel_id);
+}
+
 void CRecordManager::StartTimeshift()
 {
 	if(g_RemoteControl->is_video_started)

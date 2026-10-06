@@ -255,6 +255,7 @@ class CMoviePlayerGui : public CMenuTarget
 	int menu_ret;
 	bool autoshot_done;
 	bool timeshift_deletion;
+	int timeshift_delay;	/* ms behind the end of the timeshift to start at, -1: the usual start */
 	//std::vector<livestream_info_t> liveStreamList;
 
 	/* playback from bookmark */
@@ -266,6 +267,9 @@ class CMoviePlayerGui : public CMenuTarget
 	static OpenThreads::Condition cond;
 	static pthread_t bgThread;
 	static bool webtv_started;
+	static bool webtv_live_paused;
+	static int64_t webtv_pause_ms;
+	static int webtv_pause_buffer_ms;
 	static bool webtv_starting;
 	static bool webtv_stopping;
 	static bool webtv_retry_pending;
@@ -367,6 +371,13 @@ class CMoviePlayerGui : public CMenuTarget
 	void UpdatePosition();
 	tshift_mode timeshift;
 	void deleteTimeshift() { timeshift_deletion = true; }
+	void setTimeshiftDelay(int ms) { timeshift_delay = ms; }
+	/* a web channel's live picture held while its timeshift records on */
+	bool PauseWebtvLive();
+	bool ResumeWebtvLive();
+	static bool WebtvLivePaused() { return webtv_live_paused; }
+	int WebtvPausedFor();
+	int WebtvLiveDelay();
 	int file_prozent;
 	static cPlayback *getPlayback();
 	void SetFile(std::string &name, std::string &file, std::string info1="", std::string info2="", std::string file2="") { pretty_name = name; file_name = file; info_1 = info1; info_2 = info2; second_file_name = file2; }
