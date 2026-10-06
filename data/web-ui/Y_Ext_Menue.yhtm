@@ -46,6 +46,7 @@ function build_menu(){
 					{=var-set:m_link_text={=L:main.settings=}=}
 					{=include-block:Y_Blocks.txt;management_link=}
 				</li>
+				{=if-file-exists:%(DATADIR)/rootfs-update~~
 				<li>
 					{=var-set:m_link_href=Y_Ext_Update.yhtm=}
 					{=var-set:m_link_text={=L:ext.installer_updater=}=}
@@ -56,6 +57,7 @@ function build_menu(){
 					{=var-set:m_link_text={=L:uninstaller=}=}
 					{=include-block:Y_Blocks.txt;management_link=}
 				</li>
+				=}
 			</ul>
 		</div>
 	</div>
