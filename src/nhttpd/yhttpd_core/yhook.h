@@ -136,6 +136,7 @@ public:
 	off_t		RangeStart;		// Start of range, used for sendfile only
 	off_t		RangeEnd;		// End of range, used for sendfile only
 	time_t 		LastModified;		// Last Modified Time of Item to send / -1 dynamic content
+	std::string	ETag;			// entity tag of a sent file, replaces Last-Modified when set
 	std::string	Sendfile;		// Path & Name (local os style) of file to send
 	bool		keep_alive;
 	bool		cached;			// cached by mod_cache

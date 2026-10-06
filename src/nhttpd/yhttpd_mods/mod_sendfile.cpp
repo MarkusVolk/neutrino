@@ -59,6 +59,47 @@
 //=============================================================================
 CStringList CmodSendfile::sendfileTypes;
 
+/* files up to this size get an entity tag from their content; the web
+ * pages are far below it, recordings are not read for it */
+#define ETAG_MAX_SIZE (1024 * 1024)
+
+static std::string ContentTag(int fd, off_t size)
+{
+	uint64_t hash = 14695981039346656037ULL; /* FNV-1a */
+	unsigned char buf[16384];
+	ssize_t n;
+	off_t pos = 0;
+	while ((n = pread(fd, buf, sizeof(buf), pos)) > 0) {
+		for (ssize_t i = 0; i < n; i++) {
+			hash ^= buf[i];
+			hash *= 1099511628211ULL;
+		}
+		pos += n;
+	}
+	if (n < 0 || pos != size)
+		return "";
+	return string_printf("\"%llx-%016llx\"", (unsigned long long) size, (unsigned long long) hash);
+}
+
+static bool EtagMatches(const std::string &header, const std::string &tag)
+{
+	if (header.empty())
+		return false;
+	if (trim(header) == "*")
+		return true;
+	std::string rest = header, item;
+	bool more = true;
+	while (more) {
+		more = ySplitStringExact(rest, ",", item, rest);
+		std::string t = trim(item);
+		if (t.compare(0, 2, "W/") == 0)
+			t = t.substr(2);
+		if (t == tag)
+			return true;
+	}
+	return false;
+}
+
 //-----------------------------------------------------------------------------
 // HOOK: Response Prepare Handler
 // Response Prepare Check.
@@ -94,6 +135,8 @@ THandleStatus CmodSendfile::Hook_PrepareResponse(CyhookHandler *hh) {
 				hh->ContentLength = statbuf.st_size;
 				hh->LastModified = statbuf.st_mtime;
 			}
+			if (S_ISREG(statbuf.st_mode) && statbuf.st_size <= ETAG_MAX_SIZE)
+				hh->ETag = ContentTag(filed, statbuf.st_size);
 			close(filed);
 
 			// check If-Modified-Since
@@ -112,6 +155,11 @@ THandleStatus CmodSendfile::Hook_PrepareResponse(CyhookHandler *hh) {
 			time_t LastModifiedGMT = mktime(tmp);
 			bool modified = (if_modified_since == (time_t) - 1)
 					|| (if_modified_since < LastModifiedGMT);
+			/* With an entity tag only the tag counts: every file of a
+			 * reproducibly built image carries the same date, so the date
+			 * would keep files the browser has from an older image. */
+			if (!hh->ETag.empty())
+				modified = !EtagMatches(hh->HeaderList["If-None-Match"], hh->ETag);
 
 			// Send normal or not-modified header
 			if (modified) {

@@ -202,6 +202,7 @@ void CyhookHandler::session_init(CStringList _ParamList, CStringList _UrlData,
 	httpStatus = HTTP_OK;
 	ContentLength = 0;
 	LastModified = (time_t) - 1;
+	ETag.clear();
 	keep_alive = _keep_alive;
 	HookVarList.clear();
 }
@@ -314,6 +315,8 @@ std::string CyhookHandler::BuildHeader(bool cache) {
 		if (UrlData["fileext"] == "gz")
 			result += "Content-Encoding: gzip\r\n";
 		// content-len, last-modified
+		if (!ETag.empty() && (httpStatus == HTTP_OK || httpStatus == HTTP_NOT_MODIFIED || httpStatus == HTTP_PARTIAL_CONTENT))
+			result += "ETag: " + ETag + "\r\n";
 		if (httpStatus == HTTP_NOT_MODIFIED || httpStatus == HTTP_NOT_FOUND || httpStatus == HTTP_REQUEST_RANGE_NOT_SATISFIABLE)
 			result += "Content-Length: 0\r\n";
 		else if (GetContentLength() > 0) {
@@ -321,8 +324,11 @@ std::string CyhookHandler::BuildHeader(bool cache) {
 			if (LastModified != (time_t) - 1)
 				mod_time = LastModified;
 
+			/* a file with an entity tag is recognised by its content; the
+			 * date says nothing on images whose files all carry one time */
 			strftime(timeStr, sizeof(timeStr), RFC1123FMT, gmtime(&mod_time));
-			result += string_printf("Last-Modified: %s\r\n", timeStr);
+			if (ETag.empty())
+				result += string_printf("Last-Modified: %s\r\n", timeStr);
 			if (status == HANDLED_SENDFILE && !cached) {
 				result += string_printf("Accept-Ranges: bytes\r\n");
 				result += string_printf("Content-Length: %lld\r\n", RangeEnd - RangeStart + 1);
