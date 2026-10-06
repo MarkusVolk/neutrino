@@ -338,11 +338,18 @@ CMenuOptionChooser::keyval_ext VIDEOMENU_VIDEOMODE_OPTIONS[VIDEOMENU_VIDEOMODE_O
 };
 #endif
 
+#if HAVE_GENERIC_HARDWARE
+#define VIDEOMENU_VIDEOFORMAT_OPTION_COUNT 4
+#else
 #define VIDEOMENU_VIDEOFORMAT_OPTION_COUNT 3
+#endif
 const CMenuOptionChooser::keyval VIDEOMENU_VIDEOFORMAT_OPTIONS[VIDEOMENU_VIDEOFORMAT_OPTION_COUNT] =
 {
 	{ DISPLAY_AR_4_3, LOCALE_VIDEOMENU_VIDEOFORMAT_43 },
 	{ DISPLAY_AR_16_9, LOCALE_VIDEOMENU_VIDEOFORMAT_169 },
+#if HAVE_GENERIC_HARDWARE
+	{ DISPLAY_AR_21_9, LOCALE_VIDEOMENU_VIDEOFORMAT_219 },
+#endif
 	{ DISPLAY_AR_14_9, LOCALE_VIDEOMENU_VIDEOFORMAT_149 }
 };
 
@@ -702,7 +709,11 @@ bool CVideoSettings::changeNotify(const neutrino_locale_t OptionName, void * /* 
 	}
 	else if (ARE_LOCALES_EQUAL(OptionName, LOCALE_VIDEOMENU_VIDEOFORMAT) || ARE_LOCALES_EQUAL(OptionName, LOCALE_VIDEOMENU_43MODE))
 	{
-		if (g_settings.video_Format != 1 && g_settings.video_Format != 3 && g_settings.video_Format != 2)
+		if (g_settings.video_Format != 1 && g_settings.video_Format != 3 && g_settings.video_Format != 2
+#if HAVE_GENERIC_HARDWARE
+		    && g_settings.video_Format != DISPLAY_AR_21_9
+#endif
+		   )
 			g_settings.video_Format = 3;
 
 		g_Zapit->setMode43(g_settings.video_43mode);

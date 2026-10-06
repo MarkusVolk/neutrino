@@ -3123,6 +3123,7 @@ const char * locale_real_names[] =
 	"videomenu.videoformat",
 	"videomenu.videoformat_149",
 	"videomenu.videoformat_169",
+	"videomenu.videoformat_219",
 	"videomenu.videoformat_43",
 	"videomenu.videomode",
 	"videomenu.zappingmode",
