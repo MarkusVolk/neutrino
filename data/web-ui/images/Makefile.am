@@ -14,7 +14,7 @@ images_DATA = \
 	cross.png \
 	elist.png \
 	exlink.gif \
-	fb.png \
+	remote.png \
 	hidden.png \
 	info.png \
 	inlink.gif \
