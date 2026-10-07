@@ -1330,7 +1330,6 @@ mainsettings.multimedia Multimedia
 mainsettings.network Network
 mainsettings.osd OSD
 mainsettings.recording Recording
-mainsettings.savesettingsnow Save settings now
 mainsettings.savesettingsnow_hint Saving settings,\nplease wait ...
 mainsettings.timezone Timezone
 mainsettings.video Video
@@ -1783,7 +1782,6 @@ menu.hint_reset Reset GUI settings to defaults\nTuner config and channels not af
 menu.hint_restore Restore files from selected backup
 menu.hint_rotor_swap Swap rotor east/west directions\nin motor control
 menu.hint_rounded_corners Draw round or rectangular windows corners
-menu.hint_save_settings Save all settings to flash
 menu.hint_saveas Save GUI settings to a file named neutrino.conf
 menu.hint_scan_auto Auto-scan selected provider
 menu.hint_scan_autoall Scan several selected providers at once
@@ -1846,7 +1844,6 @@ menu.hint_scan_satfind_start Start Satellite finder
 menu.hint_scan_satscan Scan selected satellite
 menu.hint_scan_satselect Select satellite
 menu.hint_scan_satsetup Configure satellites options
-menu.hint_scan_savesettings Save tuner config and scan settings\nAlso saved, if you start service scan
 menu.hint_scan_scantype Select, which channel types to scan
 menu.hint_scan_setup_fe Configure selected frontend options
 menu.hint_scan_start Start scan. You can use 'exit' button to stop

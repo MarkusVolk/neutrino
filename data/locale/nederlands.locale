@@ -870,7 +870,6 @@ mainsettings.multimedia Multimedia
 mainsettings.network Netwerk instellingen
 mainsettings.osd OSD instellingen
 mainsettings.recording Opnemen
-mainsettings.savesettingsnow Instellingen opslaan
 mainsettings.savesettingsnow_hint Instellingen opslaan,\nmoment geduld...
 mainsettings.timezone Tijdzone
 mainsettings.video Video
@@ -1207,7 +1206,6 @@ menu.hint_reset Reset gebruikersinterface naar standaard instellingen\n Tuner co
 menu.hint_restore Herstel geselecteerde back-up
 menu.hint_rotor_swap Draai motor oost/west
 menu.hint_rounded_corners Teken ronde of vierkante vensterhoeken
-menu.hint_save_settings Alle instellingen opslaan op flashgeheugen
 menu.hint_saveas Gebruikersinterface instellingen opslaan
 menu.hint_scan_auto Auto-scan geselecteerde provider
 menu.hint_scan_autoall Scan verschillende geselecteerde providers tegelijkertijd
@@ -1266,7 +1264,6 @@ menu.hint_scan_satfind_start Start met het zoeken naar satellieten
 menu.hint_scan_satscan Scan geselecteerde satelliet
 menu.hint_scan_satselect Selecteer satelliet
 menu.hint_scan_satsetup Configureer satelliet opties
-menu.hint_scan_savesettings Tuner configuratie en scan instellingen opslaan.\nOok opgeslagen indien u een service scan start.
 menu.hint_scan_scantype Selecteer, welke kanaal types u wenst te scannen
 menu.hint_scan_setup_fe Configureer geselecteerde frontend opties
 menu.hint_scan_start Start scan. U kunt de 'exit' toets gebruiken om te stoppen.

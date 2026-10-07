@@ -169,7 +169,6 @@
 #define NEUTRINO_ICON_HINT_FILEPLAY	"hint_fileplay"
 
 /* settings */
-#define NEUTRINO_ICON_HINT_SAVE_SETTINGS	"hint_save"
 #define NEUTRINO_ICON_HINT_MANAGE_SETTINGS	"hint_manage"
 #define NEUTRINO_ICON_HINT_PERSONALIZE	"hint_personalize"
 #define NEUTRINO_ICON_HINT_EXTENDED	"hint_extended"

@@ -1330,7 +1330,6 @@ mainsettings.multimedia Multimedia
 mainsettings.network Netzwerk
 mainsettings.osd OSD
 mainsettings.recording Aufnahme
-mainsettings.savesettingsnow Einstellungen jetzt speichern
 mainsettings.savesettingsnow_hint Einstellungen werden jetzt gespeichert,\nbitte warten ...
 mainsettings.timezone Zeitzone
 mainsettings.video Video
@@ -1783,7 +1782,6 @@ menu.hint_reset Zurücksetzen der Einstellungen auf Standardwerte. Tuner-Einstel
 menu.hint_restore Wiederherstellen von vorher erstellten Sicherungen
 menu.hint_rotor_swap Tauschen der Rotordrehrichtung Ost/West in den Motor-Einstellungen
 menu.hint_rounded_corners Aktiviert die Darstellung abgerundeter Ecken für die Menüs
-menu.hint_save_settings Speichert ihre Einstellungen
 menu.hint_saveas Speichern der Einstellungen in einer Datei namens neutrino.conf
 menu.hint_scan_auto Automatischer Suchlauf ausgewählter Anbieter
 menu.hint_scan_autoall Automatischer Suchlauf aller ausgewählten Anbieter
@@ -1846,7 +1844,6 @@ menu.hint_scan_satfind_start Startet den Satelliten-Finder für die Signalstärk
 menu.hint_scan_satscan Durchsucht den ausgewählten Satelliten
 menu.hint_scan_satselect Ausgewählter Satellit
 menu.hint_scan_satsetup Konfigurieren Sie das LNB für ihre gewählten Satelliten
-menu.hint_scan_savesettings Speichert die Tuner- und Suchlauf-Einstellungen.\nDiese bleiben für einen neuen Suchlauf erhalten
 menu.hint_scan_scantype Wählen Sie, welche Kanal-Typen Sie durchsuchen möchten
 menu.hint_scan_setup_fe Konfigurieren Sie ihre ausgewählten Tuner
 menu.hint_scan_start Startet die Kanalsuche mit den angegebenen Parametern.\nMit der Taste 'Exit' kann abgebrochen werden

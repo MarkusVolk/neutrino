@@ -5952,23 +5952,6 @@ int CNeutrinoApp::exec(CMenuTarget* parent, const std::string & actionKey)
 #endif
 #endif
 
-	else if (actionKey=="savesettings")
-	{
-		CLoaderHint *lh = new CLoaderHint(LOCALE_MAINSETTINGS_SAVESETTINGSNOW_HINT);
-		lh->paint();
-
-		saveSetup(NEUTRINO_SETTINGS_FILE);
-
-		if(g_settings.cacheTXT) {
-			tuxtxt_init();
-		} else
-			tuxtxt_close();
-
-		//g_Sectionsd->setEventsAreOldInMinutes((unsigned short) (g_settings.epg_old_hours*60));
-		//g_Sectionsd->setHoursToCache((unsigned short) (g_settings.epg_cache_days*24));
-
-		delete lh;
-	}
 	else if (actionKey=="recording")
 	{
 		setupRecordingDevice();

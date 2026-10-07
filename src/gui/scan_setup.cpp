@@ -419,13 +419,7 @@ int CScanSetup::exec(CMenuTarget* parent, const std::string &actionKey)
 		parent->hide();
 
 	printf("[neutrino] CScanSetup::%s: %s \n", __FUNCTION__, actionKey.c_str());
-	if(actionKey == "save_scansettings")
-	{
-		printf("[neutrino] CScanSetup::%s save_scansettings...\n", __FUNCTION__);
-		saveScanSetup();
-		return res;
-	}
-	else if(actionKey == "reloadchannels")
+	if(actionKey == "reloadchannels")
 	{
 		printf("[neutrino] CScanSetup::%s reloadchannels...\n", __FUNCTION__);
 		CHintBox chb(LOCALE_MESSAGEBOX_INFO, g_Locale->getText(LOCALE_SERVICEMENU_RELOAD_HINT));
@@ -593,16 +587,6 @@ int CScanSetup::showScanMenu()
 
 	//back
 	settings->addIntroItems(/*is_wizard ? NONEXISTANT_LOCALE : */ LOCALE_SERVICEMENU_SCANTS, NONEXISTANT_LOCALE, 0, false, false);
-
-#if 0
-	//save scan settings
-	mf = new CMenuForwarder(LOCALE_MAINSETTINGS_SAVESETTINGSNOW, true, NULL, this, "save_scansettings", CRCInput::RC_red);
-	mf->setHint("", LOCALE_MENU_HINT_SCAN_SAVESETTINGS);
-	settings->addItem(mf);
-	//----------------------------------------------------------------------
-	settings->addItem(GenericMenuSeparatorLine);
-	//----------------------------------------------------------------------
-#endif
 
 #if 0
 	if(CFEManager::getInstance()->haveSat() || CFEManager::getInstance()->getFrontendCount() > 1) {

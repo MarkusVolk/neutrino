@@ -1240,7 +1240,6 @@ mainsettings.multimedia Multimédia
 mainsettings.network Sieť
 mainsettings.osd Nastavenie OSD
 mainsettings.recording Nahrávanie
-mainsettings.savesettingsnow Uloženie nastavení
 mainsettings.savesettingsnow_hint Ukladanie nastavení,\nčakajte prosím...
 mainsettings.timezone Časová zóna
 mainsettings.video Obraz
@@ -1670,7 +1669,6 @@ menu.hint_reset Resetovanie GUI nastavení do východzích hodnôt, konfiguráci
 menu.hint_restore Obnova konfigurácie a kanálov zo zvolenej zálohy
 menu.hint_rotor_swap Výmena umiestnenia motora východ/západ v ovládaní motora
 menu.hint_rounded_corners Kruhové vykreslovanie alebo zaoblené rohy okien
-menu.hint_save_settings Uloženie všetkých nastavení do pamäte
 menu.hint_saveas Uloženie Neutrino-HD nastavení grafického užívateľského rozhrania (GUI) do súboru
 menu.hint_scan_auto Prehľadanie vybraného satelitu
 menu.hint_scan_autoall Prehľadanie niektorých vybraných satelitov
@@ -1733,7 +1731,6 @@ menu.hint_scan_satfind_start Spustenie Satelitného vyhľadávača
 menu.hint_scan_satscan Prehľadávanie vybraného satelitu
 menu.hint_scan_satselect Výber satelitu
 menu.hint_scan_satsetup Konfigurácia volieb satelitu
-menu.hint_scan_savesettings Uloženie konfigurácie tunera a natavení prehľadania\nTaktiež uložiť, ak spustíte hľadanie služieb
 menu.hint_scan_scantype Výber, aké typy kanálov hľadať
 menu.hint_scan_setup_fe Konfigurácia volieb vybraného vstupného dielu
 menu.hint_scan_start Spustenie hľadania. Môžete použiť 'EXIT' tlačidlo na zastavenie
