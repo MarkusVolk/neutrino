@@ -886,7 +886,7 @@ int CNeutrinoApp::loadSetup(const char *fname)
 	// timeshift
 	setSettingsText(g_settings.timeshiftdir, configfile.getString("timeshiftdir", ""));
 	g_settings.timeshift_auto = configfile.getInt32("timeshift_auto", 0);
-	g_settings.timeshift_delete = configfile.getInt32("timeshift_delete", 1);
+	g_settings.timeshift_delete = configfile.getInt32("timeshift_delete", 1) || g_settings.timeshift_auto;
 	g_settings.timeshift_hours = configfile.getInt32("timeshift_hours", 4);
 	g_settings.timeshift_pause = configfile.getInt32("timeshift_pause", 1);
 	g_settings.timeshift_temp = configfile.getInt32("timeshift_temp", 1);

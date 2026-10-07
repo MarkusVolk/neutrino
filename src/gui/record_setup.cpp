@@ -61,6 +61,7 @@
 CRecordSetup::CRecordSetup()
 {
 	width = 50;
+	timeshift_delete = NULL;
 }
 
 CRecordSetup::~CRecordSetup()
@@ -396,15 +397,16 @@ void CRecordSetup::showRecordTimeShiftSetup(CMenuWidget *menu_ts)
 		mc->setHint("", LOCALE_MENU_HINT_RECORD_TIMESHIFT_PAUSE);
 		menu_ts->addItem(mc);
 
-		CMenuOptionNumberChooser * mn = new CMenuOptionNumberChooser(LOCALE_EXTRA_TIMESHIFT_AUTO, &g_settings.timeshift_auto, true, 0, 300, NULL);
+		CMenuOptionNumberChooser * mn = new CMenuOptionNumberChooser(LOCALE_EXTRA_TIMESHIFT_AUTO, &g_settings.timeshift_auto, true, 0, 300, this);
 		mn->setNumberFormat(g_Locale->getText(LOCALE_WORD_AFTER) + std::string(" %d ") + g_Locale->getText(LOCALE_UNIT_SHORT_SECOND));
 		mn->setLocalizedValue(0, LOCALE_OPTIONS_OFF);
 		mn->setHint("", LOCALE_MENU_HINT_RECORD_TIMESHIFT_AUTO);
 		menu_ts->addItem(mn);
 
-		mc = new CMenuOptionChooser(LOCALE_EXTRA_TIMESHIFT_DELETE, &g_settings.timeshift_delete, OPTIONS_OFF0_ON1_OPTIONS, OPTIONS_OFF0_ON1_OPTION_COUNT, true);
-		mc->setHint("", LOCALE_MENU_HINT_RECORD_TIMESHIFT_DELETE);
-		menu_ts->addItem(mc);
+		/* the automatic timeshift always deletes its recordings, they would fill the disk */
+		timeshift_delete = new CMenuOptionChooser(LOCALE_EXTRA_TIMESHIFT_DELETE, &g_settings.timeshift_delete, OPTIONS_OFF0_ON1_OPTIONS, OPTIONS_OFF0_ON1_OPTION_COUNT, !g_settings.timeshift_auto);
+		timeshift_delete->setHint("", LOCALE_MENU_HINT_RECORD_TIMESHIFT_DELETE);
+		menu_ts->addItem(timeshift_delete);
 
 		mc = new CMenuOptionChooser(LOCALE_EXTRA_TIMESHIFT_TEMP, &g_settings.timeshift_temp, OPTIONS_OFF0_ON1_OPTIONS, OPTIONS_OFF0_ON1_OPTION_COUNT, true);
 		mc->setHint("", LOCALE_MENU_HINT_RECORD_TIMESHIFT_TEMP);
@@ -423,6 +425,12 @@ bool CRecordSetup::changeNotify(const neutrino_locale_t OptionName, void * /*dat
 	if (ARE_LOCALES_EQUAL(OptionName, LOCALE_TIMERSETTINGS_RECORD_SAFETY_TIME_BEFORE) ||
 			ARE_LOCALES_EQUAL(OptionName, LOCALE_TIMERSETTINGS_RECORD_SAFETY_TIME_AFTER)) {
 		g_Timerd->setRecordingSafety(g_settings.record_safety_time_before*60, g_settings.record_safety_time_after*60);
+	} else if (ARE_LOCALES_EQUAL(OptionName, LOCALE_EXTRA_TIMESHIFT_AUTO)) {
+		if (g_settings.timeshift_auto)
+			g_settings.timeshift_delete = 1;
+		if (timeshift_delete)
+			timeshift_delete->setActive(!g_settings.timeshift_auto);
+		return true;
 	} else if(ARE_LOCALES_EQUAL(OptionName, LOCALE_RECORDINGMENU_APIDS_STD) ||
 			ARE_LOCALES_EQUAL(OptionName, LOCALE_RECORDINGMENU_APIDS_ALT) ||
 			ARE_LOCALES_EQUAL(OptionName, LOCALE_RECORDINGMENU_APIDS_AC3)) {
