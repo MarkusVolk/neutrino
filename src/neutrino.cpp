@@ -886,10 +886,8 @@ int CNeutrinoApp::loadSetup(const char *fname)
 	// timeshift
 	setSettingsText(g_settings.timeshiftdir, configfile.getString("timeshiftdir", ""));
 	g_settings.timeshift_auto = configfile.getInt32("timeshift_auto", 0);
-	g_settings.timeshift_delete = configfile.getInt32("timeshift_delete", 1) || g_settings.timeshift_auto;
 	g_settings.timeshift_hours = configfile.getInt32("timeshift_hours", 4);
 	g_settings.timeshift_pause = configfile.getInt32("timeshift_pause", 1);
-	g_settings.timeshift_temp = configfile.getInt32("timeshift_temp", 1);
 
 	std::string timeshiftdir;
 	if (g_settings.timeshiftdir.empty())
@@ -909,31 +907,21 @@ int CNeutrinoApp::loadSetup(const char *fname)
 
 	CRecordManager::getInstance()->SetTimeshiftDirectory(timeshiftdir.c_str());
 
-	// remove old timeshift recordings
-	if (g_settings.timeshift_delete)
+	// remove timeshift recordings left over from the last run
+	DIR *d = opendir(timeshiftdir.c_str());
+	if (d)
 	{
-		/*
-		   Why only remove old timeshift recordings
-		   if timeshift-dir == recording-dir?
-		*/
-		//if (g_settings.timeshiftdir == g_settings.network_nfs_recordingdir)
+		while (struct dirent *e = readdir(d))
 		{
-			DIR *d = opendir(timeshiftdir.c_str());
-			if (d)
+			std::string filename = e->d_name;
+			if ((filename.find("_temp.ts") == filename.size() - 8) || (filename.find("_temp.xml") == filename.size() - 9))
 			{
-				while (struct dirent *e = readdir(d))
-				{
-					std::string filename = e->d_name;
-					if ((filename.find("_temp.ts") == filename.size() - 8) || (filename.find("_temp.xml") == filename.size() - 9))
-					{
-						std::string timeshiftdir_filename = timeshiftdir;
-						timeshiftdir_filename += "/" + filename;
-						remove(timeshiftdir_filename.c_str());
-					}
-				}
-				closedir(d);
+				std::string timeshiftdir_filename = timeshiftdir;
+				timeshiftdir_filename += "/" + filename;
+				remove(timeshiftdir_filename.c_str());
 			}
 		}
+		closedir(d);
 	}
 
 	// ntp server for sectionsd
@@ -1968,10 +1956,8 @@ void CNeutrinoApp::saveSetup(const char *fname)
 	// timeshift
 	configfile.setString("timeshiftdir", g_settings.timeshiftdir);
 	configfile.setInt32("timeshift_auto", g_settings.timeshift_auto);
-	configfile.setInt32("timeshift_delete", g_settings.timeshift_delete);
 	configfile.setInt32("timeshift_hours", g_settings.timeshift_hours);
 	configfile.setInt32("timeshift_pause", g_settings.timeshift_pause);
-	configfile.setInt32("timeshift_temp", g_settings.timeshift_temp);
 
 	// ntp server for sectionsd
 	configfile.setBool("network_ntpenable", g_settings.network_ntpenable);

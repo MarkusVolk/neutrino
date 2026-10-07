@@ -1197,9 +1197,7 @@ menu.hint_record_timebefore Aantal minuten dat opgenomen wordt \nvoor het op te 
 menu.hint_record_timer Configureer opname timer opties
 menu.hint_record_timeshift Configureer timeshift opties
 menu.hint_record_timeshift_auto Automatisch timeshift starten na het schakelen tussen kanalen, in seconden
-menu.hint_record_timeshift_delete Verwijder alle timeshift opnames na het stoppen van Timeshift.
 menu.hint_record_timeshift_pause Timeshift starten zodra live uitzendingen gepauzeerd worden
-menu.hint_record_timeshift_temp Indien uitgeschakeld, start timeshift \nals een willekeurige directe opname
 menu.hint_record_zap Schakel naar het op te nemen kanaal bij de opname melding
 menu.hint_record_zap_pre_time Een aantal minuten voor een ingestelde zaptimer naar het kanaal schakelen.
 menu.hint_recording Opname en timeshift opties \n Timers beveiliging, audio PIDS opties

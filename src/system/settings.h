@@ -752,10 +752,8 @@ struct SNeutrinoSettings
 	// timeshift
 	std::string timeshiftdir;
 	int timeshift_auto;
-	int timeshift_delete;
 	int timeshift_hours;
 	int timeshift_pause;
-	int timeshift_temp;
 
 	// ntp server for sectionsd
 	int network_ntpenable;

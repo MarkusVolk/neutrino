@@ -245,8 +245,6 @@ set.rec.recordtime=Aufnahmezeit in Stunden
 set.rec.timeshift_desc=Timeshift
 set.rec.timeshift.pause=Start mit Pause-Taste
 set.rec.timeshift.auto_record=Autom. Aufnahme (in Sek, 0=deaktiviert)
-set.rec.timeshift.auto_delete=Automatisches L&ouml;schen
-set.rec.timeshift.tmp_timeshift=Tempor&auml;res timeshift
 
 # ===== Neutrino Settings - Movieplayer
 set.mp.player=Player

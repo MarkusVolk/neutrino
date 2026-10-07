@@ -40,7 +40,6 @@ class CRecordSetup : public CMenuTarget, public CChangeObserver
 {
 	private:
 		int width;
-		CMenuOptionChooser *timeshift_delete;
 
 		int showRecordSetup();
 		void showRecordTimerSetup(CMenuWidget *menu_timersettings);

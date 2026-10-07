@@ -642,9 +642,7 @@ extra.sms_movie SMS-mode movie
 extra.south South
 extra.start_tostandby Startup to standby
 extra.timeshift_auto Automatic recording
-extra.timeshift_delete Automatic deletion
 extra.timeshift_pause Paused recording
-extra.timeshift_temp Temporary timeshift
 extra.tp_bandwidth Bandwidth
 extra.tp_bandwidth_10mhz 10Mhz
 extra.tp_bandwidth_1_712mhz 1.712Mhz
@@ -1775,9 +1773,7 @@ menu.hint_record_timebefore Start record before event start\nin minutes
 menu.hint_record_timer Configure record by timer options
 menu.hint_record_timeshift Configure timeshift options
 menu.hint_record_timeshift_auto Auto start timeshift after channel switch, in seconds
-menu.hint_record_timeshift_delete Delete timeshift files after timeshift stop
 menu.hint_record_timeshift_pause Start timeshift playback in paused mode
-menu.hint_record_timeshift_temp If off, timeshift started as\nany direct record
 menu.hint_record_zap Switch to channel to be recorded\nat record announce
 menu.hint_record_zap_pre_time For Zap-to timers, switch channel\nbefore event start, in minutes
 menu.hint_recording Recording and timeshift options\nTimers safety, audio pids options

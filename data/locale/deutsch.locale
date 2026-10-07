@@ -642,9 +642,7 @@ extra.sms_movie SMS-Modus bei Filmsuche
 extra.south Süden
 extra.start_tostandby Standby nach Boxstart
 extra.timeshift_auto Automatische Aufnahme
-extra.timeshift_delete Automatisches Löschen
 extra.timeshift_pause Pausierte Aufnahme
-extra.timeshift_temp Temporäres Timeshift
 extra.tp_bandwidth Bandbreite
 extra.tp_bandwidth_10mhz 10Mhz
 extra.tp_bandwidth_1_712mhz 1.712Mhz
@@ -1775,9 +1773,7 @@ menu.hint_record_timebefore Stellen Sie die Vorlaufzeit für Timer-Aufnahmen ein
 menu.hint_record_timer Konfigurieren Sie Optionen für Timer-Aufnahmen
 menu.hint_record_timeshift Konfigurieren Sie Optionen für Timeshift-Aufnahmen
 menu.hint_record_timeshift_auto Stellen Sie die Zeit in Sekunden ein, nach der Timeshift nach dem Umschalten automatisch startet
-menu.hint_record_timeshift_delete Wählen Sie, ob nach Beenden von Timeshift die Timeshift-Aufnahmen gelöscht werden
 menu.hint_record_timeshift_pause Wenn diese Option aktiviert ist, pausiert eine Timeshift-Aufnahme direkt nach dem Start
-menu.hint_record_timeshift_temp Wenn diese Option deaktiviert ist, wird Timeshift direkt als Aufnahme gestartet
 menu.hint_record_zap Bei aktiver Option wird bereits mit der Ankündigung der Aufnahme auf den aufzunehmenden Sender umgeschalten
 menu.hint_record_zap_pre_time Stellen Sie eine Vorlaufzeit in Minuten für den Umschalt-Timer ein
 menu.hint_recording Aufnahme-, Timeshift- und Timer-Optionen, Einstellung von aufzunehmenden Tonspuren

@@ -504,7 +504,7 @@ bool CRecordInstance::Stop(bool remove_event)
 	if(!autoshift)
 		CFEManager::getInstance()->unlockFrontend(frontend, true);//FIXME testing
 
-	if (autoshift && g_settings.timeshift_delete)
+	if (autoshift)
 		CMoviePlayerGui::getInstance().deleteTimeshift();
 
 	if(recording_id && remove_event) {
@@ -1373,7 +1373,7 @@ bool CRecordManager::StopAutoRecord(bool lock)
 		CMoviePlayerGui::getInstance().stopTimeshift();
 		/* the player deletes only a timeshift it played; one that was
 		 * recorded but never watched would stay until the next start */
-		if (g_settings.timeshift_delete && file.size() > 5 && file.compare(file.size() - 5, 5, "_temp") == 0) {
+		if (file.size() > 5 && file.compare(file.size() - 5, 5, "_temp") == 0) {
 			unlink((file + ".ts").c_str());
 			unlink((file + ".xml").c_str());
 		}
@@ -1610,10 +1610,7 @@ bool CRecordManager::PrepareTimeshift()
 {
 	if (!g_RemoteControl->is_video_started)
 		return false;
-	t_channel_id live_channel_id = CZapit::getInstance()->GetCurrentChannelID();
-	if (g_settings.timeshift_temp)
-		return FindTimeshift() || StartAutoRecord(false);
-	return RecordingStatus(live_channel_id) || Record(live_channel_id);
+	return FindTimeshift() || StartAutoRecord(false);
 }
 
 void CRecordManager::StartTimeshift()
@@ -1622,32 +1619,15 @@ void CRecordManager::StartTimeshift()
 	{
 		std::string tmode = "timeshift_pause"; // already recording, pause
 		bool res = true;
-		t_channel_id live_channel_id = CZapit::getInstance()->GetCurrentChannelID();
-// 		bool tstarted = false;
-		/* start temporary timeshift if enabled and not running, but dont start second record */
-		if (g_settings.timeshift_temp) {
-			if (!FindTimeshift()) {
-				res = StartAutoRecord(false);
-				tmode = "timeshift"; // record just started
-// 				tstarted = true;
-			}
-		}
-		else if (!RecordingStatus(live_channel_id)) {
-			res = Record(live_channel_id);
+		/* start the timeshift if it is not running yet */
+		if (!FindTimeshift()) {
+			res = StartAutoRecord(false);
 			tmode = "timeshift"; // record just started
 		}
 
 		if(res)
 		{
 			CMoviePlayerGui::getInstance().exec(NULL, tmode);
-#if 0
-			/*
-			   ShowMenu() moved to movieplayer.cpp
-			   Function is called when stop key is pressed.
-			*/
-			if(g_settings.timeshift_temp && tstarted && autoshift)
-				ShowMenu();
-#endif
 		}
 	}
 }
@@ -2318,7 +2298,7 @@ bool CStreamRec::Stop(bool remove_event)
 	printf("%s: len %d\n", __FUNCTION__, recMovieInfo->length);
 
 	SaveXml();
-	if (autoshift && g_settings.timeshift_delete)
+	if (autoshift)
 		CMoviePlayerGui::getInstance().deleteTimeshift();
 	hintBox.hide();
 	return (ret == 0);

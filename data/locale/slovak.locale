@@ -557,9 +557,7 @@ extra.sms_movie SMS filmový mód
 extra.south Južne
 extra.start_tostandby Spustenie do pohotovostného režimu
 extra.timeshift_auto Automatické nahrávanie, sekundy (0 = vypnuté)
-extra.timeshift_delete Automatické mazanie
 extra.timeshift_pause Pozastavenie časového posunu
-extra.timeshift_temp Dočasný časový posun
 extra.tp_bandwidth Šírka pásma
 extra.tp_bandwidth_10mhz 10MHz
 extra.tp_bandwidth_1_712mhz 1.712MHz
@@ -1662,9 +1660,7 @@ menu.hint_record_timebefore Spustenie nahrávania pred začatím udalosti v min�
 menu.hint_record_timer Konfigurácia volieb časového nahrávania
 menu.hint_record_timeshift Konfigurácia volieb časového posunu
 menu.hint_record_timeshift_auto Automatické spustenie časového posunu po zmene kanálu, v sekundách
-menu.hint_record_timeshift_delete Zmazanie súborov časového posunu po jeho zastavení
 menu.hint_record_timeshift_pause Spustenie prehrávania časoveho posunu v pauza móde
-menu.hint_record_timeshift_temp Ak je vypnutý, časový posun sa spustí ako\nobyčajné nahrávanie
 menu.hint_record_zap Prepnutie na nahrávaný kanál pri zobrazení oznámenia o začatí nahrávania
 menu.hint_record_zap_pre_time Prepnutie na kanál pred začatím udalosti v časovači, v minútach.
 menu.hint_recording Voľby nahrávania a časového posunu, zabezpečenie časovača, voľby zvukových pidov
