@@ -67,7 +67,6 @@ install_DATA =	channels.js \
 		Y_Tools_Menue.yhtm \
 		Y_Tools_Rcsim.yhtm \
 		Y_Tools_Screenshot.yhtm  \
-		Y_Tools_tvshot.yhtm \
 		Y_User.css \
 		Y_Version.txt \
 		Y_Wait.yhtm \

@@ -71,7 +71,7 @@ function do_submit()
 {=var-set:wait_text={=L:save_values=}=}{=include-block:Y_Blocks.txt;snip_wait=}
 <div class="work_box">
 	<div class="work_box_head"><div class="work_box_head_h2">
-	{=var-set:help_url=Help-Settings-LCD=}{=var-set:menu=LCD Einstellungen=}{=include-block:Y_Blocks.txt;work_menu=}</div></div>
+	{=var-set:help_url=Help-Settings-LCD=}{=var-set:menu={=L:mainsettings.lcd=}=}{=include-block:Y_Blocks.txt;work_menu=}</div></div>
 	<div class="work_box_body">
 	<form name="f" class="y_form" action="">
 		<table cellspacing="0" border="0" cellpadding="2" width="100%">
@@ -81,85 +81,85 @@ function do_submit()
 			<tr>
 				<td title="lcd: off/on" width="35%">Power</td>
 				<td>
-					<input type="radio" name="lcd_power" value="0" />AUS&nbsp;
-					<input type="radio" name="lcd_power" value="1" />EIN
+					<input type="radio" name="lcd_power" value="0" />{=L:options.off=}&nbsp;
+					<input type="radio" name="lcd_power" value="1" />{=L:options.on=}
 				</td>
 			</tr>
 			<tr>
-				<td title="inverse lcd: off/on">Invertieren</td>
+				<td title="inverse lcd: off/on">{=L:set.lcd.inverse=}</td>
 				<td>
-					<input type="radio" name="lcd_inverse" value="0" />AUS&nbsp;
-					<input type="radio" name="lcd_inverse" value="1" />EIN
+					<input type="radio" name="lcd_inverse" value="0" />{=L:options.off=}&nbsp;
+					<input type="radio" name="lcd_inverse" value="1" />{=L:options.on=}
 				</td>
 			</tr>
 			<tr>
-				<td  title="dimm-timeout">Dimm-Timeout</td>
+				<td  title="dimm-timeout">{=L:lcdmenu.dim_time=}</td>
 				<td>
 					<input type="text" name="lcd_dim_time" size="3" maxlength="3" />
 				</td>
 			</tr>
 			<tr>
-				<td title="brightness after dimm-timeout">Helligkeit nach dimm-Timeout</td>
+				<td title="brightness after dimm-timeout">{=L:set.lcd.dim_brightness=}</td>
 				<td>
 					<input type="text" name="lcd_dim_brightness" size="3" maxlength="3" />
 				</td>
 			</tr>
 			<tr>
-				<td colspan="2" class="y_form_header">Kontrast / Helligkeit</td>
+				<td colspan="2" class="y_form_header">{=L:set.lcd.contrast_brightness=}</td>
 			</tr>
 			<tr>
-				<td title="lcd contrast 0-63">Kontrast</td>
+				<td title="lcd contrast 0-63">{=L:videomenu.contrast=}</td>
 				<td>
 					<input type="text" name="lcd_contrast" size="3" maxlength="3" />
 				</td>
 			</tr>
 			<tr>
-				<td title="lcd brightness normal 0-255">normale Helligkeit</td>
+				<td title="lcd brightness normal 0-255">{=L:set.lcd.brightness=}</td>
 				<td>
 					<input type="text" name="lcd_brightness" size="3" maxlength="3" />
 				</td>
 			</tr>
 			<tr> 
-				<td title="lcd brightness standby 0-255">Standby Helligkeit</td>
+				<td title="lcd brightness standby 0-255">{=L:glcd.brightness_standby=}</td>
 				<td>
 					<input type="text" name="lcd_standbybrightness" size="3" maxlength="3" />
 				</td>
 			</tr>
 			<tr> 
 				<td>&nbsp;</td>
-				<td><a href="javascript:setDefault()" class="alink">Voreinstellung benutzen</a></td>
+				<td><a href="javascript:setDefault()" class="alink">{=L:options.default=}</a></td>
 			</tr>
 			<tr>
-				<td colspan="2" class="y_form_header">Anzeige-Modi</td>
+				<td colspan="2" class="y_form_header">{=L:set.lcd.display_modes=}</td>
 			</tr>
-			<tr><td>EPG-Anzeige</td>
+			<tr><td>{=L:set.lcd.epg_mode=}</td>
 				<td>
 					<select name="lcd_epgmode" title="select visualisation of LCD">
-					<option value="1" selected="selected">Standard (Kanal)</option>
-					<option value="2">Sendung</option>
-					<option value="3">Kanal / Sendung</option>
-					<option value="7">Kanal / Trennl. / Sendung</option>
-					<option value="11">Kanal (kurz) / Sendung</option>
-					<option value="15">Kanal (kurz) / Trennl. / Sendung</option>
+					<option value="1" selected="selected">{=L:set.lcd.epg_channel=}</option>
+					<option value="2">{=L:set.lcd.epg_title=}</option>
+					<option value="3">{=L:set.lcd.epg_channel_title=}</option>
+					<option value="7">{=L:set.lcd.epg_channel_sep_title=}</option>
+					<option value="11">{=L:set.lcd.epg_shortchannel_title=}</option>
+					<option value="15">{=L:set.lcd.epg_shortchannel_sep_title=}</option>
 					</select>
 				</td>			
 			</tr>
-			<tr><td>Statuszeile</td>
+			<tr><td>{=L:lcdmenu.statusline=}</td>
 				<td>
 					<select name="lcd_show_volume" title="select visualisation of LCD">
-					<option value="0" selected="selected">Sendungsfortschritt</option>
-					<option value="1">Lautst&auml;rke</option>
-					<option value="2">Lautst&auml;rke / Fortschritt</option>
-					<option value="3">Laut. / Fort. / Audio</option>
+					<option value="0" selected="selected">{=L:lcdmenu.statusline.playtime=}</option>
+					<option value="1">{=L:lcdmenu.statusline.volume=}</option>
+					<option value="2">{=L:lcdmenu.statusline.both=}</option>
+					<option value="3">{=L:set.lcd.statusline_all=}</option>
 					</select>
 				</td>			
 			</tr>
 		</table>
 		<br />
 		<input type="hidden" name="execute" value="include-block:Y_Blocks.txt;lcd_save_settings;nix" />
-		<button type="button" ytype="save" title="submit and save values" onclick="do_submit()">Speichern</button>&nbsp;
-		<button type="button" ytype="refresh" onclick="stb_reload_neutrino()">reload Neutrino</button>&nbsp;
-		<a href="javascript:top.top_main.prim_menu.nav('info', 'Y_Info_Help.yhtm');" class="inlink">Hilfe</a>
+		<button type="button" ytype="save" title="{=L:save_values_desc=}" onclick="do_submit()">{=L:save=}</button>&nbsp;
+		<button type="button" ytype="refresh" onclick="stb_reload_neutrino()">{=L:set.reload_neutrino=}</button>&nbsp;
+		<a href="javascript:top.top_main.prim_menu.nav('info', 'Y_Info_Help.yhtm');" class="inlink">{=L:help=}</a>
 	</form>
 	</div>
 </div>

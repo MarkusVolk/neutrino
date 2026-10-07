@@ -62,286 +62,286 @@ function do_init()
 {=var-set:wait_text={=L:save_values=}=}{=include-block:Y_Blocks.txt;snip_wait=}
 <div class="work_box">
 	<div class="work_box_head"><div class="work_box_head_h2">
-	{=var-set:help_url=Help-Settings-Personalize=}{=var-set:menu=Personalisierung=}{=include-block:Y_Blocks.txt;work_menu=}</div></div>
+	{=var-set:help_url=Help-Settings-Personalize=}{=var-set:menu={=L:personalize.head=}=}{=include-block:Y_Blocks.txt;work_menu=}</div></div>
 	<div class="work_box_body">
 	<form name="f" class="y_form" action="">
 		<table cellspacing="0" border="0" cellpadding="2" width="100%">
-			<tr><td colspan="2" class="y_form_header">Zugang Personalisierung</td></tr>
-			<tr><td width="35%">PIN ben&ouml;tigt</td>
+			<tr><td colspan="2" class="y_form_header">{=L:personalize.access=}</td></tr>
+			<tr><td width="35%">{=L:personalize.pin_in_use=}</td>
 				<td>
-					<input type="radio" name="p_pinstatus" value="1"/>JA&nbsp;
-					<input type="radio" name="p_pinstatus" value="0"/>NEIN
+					<input type="radio" name="p_pinstatus" value="1"/>{=L:messagebox.yes=}&nbsp;
+					<input type="radio" name="p_pinstatus" value="0"/>{=L:messagebox.no=}
 				</td>
 			</tr>
 			<tr>
-				<td>PIN Code</td>
-				<td>&nbsp;<input type="text" name="p_pincode" size="4" maxlength="4" value="{=ini-get:%(CONFIGDIR)/neutrino.conf;personalize_pincode~open=}" title="PIN code"/></td>
+				<td>{=L:personalize.pincode=}</td>
+				<td>&nbsp;<input type="text" name="p_pincode" size="4" maxlength="4" value="{=ini-get:%(CONFIGDIR)/neutrino.conf;personalize_pincode~open=}" title="{=L:personalize.pincode=}"/></td>
 			</tr>
-			<tr><td colspan="2" class="y_form_header">Farbtasten</td></tr>
-			<tr><td>Taste Blau (Features)</td>
+			<tr><td colspan="2" class="y_form_header">{=L:set.personalize.colorkeys=}</td></tr>
+			<tr><td>{=L:set.personalize.button_blue=}</td>
 				<td>
-					<input type="radio" name="p_bluebutton" value="1"/>AKTIVIERT&nbsp;
-					<input type="radio" name="p_bluebutton" value="0"/>DEAKTIVIERT
+					<input type="radio" name="p_bluebutton" value="1"/>{=L:personalize.enabled=}&nbsp;
+					<input type="radio" name="p_bluebutton" value="0"/>{=L:personalize.disabled=}
 				</td>
 			</tr>
-			<tr><td>Taste Rot (EPG/Info)</td>
+			<tr><td>{=L:set.personalize.button_red=}</td>
 				<td>
-					<input type="radio" name="p_redbutton" value="1"/>AKTIVIERT&nbsp;
-					<input type="radio" name="p_redbutton" value="0"/>DEAKTIVIERT
+					<input type="radio" name="p_redbutton" value="1"/>{=L:personalize.enabled=}&nbsp;
+					<input type="radio" name="p_redbutton" value="0"/>{=L:personalize.disabled=}
 				</td>
 			</tr>
-			<tr><td colspan="2" class="y_form_header">Hauptmen&uuml;</td></tr>
-			<tr><td>TV-Modus</td>
+			<tr><td colspan="2" class="y_form_header">{=L:mainmenu.head=}</td></tr>
+			<tr><td>{=L:mainmenu.tvmode=}</td>
 				<td>
-					<input type="radio" name="p_tv" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_tv" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_tv" value="2"/>PIN
+					<input type="radio" name="p_tv" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_tv" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_tv" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td>Radio-Modus</td>
+			<tr><td>{=L:mainmenu.radiomode=}</td>
 				<td>
-					<input type="radio" name="p_radio" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_radio" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_radio" value="2"/>PIN
+					<input type="radio" name="p_radio" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_radio" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_radio" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td>Scart-Eingang</td>
+			<tr><td>{=L:mainmenu.avinputmode=}</td>
 				<td>
-					<input type="radio" name="p_scart" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_scart" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_scart" value="2"/>PIN
+					<input type="radio" name="p_scart" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_scart" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_scart" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td>Spiele</td>
+			<tr><td>{=L:mainmenu.games=}</td>
 				<td>
-					<input type="radio" name="p_games" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_games" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_games" value="2"/>PIN
+					<input type="radio" name="p_games" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_games" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_games" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td>Audioplayer</td>
+			<tr><td>{=L:mainmenu.audioplayer=}</td>
 				<td>
-					<input type="radio" name="p_audioplayer" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_audioplayer" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_audioplayer" value="2"/>PIN
+					<input type="radio" name="p_audioplayer" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_audioplayer" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_audioplayer" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			</tr><td>Internetradio</td>
+			</tr><td>{=L:inetradio.name=}</td>
 				<td>
-					<input type="radio" name="p_inetradio" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_inetradio" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_inetradio" value="2"/>PIN
+					<input type="radio" name="p_inetradio" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_inetradio" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_inetradio" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td>Movieplayer</td>
+			<tr><td>{=L:mainmenu.movieplayer=}</td>
 				<td>
-					<input type="radio" name="p_movieplayer" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_movieplayer" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_movieplayer" value="2"/>PIN
+					<input type="radio" name="p_movieplayer" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_movieplayer" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_movieplayer" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td>Bildbetrachter</td>
+			<tr><td>{=L:mainmenu.pictureviewer=}</td>
 				<td>
-					<input type="radio" name="p_picviewer" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_picviewer" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_picviewer" value="2"/>PIN
+					<input type="radio" name="p_picviewer" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_picviewer" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_picviewer" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td>UPNP Browser</td>
+			<tr><td>{=L:upnpbrowser.head=}</td>
 				<td>
-					<input type="radio" name="p_upnp" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_upnp" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_upnp" value="2"/>PIN
+					<input type="radio" name="p_upnp" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_upnp" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_upnp" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td>SleepTimer</td>
+			<tr><td>{=L:mainmenu.sleeptimer=}</td>
 				<td>
-					<input type="radio" name="p_sleeptimer" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_sleeptimer" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_sleeptimer" value="2"/>PIN
+					<input type="radio" name="p_sleeptimer" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_sleeptimer" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_sleeptimer" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td>Neu starten</td>
+			<tr><td>{=L:mainmenu.reboot=}</td>
 				<td>
-					<input type="radio" name="p_reboot" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_reboot" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_reboot" value="2"/>PIN
+					<input type="radio" name="p_reboot" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_reboot" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_reboot" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td>Ausschalten</td>
+			<tr><td>{=L:mainmenu.shutdown=}</td>
 				<td>
-					<input type="radio" name="p_shutdown" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_shutdown" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_shutdown" value="2"/>PIN
+					<input type="radio" name="p_shutdown" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_shutdown" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_shutdown" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td colspan="2" class="y_form_header">Einstellungen</td></tr>
-			<tr><td>Einstellungen-Men&uuml; mit PIN</td>
+			<tr><td colspan="2" class="y_form_header">{=L:mainmenu.settings=}</td></tr>
+			<tr><td>{=L:set.personalize.settings_pin=}</td>
 				<td>
-					<input type="radio" name="p_settings" value="1"/>JA&nbsp;
-					<input type="radio" name="p_settings" value="0"/>NEIN
+					<input type="radio" name="p_settings" value="1"/>{=L:messagebox.yes=}&nbsp;
+					<input type="radio" name="p_settings" value="0"/>{=L:messagebox.no=}
 				</td>
 			</tr>
-			<tr><td>Video</td>
+			<tr><td>{=L:mainsettings.video=}</td>
 				<td>
-					<input type="radio" name="p_video" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_video" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_video" value="2"/>PIN
+					<input type="radio" name="p_video" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_video" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_video" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td>Audio</td>
+			<tr><td>{=L:mainsettings.audio=}</td>
 				<td>
-					<input type="radio" name="p_audio" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_audio" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_audio" value="2"/>PIN
+					<input type="radio" name="p_audio" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_audio" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_audio" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td>Jugendschutz</td>
+			<tr><td>{=L:parentallock.parentallock=}</td>
 				<td>
-					<input type="radio" name="p_youth" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_youth" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_youth" value="2"/>PIN
+					<input type="radio" name="p_youth" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_youth" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_youth" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td>Netzwerk</td>
+			<tr><td>{=L:mainsettings.network=}</td>
 				<td>
-					<input type="radio" name="p_network" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_network" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_network" value="2"/>PIN
+					<input type="radio" name="p_network" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_network" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_network" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td>Aufnahme</td>
+			<tr><td>{=L:mainsettings.recording=}</td>
 				<td>
-					<input type="radio" name="p_recording" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_recording" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_recording" value="2"/>PIN
+					<input type="radio" name="p_recording" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_recording" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_recording" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td>Sprache</td>
+			<tr><td>{=L:mainsettings.language=}</td>
 				<td>
-					<input type="radio" name="p_language" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_language" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_language" value="2"/>PIN
+					<input type="radio" name="p_language" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_language" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_language" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td>Farben / Themes / Schrift</td>
+			<tr><td>{=L:mainsettings.osd=}</td>
 				<td>
-					<input type="radio" name="p_colors" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_colors" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_colors" value="2"/>PIN
+					<input type="radio" name="p_colors" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_colors" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_colors" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td>LCD-Display</td>
+			<tr><td>{=L:mainsettings.lcd=}</td>
 				<td>
-					<input type="radio" name="p_lcd" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_lcd" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_lcd" value="2"/>PIN
+					<input type="radio" name="p_lcd" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_lcd" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_lcd" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td>Tasten Einstellungen</td>
+			<tr><td>{=L:mainsettings.keybinding=}</td>
 				<td>
-					<input type="radio" name="p_keybinding" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_keybinding" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_keybinding" value="2"/>PIN
+					<input type="radio" name="p_keybinding" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_keybinding" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_keybinding" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td>Medienwiedergabe</td>
+			<tr><td>{=L:mainsettings.multimedia=}</td>
 				<td>
-					<input type="radio" name="p_mediaplayer" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_mediaplayer" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_mediaplayer" value="2"/>PIN
+					<input type="radio" name="p_mediaplayer" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_mediaplayer" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_mediaplayer" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td>Treiber- und Bootoptionen</td>
+			<tr><td>{=L:set.personalize.driver=}</td>
 				<td>
-					<input type="radio" name="p_driver" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_driver" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_driver" value="2"/>PIN
+					<input type="radio" name="p_driver" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_driver" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_driver" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td>Diverse Einstellungen</td>
+			<tr><td>{=L:mainsettings.misc=}</td>
 				<td>
-					<input type="radio" name="p_misc" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_misc" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_misc" value="2"/>PIN
+					<input type="radio" name="p_misc" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_misc" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_misc" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td colspan="2" class="y_form_header">Service</td></tr>
-			<tr><td>Service-Men&uuml; mit PIN</td>
+			<tr><td colspan="2" class="y_form_header">{=L:servicemenu.head=}</td></tr>
+			<tr><td>{=L:set.personalize.service_pin=}</td>
 				<td>
-					<input type="radio" name="p_service" value="1"/>JA&nbsp;
-					<input type="radio" name="p_service" value="0"/>NEIN
+					<input type="radio" name="p_service" value="1"/>{=L:messagebox.yes=}&nbsp;
+					<input type="radio" name="p_service" value="0"/>{=L:messagebox.no=}
 				</td>
 			</tr>
-			<tr><td>Bouquet-Verwaltung</td>
+			<tr><td>{=L:bouqueteditor.name=}</td>
 				<td>
-					<input type="radio" name="p_bouqueteditor" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_bouqueteditor" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_bouqueteditor" value="2"/>PIN
+					<input type="radio" name="p_bouqueteditor" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_bouqueteditor" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_bouqueteditor" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td>Kanalsuche</td>
+			<tr><td>{=L:servicemenu.scants=}</td>
 				<td>
-					<input type="radio" name="p_scants" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_scants" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_scants" value="2"/>PIN
+					<input type="radio" name="p_scants" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_scants" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_scants" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td>Kanallisten neu laden</td>
+			<tr><td>{=L:servicemenu.reload=}</td>
 				<td>
-					<input type="radio" name="p_reload" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_reload" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_reload" value="2"/>PIN
+					<input type="radio" name="p_reload" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_reload" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_reload" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td>Plugins neu laden</td>
+			<tr><td>{=L:servicemenu.getplugins=}</td>
 				<td>
-					<input type="radio" name="p_getplugins" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_getplugins" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_getplugins" value="2"/>PIN
+					<input type="radio" name="p_getplugins" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_getplugins" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_getplugins" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td>Neutrino neu starten</td>
+			<tr><td>{=L:servicemenu.restart=}</td>
 				<td>
-					<input type="radio" name="p_restart" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_restart" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_restart" value="2"/>PIN
+					<input type="radio" name="p_restart" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_restart" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_restart" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td>EPG neu starten</td>
+			<tr><td>{=L:set.personalize.epgrestart=}</td>
 				<td>
-					<input type="radio" name="p_epgrestart" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_epgrestart" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_epgrestart" value="2"/>PIN
+					<input type="radio" name="p_epgrestart" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_epgrestart" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_epgrestart" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td>Sender/EPG Statistik</td>
+			<tr><td>{=L:set.personalize.chan_epg_stat=}</td>
 				<td>
-					<input type="radio" name="p_chan_epg_stat" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_chan_epg_stat" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_chan_epg_stat" value="2"/>PIN
+					<input type="radio" name="p_chan_epg_stat" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_chan_epg_stat" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_chan_epg_stat" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td>Image Informationen</td>
+			<tr><td>{=L:imageinfo.head=}</td>
 				<td>
-					<input type="radio" name="p_imageinfo" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_imageinfo" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_imageinfo" value="2"/>PIN
+					<input type="radio" name="p_imageinfo" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_imageinfo" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_imageinfo" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
-			<tr><td>Software-Aktualisierung</td>
+			<tr><td>{=L:servicemenu.update=}</td>
 				<td>
-					<input type="radio" name="p_update" value="0"/>nicht sichtbar&nbsp;
-					<input type="radio" name="p_update" value="1"/>sichtbar&nbsp;
-					<input type="radio" name="p_update" value="2"/>PIN
+					<input type="radio" name="p_update" value="0"/>{=L:personalize.notvisible=}&nbsp;
+					<input type="radio" name="p_update" value="1"/>{=L:personalize.visible=}&nbsp;
+					<input type="radio" name="p_update" value="2"/>{=L:personalize.pin=}
 				</td>
 			</tr>
 		</table>
 		<br />
 		<input type="hidden" name="execute" value="include-block:Y_Blocks.txt;personalize_save_settings;nix"/>
-		<button type="button" ytype="save" title="submit and save values" onclick="do_submit()">Speichern</button>
-		&nbsp;<button type="button" ytype="refresh" onclick="stb_reload_neutrino()">reload Neutrino</button>
-		&nbsp;<a href="javascript:top.top_main.prim_menu.nav('info', 'Y_Info_Help.yhtm');" class="inlink">Hilfe</a>
+		<button type="button" ytype="save" title="{=L:save_values_desc=}" onclick="do_submit()">{=L:save=}</button>
+		&nbsp;<button type="button" ytype="refresh" onclick="stb_reload_neutrino()">{=L:set.reload_neutrino=}</button>
+		&nbsp;<a href="javascript:top.top_main.prim_menu.nav('info', 'Y_Info_Help.yhtm');" class="inlink">{=L:help=}</a>
 	</form>
 	</div>
 </div>

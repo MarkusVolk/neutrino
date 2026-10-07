@@ -20,20 +20,18 @@
 			</td>
 		</tr>
 		<tr>
-		<td valign="top">COPYRIGHTS</td>
+		<td valign="top">{=L:about.copyrights=}</td>
 		<td>
-			yWeb (this Web interface) is licensed under the terms of the Open Source GPL 2 license.<br/>
+			{=L:about.license=}<br/>
 			<a href="https://www.gnu.org/licenses/old-licenses/gpl-2.0.html" target="_new" class="exlink">https://www.gnu.org/licenses/old-licenses/gpl-2.0.html</a>
 			<br/><br/>
-			yWeb uses the Silk icons by Mark James (<a href="https://github.com/markjames/famfamfam-silk-icons" target="_new" class="exlink">https://github.com/markjames/famfamfam-silk-icons</a>), which are
-			licensed under the Creative Commons Attribution License 2.5
+			{=L:about.icons_1=}<a href="https://github.com/markjames/famfamfam-silk-icons" target="_new" class="exlink">https://github.com/markjames/famfamfam-silk-icons</a>{=L:about.icons_2=}
 		</td>
 		</tr>
 		<tr>
-		<td valign="top">IMPORTANT</td>
+		<td valign="top">{=L:about.important=}</td>
 		<td>
-			Do not make yWeb accessible to untrusted networks!<br/>
-			Otherwise someone else can access your Box.
+			{=L:about.warning=}
 		</td>
 		</tr>
 		</table>

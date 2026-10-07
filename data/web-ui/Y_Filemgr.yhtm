@@ -257,7 +257,7 @@ CyExplorer.prototype = {
 			}
 		}
 		else
-			alert("nothing to paste");
+			alert("{=L:tools.filemgr.nothing_to_paste=}");
 	}	
 	
 };
@@ -385,7 +385,7 @@ function do_add_folder(){
 		hide_diags();
 	}
 	else
-		alert("No foldername given!");
+		alert("{=L:tools.filemgr.no_folder=}");
 }
 /* upload */
 function upload_dialog(){
@@ -400,7 +400,7 @@ function do_upload(){
 		window.setTimeout("_do_upload()", 100);
 	}
 	else
-		alert("No file given!");
+		alert("{=L:tools.filemgr.no_file=}");
 }
 function _do_upload(){
 	var path =explorer.ac_path;
@@ -542,7 +542,7 @@ function do_rename(){
 	if($F('fitem') != "")
 		explorer.rename($F('fitem'));
 	else
-		alert("Rename: nothing entered!");
+		alert("{=L:tools.filemgr.rename_empty=}");
 }
 function do_cut(){
 	explorer.cut();
@@ -557,7 +557,7 @@ function do_paste(){
 function do_download(){
 	var res = loadSyncURL("/y/cgi?execute=script:Y_NAS%20nhttpd_can_sendall");
 	if(res=="")
-		alert("Um aller Dateitypen senden zu können, muss unter Settings->Webserver die Option >alle Dateiendungen erlauben< aktiviert werden!");
+		alert("{=L:tools.filemgr.all_types_hint=}");
 	else
 		window.open(explorer.build_fname());
 }
@@ -565,10 +565,10 @@ function do_edit(){
 	if($F('ftype') != "d")
 		window.open("/Y_Filemgr_Edit.yhtm?file="+explorer.build_fname(),"edit", "width=800,height=600,resizable=yes");
 	else
-		alert("you can not edit a directory");
+		alert("{=L:tools.filemgr.no_edit_dir=}");
 }
 function ni() {
-	alert("not implemented");
+	alert("{=L:tools.filemgr.not_implemented=}");
 }
 //]]>
 </script>
@@ -576,7 +576,7 @@ function ni() {
 <body onload="init()">
 <div class="work_box">
 	<div class="work_box_head"><div class="work_box_head_h2">
-	{=var-set:help_url=Help-Extensions-filemgr=}{=var-set:menu=File Manager (1.0.0)=}{=include-block:Y_Blocks.txt;work_menu=}</div></div>
+	{=var-set:help_url=Help-Extensions-filemgr=}{=var-set:menu={=L:tools.filemgr.head=}=}{=include-block:Y_Blocks.txt;work_menu=}</div></div>
 	<div class="work_box_body">
 		
 	<table class="mform" width="100%" border="0">
@@ -629,7 +629,7 @@ function ni() {
 			<!-- detail view -->
 			<!-- properties -->
 			<div id="details">
-				<div class="detail_title">File properties</div>
+				<div class="detail_title">{=L:tools.filemgr.properties=}</div>
 				<div class="detail_content" id="fprop">
 					<table cellspacing="0" cellpadding="1" border="0">
 					<tr><td>Date:</td><td colspan="3"><div id="fdate"></div></td></tr>
@@ -638,13 +638,13 @@ function ni() {
 					<tr><td>Group:</td><td colspan="3"><div id="fgroup"></div></td></tr>
 					</table>
 				</div>
-				<div class="detail_title">File permissions</div>
+				<div class="detail_title">{=L:tools.filemgr.permissions=}</div>
 				<div class="detail_content">
 					<!-- permissions -->
 					<form method="" name="edit" action="" >
 					<input type="hidden" id="ftype" name="ftype" value=""/>
 					<table cellspacing="0" cellpadding="1" border="0">
-					<tr><td>Permission</td><td>read</td><td>write</td><td>exe</td></tr>
+					<tr><td>{=L:tools.filemgr.permission=}</td><td>{=L:tools.filemgr.read=}</td><td>{=L:tools.filemgr.write=}</td><td>{=L:tools.filemgr.exe=}</td></tr>
 					<tr><td>Owner:</td>
 						<td><input type="checkbox" name="ur" value="" onclick="calc_chmod()"/></td>
 						<td><input type="checkbox" name="uw" value="" onclick="calc_chmod()"/></td>

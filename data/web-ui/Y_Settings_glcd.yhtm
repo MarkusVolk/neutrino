@@ -62,7 +62,7 @@ function do_submit()
 {=var-set:wait_text={=L:save_values=}=}{=include-block:Y_Blocks.txt;snip_wait=}
 <div class="work_box">
 	<div class="work_box_head"><div class="work_box_head_h2">
-	{=var-set:help_url=Help-Settings-LCD=}{=var-set:menu=GLCD Einstellungen=}{=include-block:Y_Blocks.txt;work_menu=}</div></div>
+	{=var-set:help_url=Help-Settings-LCD=}{=var-set:menu={=L:glcd.head=}=}{=include-block:Y_Blocks.txt;work_menu=}</div></div>
 	<div class="work_box_body">
 	<form name="f" class="y_form" action="">
 		<table cellspacing="0" border="0" cellpadding="2" width="100%">
@@ -72,54 +72,54 @@ function do_submit()
 			<tr>
 				<td title="glcd: off/on" width="35%">Power</td>
 				<td>
-					<input type="radio" name="glcd_enable" value="0" />AUS&nbsp;
-					<input type="radio" name="glcd_enable" value="1" />EIN
+					<input type="radio" name="glcd_enable" value="0" />{=L:options.off=}&nbsp;
+					<input type="radio" name="glcd_enable" value="1" />{=L:options.on=}
 				</td>
 			</tr>
 			<tr>
-				<td title="inverse glcd: off/on">Invertieren</td>
+				<td title="inverse glcd: off/on">{=L:set.lcd.inverse=}</td>
 				<td>
-					<input type="radio" name="glcd_inverse" value="0" />AUS&nbsp;
-					<input type="radio" name="glcd_inverse" value="1" />EIN
+					<input type="radio" name="glcd_inverse" value="0" />{=L:options.off=}&nbsp;
+					<input type="radio" name="glcd_inverse" value="1" />{=L:options.on=}
 				</td>
 			</tr>
 			<tr>
-				<td title="brightness after dimm-timeout">Helligkeit nach dimm-Timeout</td>
+				<td title="brightness after dimm-timeout">{=L:set.lcd.dim_brightness=}</td>
 				<td>
 					<input type="text" name="glcd_brightness_dim" size="3" maxlength="3" />
 				</td>
 			</tr>
 			<tr>
-				<td  title="dimm-timeout">Dimm-Timeout</td>
+				<td  title="dimm-timeout">{=L:lcdmenu.dim_time=}</td>
 				<td>
 					<input type="text" name="glcd_brightness_dim_time" size="3" maxlength="3" />
 				</td>
 			</tr>
 			<tr>
-				<td title="lcd brightness normal 0-255">normale Helligkeit</td>
+				<td title="lcd brightness normal 0-255">{=L:set.lcd.brightness=}</td>
 				<td>
 					<input type="text" name="glcd_brightness" size="3" maxlength="3" />
 				</td>
 			</tr>
 			<tr> 
-				<td title="lcd brightness standby 0-255">Standby Helligkeit</td>
+				<td title="lcd brightness standby 0-255">{=L:glcd.brightness_standby=}</td>
 				<td>
 					<input type="text" name="glcd_brightness_standby" size="3" maxlength="3" />
 				</td>
 			</tr>
 			<tr> 
 				<td>&nbsp;</td>
-				<td><a href="javascript:setDefault()" class="alink">Voreinstellung benutzen</a></td>
+				<td><a href="javascript:setDefault()" class="alink">{=L:options.default=}</a></td>
 			</tr>
 			<tr>
-				<td colspan="2" class="y_form_header">Anzeige-Modi</td>
+				<td colspan="2" class="y_form_header">{=L:set.lcd.display_modes=}</td>
 			</tr>
 		</table>
 		<br />
 		<input type="hidden" name="execute" value="include-block:Y_Blocks.txt;glcd_save_settings;nix" />
-		<button type="button" ytype="save" title="submit and save values" onclick="do_submit()">Speichern</button>&nbsp;
-		<button type="button" ytype="refresh" onclick="stb_reload_neutrino()">reload Neutrino</button>&nbsp;
-		<a href="javascript:top.top_main.prim_menu.nav('info', 'Y_Info_Help.yhtm');" class="inlink">Hilfe</a>
+		<button type="button" ytype="save" title="{=L:save_values_desc=}" onclick="do_submit()">{=L:save=}</button>&nbsp;
+		<button type="button" ytype="refresh" onclick="stb_reload_neutrino()">{=L:set.reload_neutrino=}</button>&nbsp;
+		<a href="javascript:top.top_main.prim_menu.nav('info', 'Y_Info_Help.yhtm');" class="inlink">{=L:help=}</a>
 	</form>
 	</div>
 </div>

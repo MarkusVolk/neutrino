@@ -142,7 +142,7 @@ select {
 			<tr>
 				<td>{=L:set.yweb.remote=}</td>
 				<td>
-					<select name="fb" title="{=L:remote=}">
+					<select name="fb" title="{=L:set.yweb.remote=}">
 						<option value="{=var-get:_rc_dbox_philips=}">d-Box Philips</option>
 						<option value="{=var-get:_rc_dbox_nokia_old=}">d-Box Nokia (alt)</option>
 						<option value="{=var-get:_rc_auto=}" selected="selected">{=L:automatic=}</option>
@@ -183,7 +183,7 @@ select {
 			<tr>
 				<td>{=L:set.yweb.start_page=}</td>
 				<td colspan="3">
-					<select name="start_page" title="{=L:start_page=}">
+					<select name="start_page" title="{=L:set.yweb.start_page=}">
 						<option value="bouquets" selected="selected">{=L:bc.menue.bouquets=}</option>
 						<option value="control">{=L:bc.menue.control=}</option>
 						<option value="remote">{=L:bc.menue.remote=}</option>
