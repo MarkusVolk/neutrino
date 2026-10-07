@@ -601,6 +601,7 @@ bool CUserMenu::showUserMenu(neutrino_msg_t msg)
 	CInfoClock::getInstance()->enableInfoClock(true);
 // 	CInfoIcons::getInstance()->enableInfoIcons(true);
 	CNeutrinoApp::getInstance()->StartSubtitles();
+	CNeutrinoApp::getInstance()->saveSetup(NEUTRINO_SETTINGS_FILE);
 
 	if (button < COL_BUTTONMAX)
 		user_menu[button].selected = menu->getSelected();

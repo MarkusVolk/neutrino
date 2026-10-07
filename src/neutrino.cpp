@@ -196,6 +196,7 @@ static bool timerd_thread_started = false;
    so a SIGTERM/SIGINT arriving during shutdown cannot run the teardown twice
    and double-delete the singletons */
 static volatile sig_atomic_t shutdown_in_progress = 0;
+static volatile sig_atomic_t exit_signalled = 0;
 extern void *timerd_main_thread(void *data);
 extern void *nhttpd_main_thread(void *data);
 
@@ -4929,6 +4930,11 @@ int CNeutrinoApp::handleMsg(const neutrino_msg_t _msg, neutrino_msg_data_t data)
 		}
 		return messages_return::handled;
 	}
+	else if( msg == NeutrinoMessages::EXIT ) {
+		/* the service manager stops neutrino: no questions, the recording ends with it */
+		ExitRun(CNeutrinoApp::EXIT_NORMAL, false);
+		return messages_return::handled;
+	}
 	else if( msg == NeutrinoMessages::RESTART ) {
 		CNeutrinoApp::getInstance()->exec(NULL, "restart");
 	}
@@ -5189,11 +5195,11 @@ static bool legacy_exit_codes(void)
 	return true;
 }
 
-void CNeutrinoApp::ExitRun(int exit_code)
+void CNeutrinoApp::ExitRun(int exit_code, bool ask)
 {
 	bool do_exiting = true;
 	CRecordManager::getInstance()->StopAutoRecord();
-	if(CRecordManager::getInstance()->RecordingStatus())
+	if (ask && CRecordManager::getInstance()->RecordingStatus())
 	{
 		do_exiting = (ShowMsg(LOCALE_MESSAGEBOX_INFO, LOCALE_SHUTDOWN_RECORDING_QUERY, CMsgBox::mbrNo,
 					CMsgBox::mbYes | CMsgBox::mbNo, NULL, 450, DEFAULT_TIMEOUT, true) == CMsgBox::mbrYes);
@@ -5571,6 +5577,7 @@ void CNeutrinoApp::standbyMode(bool bOnOff, bool fromDeepStandby)
 		}
 
 		/* wasshift = */ CRecordManager::getInstance()->StopAutoRecord();
+		saveSetup(NEUTRINO_SETTINGS_FILE);
 
 		if(mode == NeutrinoModes::mode_radio && g_Radiotext)
 			g_Radiotext->radiotext_stop();
@@ -6244,13 +6251,21 @@ void sighandler (int signum)
 			   a stdio lock held by the interrupted thread. */
 			_exit(CNeutrinoApp::EXIT_NORMAL);
 		}
+		if (!exit_signalled && g_RCInput) {
+			/* The main thread leaves through ExitRun(), which saves the
+			   settings; saving from here could tear the file. postMsg()
+			   is a write() to a pipe. A second signal takes the way below. */
+			exit_signalled = 1;
+			g_RCInput->postMsg(NeutrinoMessages::EXIT, 0);
+			signal(signum, sighandler);
+			return;
+		}
 		shutdown_in_progress = 1;
 		CVFD::getInstance()->ShowText("Exiting ...");
 		CNeutrinoApp::getInstance()->OnShutDown();
 		CProgressBarCache::pbcClear();
 		delete cHddStat::getInstance();
 		delete CRecordManager::getInstance();
-		//CNeutrinoApp::getInstance()->saveSetup(NEUTRINO_SETTINGS_FILE);
 		stop_daemons();
 		CVFD::getInstance()->setMode(CVFD::MODE_SHUTDOWN);
 		delete CVFD::getInstance();

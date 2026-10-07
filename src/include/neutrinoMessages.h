@@ -81,6 +81,9 @@ struct NeutrinoMessages
 		/* Posted by the last string input to close, when a message that puts
 		   values into the settings waited for the inputs (CStringInputOpen). */
 		STRING_INPUTS_CLOSED			= CRCInput::RC_Messages + 31,
+		/* Posted by the signal handler: the main thread leaves through
+		   ExitRun(), which saves the settings. */
+		EXIT					= CRCInput::RC_Messages + 32,
 
 		/* END of CRCInput::RC_Messages */
 
