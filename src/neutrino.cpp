@@ -2325,8 +2325,12 @@ void CNeutrinoApp::saveSetup(const char *fname)
 
 	saveKeys();
 
-	if (strcmp(fname, NEUTRINO_SETTINGS_FILE) || configfile.getModifiedFlag())
+	/* a backup written elsewhere settles nothing for the settings file */
+	bool modified = configfile.getModifiedFlag();
+	if (strcmp(fname, NEUTRINO_SETTINGS_FILE) || modified)
 		configfile.saveConfig(fname);
+	if (strcmp(fname, NEUTRINO_SETTINGS_FILE))
+		configfile.setModifiedFlag(modified);
 }
 
 /**************************************************************************************

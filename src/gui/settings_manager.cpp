@@ -79,6 +79,9 @@ int CSettingsManager::exec(CMenuTarget* parent, const std::string &actionKey)
 			setSettingsText(g_settings.backup_dir, fileBrowser.getCurrentDir());
 			std::string new_config = fileBrowser.getSelectedFile()->Name.c_str();
 			CNeutrinoApp::getInstance()->loadSetup(new_config.c_str());
+			/* loading cleared the modified flag: the backup is the settings now, write them */
+			CNeutrinoApp::getInstance()->getConfigFile()->setModifiedFlag(true);
+			CNeutrinoApp::getInstance()->saveSetup(NEUTRINO_SETTINGS_FILE);
 			CColorSetupNotifier *colorSetupNotifier = new CColorSetupNotifier;
 			colorSetupNotifier->changeNotify(NONEXISTANT_LOCALE, NULL);
 			CNeutrinoApp::getInstance()->SetupFonts(CNeutrinoFonts::FONTSETUP_ALL);
