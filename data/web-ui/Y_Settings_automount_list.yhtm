@@ -20,12 +20,12 @@ function do_add()
 }
 function do_delete()
 {
-	if(confirm("Mount wirklich loeschen?") == true)
+	if(confirm("{=L:tools.automount.delete_ask=}") == true)
 	{
 		var mountname = obj_get_radio_value("R1");
 		var _url ="/control/exec?Y_Tools&automount_setline&{=if-file-exists:/var/etc/auto.net~/var/etc/auto.net~/etc/auto.net=}&"+mountname+"&";
 		var res = loadSyncURL(_url);
-		alert("geloescht!");
+		alert("{=L:tools.automount.deleted=}");
 		location.reload();
 	}
 }
@@ -45,9 +45,9 @@ function do_delete()
 		<input type="hidden" name="tmpl" value="Y_Settings_automount.yhtm"/>
 		<input type="hidden" name="execute" value=""/>
 		<input type="hidden" name="cmd" value=""/>
-		<button type="button" ytype="edit" title="edit mount settings" onclick="do_edit()">&auml;ndern</button>
-		<button type="button" ytype="add" title="add new mount" onclick="do_add()">hinzuf&uuml;gen</button>
-		<button type="button" ytype="delete" title="delete mount" onclick="do_delete()">l&ouml;schen</button>
+		<button type="button" ytype="edit" title="edit mount settings" onclick="do_edit()">{=L:tools.automount.edit=}</button>
+		<button type="button" ytype="add" title="add new mount" onclick="do_add()">{=L:tools.automount.add=}</button>
+		<button type="button" ytype="delete" title="delete mount" onclick="do_delete()">{=L:tools.automount.delete=}</button>
 	</form>
 	</div>
 </div>

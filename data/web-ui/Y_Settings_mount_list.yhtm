@@ -54,20 +54,20 @@ function refresh()
 		cell(row, s.type.toUpperCase());
 		cell(row, s.type == "cifs" ? "//" + s.ip + "/" + s.dir : s.ip + ":" + s.dir);
 		cell(row, s.local_dir);
-		cell(row, (s.mounted ? "mounted" : "") + (s.automount ? (s.mounted ? ", " : "") + "at start" : ""));
+		cell(row, (s.mounted ? "{=L:tools.mounts.mounted=}" : "") + (s.automount ? (s.mounted ? ", " : "") + "{=L:tools.mounts.at_start=}" : ""));
 		var td = row.insertCell(-1);
 		(function(s) {
-			button(td, s.mounted ? "Unmount" : "Mount", function() {
+			button(td, s.mounted ? "{=L:tools.mounts.umount=}" : "{=L:tools.mounts.mount=}", function() {
 				show_waitbox(true);
 				show(netmount({ action: s.mounted ? "umount" : "mount", nr: s.nr }));
 				show_waitbox(false);
 				refresh();
 			});
-			button(td, "Edit", function() { edit(s); });
+			button(td, "{=L:tools.mounts.edit=}", function() { edit(s); });
 		})(s);
 	}
 	if (table.rows.length == 1)
-		cell(table.insertRow(-1), "No network share set up yet").colSpan = 5;
+		cell(table.insertRow(-1), "{=L:tools.mounts.none=}").colSpan = 5;
 	var free = null;
 	for (var i = 0; i < shares.length && !free; i++)
 		if (!shares[i].ip)
@@ -86,7 +86,7 @@ function type_changed()
 	var cifs = document.f.type.value == "cifs";
 	document.getElementById("login1").style.display = cifs ? "" : "none";
 	document.getElementById("login2").style.display = cifs ? "" : "none";
-	document.getElementById("dir_label").textContent = cifs ? "Share" : "Exported directory";
+	document.getElementById("dir_label").textContent = cifs ? "{=L:tools.mounts.share=}" : "{=L:tools.mounts.exported_dir=}";
 }
 
 function edit(s)
@@ -103,7 +103,7 @@ function edit(s)
 	f.options1.value = s.options1;
 	f.options2.value = s.options2;
 	f.mac.value = s.mac;
-	document.getElementById("edit_head").textContent = s.ip ? "Share " + s.ip + "/" + s.dir : "New share";
+	document.getElementById("edit_head").textContent = s.ip ? "{=L:tools.mounts.share=} " + s.ip + "/" + s.dir : "{=L:tools.mounts.new=}";
 	document.getElementById("edit").style.display = "";
 	type_changed();
 }
@@ -135,7 +135,7 @@ function save(then_mount)
 function clear_entry()
 {
 	var f = document.f;
-	if (!confirm("Remove this share?"))
+	if (!confirm("{=L:tools.mounts.remove_ask=}"))
 		return;
 	f.ip.value = f.dir.value = f.local_dir.value = f.username.value = f.password.value = f.mac.value = "";
 	f.automount.checked = false;
@@ -148,35 +148,35 @@ function clear_entry()
 {=var-set:wait_text={=L:save_values=}=}{=include-block:Y_Blocks.txt;snip_wait=}
 <div class="work_box">
 	<div class="work_box_head">
-		<div class="work_box_head_h2">{=var-set:help_url=Help-Tools-Mounts=}{=var-set:menu=Network shares=}{=include-block:Y_Blocks.txt;work_menu=}</div>
+		<div class="work_box_head_h2">{=var-set:help_url=Help-Tools-Mounts=}{=var-set:menu={=L:tools.mounts=}=}{=include-block:Y_Blocks.txt;work_menu=}</div>
 	</div>
 	<div class="work_box_body">
 	<table border="0" class="y_form_table" id="shares">
-		<tr><td class="y_form_header">Type</td><td class="y_form_header">Share</td><td class="y_form_header">Local directory</td><td class="y_form_header">State</td><td class="y_form_header"></td></tr>
+		<tr><td class="y_form_header">{=L:tools.mounts.type=}</td><td class="y_form_header">{=L:tools.mounts.share=}</td><td class="y_form_header">{=L:tools.mounts.local_dir=}</td><td class="y_form_header">{=L:tools.mounts.state=}</td><td class="y_form_header"></td></tr>
 	</table>
-	<p><input type="button" id="add" value="Add share"/></p>
+	<p><input type="button" id="add" value="{=L:tools.mounts.add=}"/></p>
 	<form name="f" action="javascript:void(0)">
 		<div id="edit" style="display:none">
 		<input type="hidden" name="nr" value="0"/>
 		<table border="0" class="y_form_table">
 			<tr><td colspan="2" class="y_form_header" id="edit_head"></td></tr>
-			<tr><td>Type</td><td><select name="type" onchange="type_changed()">
+			<tr><td>{=L:tools.mounts.type=}</td><td><select name="type" onchange="type_changed()">
 				<option value="cifs">Windows / Samba (CIFS)</option>
 				<option value="nfs">NFS</option>
 			</select></td></tr>
-			<tr><td>Server</td><td><input type="text" name="ip" size="30" title="name or address of the server"/></td></tr>
-			<tr><td id="dir_label">Share</td><td><input type="text" name="dir" size="30"/></td></tr>
-			<tr id="login1"><td>User</td><td><input type="text" name="username" size="30"/></td></tr>
-			<tr id="login2"><td>Password</td><td><input type="password" name="password" size="30" title="empty keeps the saved password"/></td></tr>
-			<tr><td>Local directory</td><td><input type="text" name="local_dir" size="30"/></td></tr>
-			<tr><td>Mount at start</td><td><input type="checkbox" name="automount"/></td></tr>
-			<tr><td>Options</td><td><input type="text" name="options1" size="30"/> <input type="text" name="options2" size="30"/></td></tr>
-			<tr><td>MAC to wake the server</td><td><input type="text" name="mac" size="30"/></td></tr>
+			<tr><td>{=L:tools.mounts.server=}</td><td><input type="text" name="ip" size="30" title="{=L:tools.mounts.server_desc=}"/></td></tr>
+			<tr><td id="dir_label">{=L:tools.mounts.share=}</td><td><input type="text" name="dir" size="30"/></td></tr>
+			<tr id="login1"><td>{=L:user=}</td><td><input type="text" name="username" size="30"/></td></tr>
+			<tr id="login2"><td>{=L:password=}</td><td><input type="password" name="password" size="30" title="{=L:tools.mounts.password_desc=}"/></td></tr>
+			<tr><td>{=L:tools.mounts.local_dir=}</td><td><input type="text" name="local_dir" size="30"/></td></tr>
+			<tr><td>{=L:tools.mounts.mount_at_start=}</td><td><input type="checkbox" name="automount"/></td></tr>
+			<tr><td>{=L:tools.mounts.options=}</td><td><input type="text" name="options1" size="30"/> <input type="text" name="options2" size="30"/></td></tr>
+			<tr><td>{=L:tools.mounts.mac=}</td><td><input type="text" name="mac" size="30"/></td></tr>
 		</table>
-		<input type="button" value="Save and mount" onclick="save(true)"/>
-		<input type="button" value="Save" onclick="save(false)"/>
-		<input type="button" value="Remove" onclick="clear_entry()"/>
-		<input type="button" value="Cancel" onclick="document.getElementById('edit').style.display = 'none'"/>
+		<input type="button" value="{=L:tools.mounts.save_mount=}" onclick="save(true)"/>
+		<input type="button" value="{=L:save=}" onclick="save(false)"/>
+		<input type="button" value="{=L:tools.mounts.remove=}" onclick="clear_entry()"/>
+		<input type="button" value="{=L:cancel=}" onclick="document.getElementById('edit').style.display = 'none'"/>
 		</div>
 	</form>
 	<pre id="result"></pre>
