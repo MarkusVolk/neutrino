@@ -250,7 +250,7 @@ int CLuaMenuStringinput::exec(CMenuTarget* /*parent*/, const std::string & /*act
 		}
 		if (lua_isnumber(L, -1))
 			res = (int) lua_tonumber(L, -1);
-		lua_pop(L, 2);
+		lua_pop(L, 1);
 	}
 	return res;
 }
@@ -293,7 +293,7 @@ int CLuaMenuKeyboardinput::exec(CMenuTarget* /*parent*/, const std::string & /*a
 		}
 		if (lua_isnumber(L, -1))
 			res = (int) lua_tonumber(L, -1);
-		lua_pop(L, 2);
+		lua_pop(L, 1);
 	}
 	return res;
 }
