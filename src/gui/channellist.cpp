@@ -1289,7 +1289,10 @@ void CChannelList::zapToChannel(CZapitChannel *channel, bool force)
 
 	if (CNeutrinoApp::getInstance()->getMode() == NeutrinoModes::mode_ts)
 	{
-		ShowHint(LOCALE_MESSAGEBOX_INFO, LOCALE_MOVIEPLAYER_ZAP);
+		if (CMoviePlayerGui::getInstance().timeshift != CMoviePlayerGui::TSHIFT_MODE_OFF)
+			CMoviePlayerGui::getInstance().zapAfterTimeshift(channel->getChannelID());
+		else
+			ShowHint(LOCALE_MESSAGEBOX_INFO, LOCALE_MOVIEPLAYER_ZAP);
 		return;
 	}
 

@@ -992,6 +992,7 @@ void CMoviePlayerGui::Init(void)
 	speed = 1;
 	timeshift = TSHIFT_MODE_OFF;
 	timeshift_delay = -1;
+	timeshift_zap = 0;
 	numpida = 0;
 	showStartingHint = false;
 
@@ -1262,6 +1263,12 @@ int CMoviePlayerGui::exec(CMenuTarget * parent, const std::string & actionKey)
 
 	if (timeshift != TSHIFT_MODE_OFF){
 		timeshift = TSHIFT_MODE_OFF;
+		if (timeshift_zap) {
+			CZapitChannel *channel = CServiceManager::getInstance()->FindChannel(timeshift_zap);
+			timeshift_zap = 0;
+			if (channel)
+				CNeutrinoApp::getInstance()->channelList->zapToChannel(channel);
+		}
 		return menu_return::RETURN_EXIT_ALL;
 	}
 
@@ -3176,6 +3183,18 @@ bool CMoviePlayerGui::SetPosition(int pos, bool absolute)
 		g_RCInput->postMsg(CRCInput::RC_info, 0);
 
 	return res;
+}
+
+/* A zap during the timeshift playback ends it and switches to the channel
+ * once live TV is back; the zap itself stops the timeshift recording. */
+void CMoviePlayerGui::zapAfterTimeshift(t_channel_id channel_id)
+{
+	if (timeshift == TSHIFT_MODE_OFF)
+		return;
+	timeshift_zap = channel_id;
+	playstate = CMoviePlayerGui::STOPPED;
+	keyPressed = CMoviePlayerGui::PLUGIN_PLAYSTATE_STOP;
+	ClearQueue();
 }
 
 void CMoviePlayerGui::quickZap(neutrino_msg_t msg)
