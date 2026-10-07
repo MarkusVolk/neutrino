@@ -41,7 +41,9 @@ function rcsim(_key) {
 		}
 	}
 	loadSyncURL("/control/rcem?" + _key);
-	window.setTimeout("do_snapshot()", 750);
+	/* the OSD answers at once, a new channel takes a moment: two shots */
+	window.setTimeout(do_snapshot, 250);
+	window.setTimeout(do_snapshot, 2000);
 }
 function do_snapshot() {
 	if(!checkEnable()) return;
