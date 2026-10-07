@@ -10,6 +10,7 @@ var enableOSD;
 var enableVideo;
 var enablePiP;
 var interval;
+var keyTimer, keyTimerLate, lastKey = 0;
 
 function checkEnable() {
 	enableOSD	= (document.getElementById('checkOSD').checked == true)		? 1 : 0;
@@ -41,9 +42,18 @@ function rcsim(_key) {
 		}
 	}
 	loadSyncURL("/control/rcem?" + _key);
-	/* the OSD answers at once, a new channel takes a moment: two shots */
-	window.setTimeout(do_snapshot, 250);
-	window.setTimeout(do_snapshot, 2000);
+	/* the picture follows the last key of a row: a shot when the keys
+	 * have stopped for a moment, and one more for a channel change */
+	lastKey = Date.now();
+	window.clearTimeout(keyTimer);
+	window.clearTimeout(keyTimerLate);
+	keyTimer = window.setTimeout(do_snapshot, 400);
+	keyTimerLate = window.setTimeout(do_snapshot, 2000);
+}
+/* the periodic reload stays out of the way while keys are pressed */
+function do_auto_snapshot() {
+	if (Date.now() - lastKey > 2000)
+		do_snapshot();
 }
 function do_snapshot() {
 	if(!checkEnable()) return;
@@ -118,7 +128,7 @@ function do_switchrc_txt(){
 
 function do_reload(){
 	if (document.getElementById("checkReload").checked)
-		interval = setInterval(do_snapshot, document.getElementById("inputReload").value + "000");
+		interval = setInterval(do_auto_snapshot, document.getElementById("inputReload").value + "000");
 	else
 		clearInterval(interval);
 }
@@ -173,7 +183,7 @@ function do_reload(){
 <script>
 document.getElementById('checkReload').onclick = function() {
 	if (this.checked ) {
-		interval = setInterval(do_snapshot, document.getElementById("inputReload").value + "000");
+		interval = setInterval(do_auto_snapshot, document.getElementById("inputReload").value + "000");
 		document.getElementById("inputReload").disabled = false;
 	} else {
 		clearInterval(interval);
