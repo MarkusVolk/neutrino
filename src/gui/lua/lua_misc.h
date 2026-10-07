@@ -63,6 +63,7 @@ class CLuaInstMisc
 		static int GetRevision(lua_State *L);
 		static int checkVersion(lua_State *L);
 		static int postMsg(lua_State *L);
+		static int startPlugin(lua_State *L);
 		static int getTimeOfDay(lua_State *L);
 		static int MiscDelete(lua_State *L);
 
