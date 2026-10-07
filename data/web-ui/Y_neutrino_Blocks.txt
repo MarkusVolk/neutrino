@@ -20,16 +20,6 @@ start-block~neutrino_form
 {=include-block:Y_Blocks.txt;management_check_bottom=}
 end-block~neutrino_form
 
-# ------- Neutrino form help box
-start-block~neutrino_form_helpbox
-<div class="work_box">
-	<div class="work_box_head"><div class="work_box_head_h2">{=L:set.sync_with_neutrino=}</div></div>
-	<div class="work_box_body">
-	{=L:set.sync_with_neutrino_desc=}
-	</div>
-</div>
-end-block~neutrino_form_helpbox
-
 # ------- Neutrino form submit buttons
 start-block~neutrino_form_submit
 	<button type="button" ytype="save" title="{=L:save_values_desc=}" onclick="do_submit()">{=L:save=}</button>

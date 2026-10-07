@@ -51,6 +51,5 @@ function do_delete()
 	</form>
 	</div>
 </div>
-{=include-block:Y_neutrino_Blocks.txt;neutrino_form_helpbox=}
 </body>
 </html>

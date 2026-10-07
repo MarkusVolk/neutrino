@@ -204,8 +204,6 @@ epg.si.crypt=Crypt Systeme
 
 # ===== Neutrino Settings
 set.reboot_required=Neustart notwendig
-set.sync_with_neutrino_desc=After changing settings via yWeb: <br/>Choose on TV "Main Menu->Service->Soft restart", to accept the changes within neutrino.<br/><br/>After changing settings within Neutrino: <br/>Choose on TV "Main Menu->Settings->Save settings now", to accept these changes and reload this page.
-set.sync_with_neutrino=Zur Synchronisation mit Neutrino
 
 # ===== Settings General & Menue
 set.menue.epg=EPG
