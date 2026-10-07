@@ -318,13 +318,21 @@ bool CHDDMenuHandler::mount_dev(std::string name)
 		system(eject.c_str());
 		sleep(3);
 	}
-#ifdef ASSUME_MDEV
-	std::string cmd = std::string("ACTION=add") + " MDEV=" + name + " " + MDEV_MOUNT;
-#else
-	std::string dst = MOUNT_BASE + name;
-	safe_mkdir(dst.c_str());
-	std::string cmd = std::string("mount ") + "/dev/" + name + " " + dst;
+	std::string cmd;
+#ifdef ENABLE_UDISKS
+	if (geteuid())
+		cmd = "udisksctl mount -b /dev/" + name;
+	else
 #endif
+	{
+#ifdef ASSUME_MDEV
+		cmd = std::string("ACTION=add") + " MDEV=" + name + " " + MDEV_MOUNT;
+#else
+		std::string dst = MOUNT_BASE + name;
+		safe_mkdir(dst.c_str());
+		cmd = std::string("mount ") + "/dev/" + name + " " + dst;
+#endif
+	}
 	printf("CHDDMenuHandler::mount_dev: mount cmd [%s]\n", cmd.c_str());
 	system(cmd.c_str());
 	lock_refresh = true;
@@ -333,15 +341,25 @@ bool CHDDMenuHandler::mount_dev(std::string name)
 
 bool CHDDMenuHandler::umount_dev(std::string name)
 {
-#ifdef ASSUME_MDEV
-	std::string cmd = std::string("ACTION=remove") + " MDEV=" + name + " " + MDEV_MOUNT;
-	printf("CHDDMenuHandler::umount_dev: umount cmd [%s]\n", cmd.c_str());
-	system(cmd.c_str());
-#else
-	std::string path = MOUNT_BASE + name;
-	if (::umount(path.c_str()))
-		return false;
+#ifdef ENABLE_UDISKS
+	if (geteuid()) {
+		std::string cmd = "udisksctl unmount -b /dev/" + name;
+		printf("CHDDMenuHandler::umount_dev: umount cmd [%s]\n", cmd.c_str());
+		if (system(cmd.c_str()))
+			return false;
+	} else
 #endif
+	{
+#ifdef ASSUME_MDEV
+		std::string cmd = std::string("ACTION=remove") + " MDEV=" + name + " " + MDEV_MOUNT;
+		printf("CHDDMenuHandler::umount_dev: umount cmd [%s]\n", cmd.c_str());
+		system(cmd.c_str());
+#else
+		std::string path = MOUNT_BASE + name;
+		if (::umount(path.c_str()))
+			return false;
+#endif
+	}
 	std::string dev = name.substr(0, 2);
 	std::string eject = find_executable("eject");
 	printf("CHDDMenuHandler::umount_dev: eject = %s\n", eject.c_str());
@@ -622,6 +640,8 @@ int CHDDMenuHandler::showDeviceMenu(std::string dev)
 
 	CMenuForwarder * mf;
 
+	/* checking and formatting need root, which a desktop session does not have */
+	bool root = !geteuid();
 	std::string fmt_type = getFmtType(dev, getDefaultPart(dev));
 	bool fsck_enabled = false;
 	bool mkfs_enabled = false;
@@ -632,7 +652,7 @@ int CHDDMenuHandler::showDeviceMenu(std::string dev)
 			fsoptions[opcount].key = i;
 			fsoptions[opcount].value = NONEXISTANT_LOCALE;
 			fsoptions[opcount].valname = devtools[i].fmt.c_str();
-			mkfs_enabled = true;
+			mkfs_enabled = root;
 			opcount++;
 		}
 		if (fmt_type == devtools[i].fmt)
@@ -652,7 +672,7 @@ int CHDDMenuHandler::showDeviceMenu(std::string dev)
 			fsck_enabled = false;
 			devtool_s * devtool = get_dev_tool(it->fmt);
 			if (devtool) {
-				fsck_enabled = devtool->fsck_supported;
+				fsck_enabled = root && devtool->fsck_supported;
 			}
 
 			std::string key = "c" + it->devname;
@@ -674,12 +694,12 @@ int CHDDMenuHandler::showDeviceMenu(std::string dev)
 	char hint2[1024];
 	snprintf(hint2, sizeof(hint2)-1, g_Locale->getText(LOCALE_HDD_LABEL_HINT2), MKFS_LABEL_DEFAULT);
 	CKeyboardInput choseLabel((std::string) g_Locale->getText(LOCALE_HDD_LABEL), &mkfs_label, 0, NULL, NULL, (std::string) g_Locale->getText(LOCALE_HDD_LABEL_HINT1), (std::string) hint2);
-	mf = new CMenuForwarder(LOCALE_HDD_LABEL, true, mkfs_label, &choseLabel);
+	mf = new CMenuForwarder(LOCALE_HDD_LABEL, root, mkfs_label, &choseLabel);
 	mf->setHint("", LOCALE_MENU_HINT_HDD_LABEL);
 	hddmenu->addItem(mf);
 
 	std::string key = "f" + dev;
-	mf = new CMenuForwarder(LOCALE_HDD_FORMAT, true, "", this, key.c_str());
+	mf = new CMenuForwarder(LOCALE_HDD_FORMAT, root, "", this, key.c_str());
 	mf->setHint("", LOCALE_MENU_HINT_HDD_FORMAT);
 	hddmenu->addItem(mf);
 
@@ -887,6 +907,10 @@ _show_menu:
 				enabled = false;
 			else if (kernel_fs_list.find(it->fmt) == kernel_fs_list.end())
 				enabled = false;
+#ifndef ENABLE_UDISKS
+			else if (geteuid())
+				enabled = false;
+#endif
 			it->cmf = new CMenuForwarder(it->desc, enabled, it->mounted ? umount : mount , this,
 					key.c_str(), CRCInput::convertDigitToKey(shortcut++), NULL, rec_icon);
 			hddmenu->addItem(it->cmf);

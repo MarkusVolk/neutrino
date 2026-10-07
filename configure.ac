@@ -498,6 +498,15 @@ if test "$enable_terminal" = "yes"; then
 fi
 AM_CONDITIONAL(ENABLE_TERMINAL, test "$enable_terminal" = "yes")
 
+AC_ARG_ENABLE(udisks,
+	AS_HELP_STRING([--enable-udisks], [mount and unmount drives through udisksctl when not running as root @<:@default=no@:>@]),
+	[enable_udisks="$enableval"],
+	[enable_udisks="no"])
+
+if test "$enable_udisks" = "yes"; then
+	AC_DEFINE(ENABLE_UDISKS, 1, [mount and unmount drives through udisksctl when not running as root])
+fi
+
 AC_ARG_ENABLE(xmltv-xz,
 	AS_HELP_STRING([--enable-xmltv-xz], [read XMLTV files that are packed with xz @<:@default=no@:>@]),
 	[enable_xmltv_xz="$enableval"],
