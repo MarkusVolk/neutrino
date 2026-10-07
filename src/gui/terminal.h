@@ -53,6 +53,7 @@ class CTerminal
 		CTextKeyboard keyboard;
 		std::string layoutName;
 		int64_t layoutShown; /* until when the layout switched to is shown */
+		int64_t escDown, escLast;	/* Escape on a keyboard: first press and last repeat */
 		int x, y, cols, rows, cellWidth, cellHeight;
 		tsm_age_t age;
 		unsigned int cursorX, cursorY;

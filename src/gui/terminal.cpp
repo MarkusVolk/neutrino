@@ -99,6 +99,7 @@ CTerminal::CTerminal(const std::string &Program)
 	pid = -1;
 	master = -1;
 	layoutShown = 0;
+	escDown = escLast = 0;
 	x = y = cols = rows = cellWidth = cellHeight = 0;
 	age = 0;
 	cursorX = cursorY = 0;
@@ -286,6 +287,19 @@ bool CTerminal::readKeyboard()
 	{
 		if (k.keysym == XKB_KEY_Menu)
 			return false;
+		if (k.keysym == XKB_KEY_Escape && !k.mods)
+		{
+			/* held for a second it ends; a tap goes to the program at once */
+			int64_t now = time_monotonic_ms();
+			if (escDown && now - escLast < 600)
+			{
+				escLast = now;
+				if (now - escDown >= 1000)
+					return false;
+				continue;
+			}
+			escDown = escLast = now;
+		}
 		if ((k.mods & TEXT_KEY_SHIFT) && (k.keysym == XKB_KEY_Prior || k.keysym == XKB_KEY_Next))
 		{
 			scrollBack(k.keysym == XKB_KEY_Prior);
@@ -359,7 +373,8 @@ void CTerminal::typeText()
 /* the remote control: the cursor keys, OK, exit and the digits are what a
  * text user interface needs most, red opens the on-screen keyboard, green
  * is Ctrl+C and yellow Tab, rewind and forward page through the scroll-back. A keyboard that neutrino reads as a remote
- * control types lower case letters. False for the menu key, which ends. */
+ * control types lower case letters. False for the menu key, which ends;
+ * exit or Escape held for a second ends as well, see exec(). */
 bool CTerminal::rcKey(uint32_t msg)
 {
 	uint32_t sym = XKB_KEY_NoSymbol;
@@ -736,6 +751,12 @@ int CTerminal::exec()
 	repaint();
 
 	bool running = true;
+	/* exit, and Escape on a keyboard, is Escape when tapped and ends the
+	 * terminal when held for a second, so it goes to the program only when
+	 * it is let go; a press that neither repeats nor is let go, as from the
+	 * web interface, is a tap */
+	int64_t exitDown = 0, exitLast = 0;
+	neutrino_msg_t exitKey = CRCInput::RC_home;
 	while (running)
 	{
 		if (!readOutput())
@@ -761,12 +782,39 @@ int CTerminal::exec()
 		neutrino_msg_t msg;
 		neutrino_msg_data_t data;
 		g_RCInput->getMsg_ms(&msg, &data, 20);
+		if (exitDown && time_monotonic_ms() - exitLast > 600)
+		{
+			exitDown = 0;
+			rcKey(exitKey);
+		}
 		if (msg == CRCInput::RC_timeout)
 			continue;
 		if (msg <= CRCInput::RC_MaxRC)
 		{
-			if (!(msg & CRCInput::RC_Release))
-				running = rcKey(msg & ~CRCInput::RC_Repeat);
+			neutrino_msg_t key = msg & ~(CRCInput::RC_Repeat | CRCInput::RC_Release);
+			if (key == CRCInput::RC_home || key == CRCInput::RC_back || key == KEY_ESC)
+			{
+				int64_t now = time_monotonic_ms();
+				if (msg & CRCInput::RC_Release)
+				{
+					if (exitDown)
+						rcKey(key);
+					exitDown = 0;
+				}
+				else if (msg & CRCInput::RC_Repeat)
+				{
+					exitLast = now;
+					if (exitDown && now - exitDown >= 1000)
+						running = false;
+				}
+				else
+				{
+					exitDown = exitLast = now;
+					exitKey = key;
+				}
+			}
+			else if (!(msg & CRCInput::RC_Release))
+				running = rcKey(key);
 		}
 		else if (msg == NeutrinoMessages::EVT_START_PLUGIN)
 		{
