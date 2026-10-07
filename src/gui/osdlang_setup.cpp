@@ -35,6 +35,7 @@
 #ifdef ENABLE_LCD4LINUX
 #include "driver/lcd4l.h"
 #endif
+#include <climits>
 #include <unistd.h>
 
 #include "osdlang_setup.h"
@@ -125,9 +126,21 @@ int COsdLangSetup::showLocalSetup()
 
  	//timezone setup
 	tzNotifier = new CTZChangeNotifier();
-	CMenuOptionStringChooser* tzSelect = getTzItems();
-	if (tzSelect != NULL)
-		localSettings->addItem(tzSelect);
+	if (geteuid()) {
+		/* without root neutrino follows the timezone of the system */
+		char link[PATH_MAX];
+		ssize_t len = readlink("/etc/localtime", link, sizeof(link) - 1);
+		std::string zone = len > 0 ? std::string(link, len) : "UTC";
+		size_t pos = zone.find("zoneinfo/");
+		if (pos != std::string::npos)
+			zone = zone.substr(pos + 9);
+		mf = new CMenuForwarder(LOCALE_MAINSETTINGS_TIMEZONE, false, zone.c_str());
+		localSettings->addItem(mf);
+	} else {
+		CMenuOptionStringChooser* tzSelect = getTzItems();
+		if (tzSelect != NULL)
+			localSettings->addItem(tzSelect);
+	}
 
 	//prefered audio language
 	CLangSelectNotifier *langNotifier = new CLangSelectNotifier();

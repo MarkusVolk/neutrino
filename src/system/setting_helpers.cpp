@@ -619,6 +619,10 @@ bool CTZChangeNotifier::changeNotify(const neutrino_locale_t, void *Data)
 	std::string name, zoneinfo, zone;
 	printf("CTZChangeNotifier::changeNotify: %s\n", (char *) Data);
 
+	/* without root the timezone is the one of the system, set on the desktop */
+	if (geteuid())
+		return false;
+
 	xmlDocPtr parser = parseXmlFile("/etc/timezone.xml");
 	if (parser != NULL)
 	{
