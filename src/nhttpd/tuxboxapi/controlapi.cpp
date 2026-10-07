@@ -2354,8 +2354,11 @@ void CControlAPI::ScreenshotCGI(CyhookHandler *hh)
 		enableVideo = false;
 	if(!hh->ParamList["name"].empty())
 		filename = hh->ParamList["name"];
+	/* a TV picture is a tenth the size as JPEG and encodes faster; PNG keeps the OSD sharp */
+	bool jpg = hh->ParamList["format"] == "jpg";
 
-	CScreenShot * screenshot = new CScreenShot("/tmp/" + filename + ".png", (CScreenShot::screenshot_format_t)0 /*PNG*/);
+	CScreenShot * screenshot = new CScreenShot("/tmp/" + filename + (jpg ? ".jpg" : ".png"),
+						   jpg ? CScreenShot::FORMAT_JPG : CScreenShot::FORMAT_PNG);
 	if(screenshot){
 		screenshot->EnableOSD(enableOSD);
 		screenshot->EnableVideo(enableVideo);
