@@ -3143,8 +3143,8 @@ bool CMoviePlayerGui::PlayFileStart(void)
 
 		/* playback->Start() starts paused */
 		if (timeshift == TSHIFT_MODE_REWIND) {
-			speed = -1;
-			playback->SetSpeed(-1);
+			speed = -2;
+			playback->SetSpeed(-2);
 			playstate = CMoviePlayerGui::REW;
 			if (!FileTimeOSD->IsVisible() && !time_forced) {
 				FileTimeOSD->switchMode(position, duration);
@@ -3592,10 +3592,11 @@ void CMoviePlayerGui::PlayFileLoop(void)
 				(msg == (neutrino_msg_t) g_settings.mpkey_forward)) {
 			int newspeed = 0;
 			bool setSpeed = false;
+			/* each press doubles the speed, as on the receivers: 2, 4, ... 64 times */
 			if (msg == (neutrino_msg_t) g_settings.mpkey_rewind) {
-				newspeed = (speed >= 0) ? -1 : (speed - 1);
+				newspeed = (speed >= 0) ? -2 : std::max(speed * 2, -64);
 			} else {
-				newspeed = (speed <= 0) ? 2 : (speed + 1);
+				newspeed = (speed <= 1) ? 2 : std::min(speed * 2, 64);
 			}
 			/* if paused, playback->SetSpeed() start slow motion */
 			if (playback->SetSpeed(newspeed)) {
