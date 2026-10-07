@@ -216,6 +216,7 @@ void CLuaMenuStringinput::Init(const char *_name, std::string *_value, int _size
 {
 	name        = _name;
 	value       = _value;
+	valueString = _value;
 	size        = _size;
 	valid_chars = _valid_chars;
 	icon        = _icon;
@@ -264,6 +265,7 @@ void CLuaMenuKeyboardinput::Init(const char *_name, std::string *_value, int _si
 {
 	name   = _name;
 	value  = _value;
+	valueString = _value;
 	size   = _size;
 	icon   = _icon;
 	observ = _observ;
