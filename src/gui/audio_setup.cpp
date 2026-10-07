@@ -49,6 +49,8 @@
 
 #include <system/debug.h>
 
+#include <unistd.h>
+
 extern CAudioSetupNotifier	* audioSetupNotifier;
 extern cAudio *audioDecoder;
 
@@ -231,7 +233,10 @@ int CAudioSetup::showAudioSetup()
 	audioSettings->addIntroItems(LOCALE_MAINSETTINGS_AUDIO);
 	//---------------------------------------------------------
 #if HAVE_GENERIC_HARDWARE
-	CMenuOptionChooser *as_output = new CMenuOptionChooser(LOCALE_AUDIOMENU_OUTPUT, &g_settings.audio_output, AUDIOMENU_OUTPUT_OPTIONS, AUDIOMENU_OUTPUT_OPTION_COUNT, true, audioSetupNotifier);
+	/* without root the output is the one the desktop has chosen */
+	int desktop_output = 0;
+	bool root = !geteuid();
+	CMenuOptionChooser *as_output = new CMenuOptionChooser(LOCALE_AUDIOMENU_OUTPUT, root ? &g_settings.audio_output : &desktop_output, AUDIOMENU_OUTPUT_OPTIONS, AUDIOMENU_OUTPUT_OPTION_COUNT, root, audioSetupNotifier);
 	as_output->setHint("", LOCALE_MENU_HINT_AUDIO_OUTPUT);
 	audioSettings->addItem(as_output);
 #endif

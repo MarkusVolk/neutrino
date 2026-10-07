@@ -1,6 +1,8 @@
--- wpexec audio-output.lua '{"output":"<hdmi|spdif|analog|usb|bt|list>"}'
+-- wpexec audio-output.lua '{"output":"<auto|hdmi|spdif|analog|usb|bt|list>"}'
 -- makes the first PipeWire output of that kind the default, switching the
--- profile of an ALSA card when none is there yet; WirePlumber keeps both
+-- profile of an ALSA card when none is there yet; WirePlumber keeps both.
+-- auto removes the chosen default and puts each ALSA card back on its best
+-- available profile, so that WirePlumber picks the output
 local args = ...
 if args and args.parse then
 	args = args:parse()
@@ -88,6 +90,27 @@ local function run()
 				print("profile " .. device.properties["device.name"] .. " " .. tostring(pr.name) .. " " .. tostring(pr.available))
 			end
 		end
+		Core.quit()
+		return
+	end
+	if wanted == "auto" then
+		metadata:lookup():set(0, "default.configured.audio.sink", nil, nil)
+		for device in devices:iterate() do
+			if device.properties["device.api"] == "alsa" then
+				local best
+				for _, pr in ipairs(profiles(device)) do
+					if pr.name and pr.name ~= "off" and pr.name ~= "pro-audio" and pr.available ~= "no"
+							and (not best or (pr.priority or 0) > (best.priority or 0)) then
+						best = pr
+					end
+				end
+				if best then
+					device:set_param("Profile", Pod.Object {
+						"Spa:Pod:Object:Param:Profile", "Profile", index = best.index, save = true })
+				end
+			end
+		end
+		print("output: chosen by WirePlumber")
 		Core.quit()
 		return
 	end

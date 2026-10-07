@@ -386,9 +386,9 @@ bool CColorSetupNotifier::changeNotify(const neutrino_locale_t, void *)
  * moment, so this runs beside the menu */
 void CAudioSetupNotifier::applyOutput()
 {
-	static const char *const kinds[] = { NULL, "hdmi", "spdif", "analog", "usb", "bt" };
+	static const char *const kinds[] = { "auto", "hdmi", "spdif", "analog", "usb", "bt" };
 	int o = g_settings.audio_output;
-	if (o <= 0 || o >= (int)(sizeof(kinds) / sizeof(kinds[0])))
+	if (geteuid() || o < 0 || o >= (int)(sizeof(kinds) / sizeof(kinds[0])))
 		return;
 	std::string arg = std::string("{\"output\":\"") + kinds[o] + "\"}";
 	std::thread([arg]() {
