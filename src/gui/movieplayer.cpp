@@ -1266,8 +1266,10 @@ int CMoviePlayerGui::exec(CMenuTarget * parent, const std::string & actionKey)
 		if (timeshift_zap) {
 			CZapitChannel *channel = CServiceManager::getInstance()->FindChannel(timeshift_zap);
 			timeshift_zap = 0;
+			/* the zap ends the timeshift, also one back to its own channel */
+			CRecordManager::getInstance()->StopAutoRecord();
 			if (channel)
-				CNeutrinoApp::getInstance()->channelList->zapToChannel(channel);
+				CNeutrinoApp::getInstance()->channelList->zapToChannel(channel, true);
 		}
 		return menu_return::RETURN_EXIT_ALL;
 	}
@@ -3186,12 +3188,14 @@ bool CMoviePlayerGui::SetPosition(int pos, bool absolute)
 }
 
 /* A zap during the timeshift playback ends it and switches to the channel
- * once live TV is back; the zap itself stops the timeshift recording. */
+ * once live TV is back. Live TV comes back without starting the timeshift's
+ * channel again: a web channel would open its stream only to be stopped. */
 void CMoviePlayerGui::zapAfterTimeshift(t_channel_id channel_id)
 {
 	if (timeshift == TSHIFT_MODE_OFF)
 		return;
 	timeshift_zap = channel_id;
+	m_LastMode |= NeutrinoModes::norezap;
 	playstate = CMoviePlayerGui::STOPPED;
 	keyPressed = CMoviePlayerGui::PLUGIN_PLAYSTATE_STOP;
 	ClearQueue();
