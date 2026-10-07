@@ -61,6 +61,7 @@
 #include <zapit/client/zapittools.h>
 #include <eitd/sectionsd.h>
 #include <timerdclient/timerdclient.h>
+#include <timerd/timermanager.h>
 #include <cs_api.h>
 
 extern "C" {
@@ -158,6 +159,7 @@ CRecordInstance::CRecordInstance(const CTimerd::RecordingInfo * const eventinfo,
 	cMovieInfo = new CMovieInfo();
 	recMovieInfo = new MI_MOVIE_INFO();
 	record = NULL;
+	frontend = NULL;
 	rec_stop_msg = g_Locale->getText(LOCALE_RECORDING_STOP);
 }
 
@@ -495,6 +497,7 @@ bool CRecordInstance::Stop(bool remove_event)
 	printf("%s: channel %" PRIx64 " recording_id %d\n", __func__, channel_id, recording_id);
 	printf("%s: file %s.ts\n", __FUNCTION__, filename);
 	SaveXml();
+	RemoveTimeshiftName();
 	/* Stop do close fd - if started */
 	/* Stop do close fd - if started */
 	record->Stop();
@@ -735,20 +738,10 @@ record_error_msg_t CRecordInstance::Record()
 	if(ret == RECORD_OK && recording_id == 0) {
 		time_t now = time(NULL);
 		int record_end;
-		if (autoshift) {
+		if (autoshift)
 			record_end = now+g_settings.timeshift_hours*60*60;
-		} else {
-			record_end = now+g_settings.record_hours*60*60;
-			if (g_settings.recording_epg_for_end) {
-				int pre=0, post=0;
-				CEPGData epgData;
-				if (CEitManager::getInstance()->getActualEPGServiceKey(channel_id, &epgData )) {
-					g_Timerd->getRecordingSafety(pre, post);
-					if (epgData.epg_times.startzeit > 0)
-						record_end = epgData.epg_times.startzeit + epgData.epg_times.dauer + post;
-				}
-			}
-		}
+		else
+			record_end = RecordingEnd(now);
 		recording_id = g_Timerd->addImmediateRecordTimerEvent(channel_id, now, record_end, epg_id, epg_time, apidmode);
 		printf("%s: channel %" PRIx64 " -> timer eventID %d\n", __func__, channel_id, recording_id);
 	}
@@ -913,6 +906,87 @@ void CRecordInstance::FillMovieInfo(CZapitChannel * channel, APIDList & apid_lis
 		recMovieInfo->audioPids.push_back(audio_pids);
 	}
 	recMovieInfo->VtxtPid = allpids.PIDs.vtxtpid;
+}
+
+/* where a recording started now ends: at the end of the running event, or
+ * after the configured hours */
+time_t CRecordInstance::RecordingEnd(time_t now)
+{
+	time_t record_end = now+g_settings.record_hours*60*60;
+	if (g_settings.recording_epg_for_end) {
+		int pre=0, post=0;
+		CEPGData epgData;
+		if (CEitManager::getInstance()->getActualEPGServiceKey(channel_id, &epgData )) {
+			g_Timerd->getRecordingSafety(pre, post);
+			if (epgData.epg_times.startzeit > 0)
+				record_end = epgData.epg_times.startzeit + epgData.epg_times.dauer + post;
+		}
+	}
+	return record_end;
+}
+
+/* Turn the running timeshift into a recording that is kept, with what it has
+ * buffered: the file gets a second name in the recording directory and is
+ * written on as a recording. The timeshift name stays while the timeshift may
+ * still be played and goes when the recording stops. */
+bool CRecordInstance::KeepTimeshift()
+{
+	if (!autoshift)
+		return false;
+	CZapitChannel * channel = CServiceManager::getInstance()->FindChannel(channel_id);
+	if (channel == NULL)
+		return false;
+
+	std::string tsname = filename;
+	std::string tsdir = Directory;
+	autoshift = false;
+	Directory = g_settings.network_nfs_recordingdir;
+	bool linked = MakeFileName(channel) == RECORD_OK &&
+		      link((tsname + ".ts").c_str(), (std::string(filename) + ".ts").c_str()) == 0;
+	if (!linked && errno == EXDEV) {
+		/* the recording directory may be the timeshift directory's
+		 * parent under another mount point, as in a sandbox; a link
+		 * through the parent stays on the timeshift's mount */
+		std::string parent = tsdir.substr(0, tsdir.find_last_of('/', tsdir.find_last_not_of('/')));
+		struct stat a, b;
+		if (!parent.empty() && stat(parent.c_str(), &a) == 0 &&
+		    stat(Directory.c_str(), &b) == 0 && a.st_dev == b.st_dev && a.st_ino == b.st_ino) {
+			std::string rel = std::string(filename).substr(Directory.size());
+			if (rel.empty() || rel[0] != '/')
+				rel = "/" + rel;
+			std::string path = parent + rel;
+			linked = link((tsname + ".ts").c_str(), (path + ".ts").c_str()) == 0;
+			if (linked)
+				snprintf(filename, sizeof(filename), "%s", path.c_str());
+		}
+	}
+	if (!linked) {
+		perror("[record] keep timeshift");
+		autoshift = true;
+		Directory = tsdir;
+		strcpy(filename, tsname.c_str());
+		return false;
+	}
+	printf("%s: %s.ts kept as %s.ts\n", __func__, tsname.c_str(), filename);
+	timeshift_name = tsname;
+	unlink((tsname + ".xml").c_str());
+	SaveXml();
+	/* a recording holds its tuner, a timeshift does not */
+	if (frontend)
+		CFEManager::getInstance()->lockFrontend(frontend, channel);
+
+	/* set in timerd directly: a modified immediate record timer loses its stop time */
+	if (recording_id)
+		CTimerManager::getInstance()->setStopTime(recording_id, RecordingEnd(time(NULL)));
+	return true;
+}
+
+void CRecordInstance::RemoveTimeshiftName()
+{
+	if (timeshift_name.empty())
+		return;
+	unlink((timeshift_name + ".ts").c_str());
+	timeshift_name.clear();
 }
 
 record_error_msg_t CRecordInstance::MakeFileName(CZapitChannel * channel)
@@ -1677,6 +1751,20 @@ int CRecordManager::exec(CMenuTarget* parent, const std::string & actionKey )
 
 		bool tostart = true;
 		CRecordInstance * inst = FindInstance(live_channel_id);
+		if (inst && inst->Timeshift()) {
+			/* from the start keeps what the timeshift has buffered */
+			int res = ShowMsg(LOCALE_MAINMENU_RECORDING, g_Locale->getText(LOCALE_RECORDING_TIMESHIFT_FROM_START),
+					  CMsgBox::mbrYes, CMsgBox::mbYes | CMsgBox::mbNo | CMsgBox::mbCancel, NULL, 450);
+			if (res == CMsgBox::mbrCancel)
+				return menu_return::RETURN_EXIT_ALL;
+			if (res == CMsgBox::mbrYes && inst->KeepTimeshift()) {
+				autoshift = false;
+				if (CNeutrinoApp::getInstance()->getMode() != NeutrinoModes::mode_ts && !g_InfoViewer->is_visible)
+					CNeutrinoApp::getInstance()->showInfo();
+				return menu_return::RETURN_EXIT_ALL;
+			}
+			inst = NULL;
+		}
 		if (inst) {
 			std::string title, duration;
 			inst->GetRecordString(title, duration);
@@ -2298,6 +2386,7 @@ bool CStreamRec::Stop(bool remove_event)
 	printf("%s: len %d\n", __FUNCTION__, recMovieInfo->length);
 
 	SaveXml();
+	RemoveTimeshiftName();
 	if (autoshift)
 		CMoviePlayerGui::getInstance().deleteTimeshift();
 	hintBox.hide();

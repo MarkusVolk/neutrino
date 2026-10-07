@@ -2619,6 +2619,7 @@ recording.stop Beende Aufnahme, bitte warten ...
 recording.time_hour Stunde
 recording.time_hours Stunden
 recording.time_min Min
+recording.timeshift_from_start Sendung von Anfang an aufnehmen?\nNein: Aufnahme ab jetzt
 recording_type.file Direkt (Datei)
 recording_type.off aus
 recordingmenu.already_found_check Prüfe, ob Titel bereits vorhanden

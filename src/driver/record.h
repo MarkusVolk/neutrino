@@ -103,6 +103,7 @@ class CRecordInstance
 
 		std::string	Directory;
 		char		filename[FILENAMEBUFFERSIZE];
+		std::string	timeshift_name;	/* the timeshift file name a kept timeshift still has */
 		std::string	rec_stop_msg;
 
 		CMovieInfo *	cMovieInfo;
@@ -122,6 +123,8 @@ class CRecordInstance
 		void FilterPids(APIDList & apid_list);
 		record_error_msg_t MakeFileName(CZapitChannel * channel);
 		bool SaveXml();
+		time_t RecordingEnd(time_t now);
+		void RemoveTimeshiftName();
 		void WaitRecMsg(time_t StartTime, time_t WaitTime);
 		void MakeExtFileName(CZapitChannel * channel, std::string &FilenameTemplate);
 		void StringReplace(std::string &str, const std::string search, const std::string rstr);
@@ -132,6 +135,7 @@ class CRecordInstance
 		virtual record_error_msg_t Record();
 		virtual bool Stop(bool remove_event = true);
 		bool Update();
+		bool KeepTimeshift();
 
 		void SetRecordingId(int id) { recording_id = id; };
 		int GetRecordingId(void) { return recording_id; };

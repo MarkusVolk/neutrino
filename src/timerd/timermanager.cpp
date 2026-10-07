@@ -455,6 +455,21 @@ int CTimerManager::rescheduleEvent(int peventID, time_t announceTime, time_t ala
 	return res;
 }
 
+/* moves the end of a running event and leaves its state alone, unlike
+ * modifyEvent, which drops the stop time of anything but a record timer */
+int CTimerManager::setStopTime(int peventID, time_t stopTime)
+{
+	int res = 0;
+	pthread_mutex_lock(&tm_eventsMutex);
+	if (events.find(peventID) != events.end() && events[peventID]->stopTime > 0) {
+		events[peventID]->stopTime = stopTime;
+		m_saveEvents = true;
+		res = peventID;
+	}
+	pthread_mutex_unlock(&tm_eventsMutex);
+	return res;
+}
+
 int CTimerManager::adjustEvent(int peventID, time_t announceTime, time_t alarmTime, time_t stopTime)
 {
 	int res = 0;

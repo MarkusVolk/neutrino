@@ -3686,6 +3686,10 @@ void CMoviePlayerGui::PlayFileLoop(void)
 			update_lcd = true;
 			clearSubtitle();
 #endif
+		} else if (timeshift != TSHIFT_MODE_OFF && msg == (neutrino_msg_t) g_settings.key_record) {
+			/* keeps the running timeshift as a recording */
+			if (g_settings.recording_type != CNeutrinoApp::RECORDING_OFF)
+				CRecordManager::getInstance()->exec(NULL, "Record");
 		} else if (timeshift != TSHIFT_MODE_OFF && (msg == CRCInput::RC_text || msg == CRCInput::RC_epg || msg == NeutrinoMessages::SHOW_EPG)) {
 			bool restore = FileTimeOSD->IsVisible();
 			FileTimeOSD->kill();

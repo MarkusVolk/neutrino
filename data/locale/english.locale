@@ -2619,6 +2619,7 @@ recording.stop Stop recording, please wait ...
 recording.time_hour hour
 recording.time_hours hours
 recording.time_min min
+recording.timeshift_from_start Record the programme from the start?\nNo: record from now
 recording_type.file Direct (File)
 recording_type.off off
 recordingmenu.already_found_check Check, if title is already present

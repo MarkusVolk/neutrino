@@ -2646,6 +2646,7 @@ const char * locale_real_names[] =
 	"recording.time_hour",
 	"recording.time_hours",
 	"recording.time_min",
+	"recording.timeshift_from_start",
 	"recording_type.file",
 	"recording_type.off",
 	"recordingmenu.already_found_check",
