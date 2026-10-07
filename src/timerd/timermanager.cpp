@@ -295,6 +295,7 @@ bool CTimerManager::stopEvent(int peventID)
 		if( (events[peventID]->eventState == CTimerd::TIMERSTATE_ISRUNNING) && (events[peventID]->stopTime > 0) )
 			events[peventID]->stopEvent();	// if event is running an has stopTime
 		events[peventID]->eventState = CTimerd::TIMERSTATE_HASFINISHED;		// set the state to finished
+		m_saveEvents = true;	// a shutdown before the timer thread runs again saves the stop
 		res = true;															// so timerthread will do the rest for us
 	}
 	else
