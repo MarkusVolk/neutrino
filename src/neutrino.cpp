@@ -3748,11 +3748,14 @@ void CNeutrinoApp::RealRun()
 			else if(msg == (neutrino_msg_t) g_settings.key_timeshift) {
 				/* The live stream holds its picture at once while the timeshift
 				 * records on; switching to the recording before it plays would
-				 * blank the picture for a moment. */
+				 * blank the picture for a moment. The picture is held first:
+				 * starting the recording opens a web channel's stream once
+				 * more, which takes seconds. */
 				if ((mode == NeutrinoModes::mode_webtv || mode == NeutrinoModes::mode_tv) && g_settings.timeshift_pause &&
-				    CRecordManager::getInstance()->PrepareTimeshift() &&
-				    CMoviePlayerGui::getInstance().HoldLive())
-					;
+				    CMoviePlayerGui::getInstance().HoldLive()) {
+					if (!CRecordManager::getInstance()->PrepareTimeshift())
+						CMoviePlayerGui::getInstance().ResumeLive();
+				}
 				else
 					CRecordManager::getInstance()->StartTimeshift();
 			}
