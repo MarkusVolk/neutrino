@@ -49,6 +49,7 @@ private:
 	std::string func_get_webtv_list(CyhookHandler *hh, std::string para);
 	std::string func_get_webradio_list(CyhookHandler *hh, std::string para);
 	std::string func_get_xmltv_list(CyhookHandler *hh, std::string para);
+	std::string func_reload_setup(CyhookHandler *hh, std::string para);
 
 protected:
 	CNeutrinoAPI	*NeutrinoAPI;

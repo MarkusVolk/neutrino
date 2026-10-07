@@ -15,6 +15,7 @@
 
 #include <global.h>
 #include <neutrino.h>
+#include <neutrinoMessages.h>
 #include <system/settings.h>
 // yhttpd
 #include <yhttpd.h>
@@ -130,6 +131,7 @@ const CNeutrinoYParser::TyFuncCall CNeutrinoYParser::yFuncCallList[]=
 	{"get_webtv_list",			&CNeutrinoYParser::func_get_webtv_list},
 	{"get_webradio_list",			&CNeutrinoYParser::func_get_webradio_list},
 	{"get_xmltv_list",			&CNeutrinoYParser::func_get_xmltv_list},
+	{"reload_setup",			&CNeutrinoYParser::func_reload_setup},
 };
 //-------------------------------------------------------------------------
 // y-func : dispatching and executing
@@ -572,6 +574,15 @@ std::string  CNeutrinoYParser::func_get_logo_name(CyhookHandler *hh, std::string
 //-------------------------------------------------------------------------
 // y-func : get_mode (returns tv|radio|unknown)
 //-------------------------------------------------------------------------
+//-------------------------------------------------------------------------
+// y-func : have neutrino read the settings file a form has just written
+//-------------------------------------------------------------------------
+std::string  CNeutrinoYParser::func_reload_setup(CyhookHandler *, std::string)
+{
+	NeutrinoAPI->EventServer->sendEvent(NeutrinoMessages::RELOAD_SETUP, CEventServer::INITID_HTTPD);
+	return "";
+}
+
 std::string  CNeutrinoYParser::func_get_mode(CyhookHandler *, std::string)
 {
 	std::string yresult;

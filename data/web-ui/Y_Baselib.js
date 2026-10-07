@@ -428,10 +428,6 @@ function bt_set_value(_bt_name, _text)
 	__button.firstChild.nodeValue = _text;
 }
 
-function reload_neutrino_conf() {
-	loadSyncURL("/control/reloadsetup");
-}
-
 function stb_rcsim(_key){
 	loadSyncURL("/control/rcem?" + _key);
 }

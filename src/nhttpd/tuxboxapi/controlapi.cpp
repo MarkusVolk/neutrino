@@ -3955,6 +3955,8 @@ void CControlAPI::ConfigCGI(CyhookHandler *hh)
 			}
 			if (!config_filename.empty())
 				Config->saveConfig(config_filename);
+			if (configFileName == "neutrino")
+				NeutrinoAPI->EventServer->sendEvent(NeutrinoMessages::RELOAD_SETUP, CEventServer::INITID_HTTPD);
 		}
 	}
 	else {

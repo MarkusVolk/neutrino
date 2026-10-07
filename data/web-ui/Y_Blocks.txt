@@ -65,6 +65,7 @@ start-block~video_audio_save_settings
 {=ini-set:%(CONFIGDIR)/neutrino.conf;audio_step;{=audio_step=}~save=}
 {=ini-set:%(CONFIGDIR)/controld.conf;vcroutput;{=h_vcroutput=}~open=}
 {=ini-set:%(CONFIGDIR)/controld.conf;videooutput;{=h_videooutput=}~save=}
+{=func:reload_setup=}
 end-block~video_audio_save_settings
 
 # ------- LCD save Settings
@@ -78,6 +79,7 @@ start-block~lcd_save_settings
 {=ini-set:%(CONFIGDIR)/neutrino.conf;lcd_contrast;{=lcd_contrast=}~cache=}
 {=ini-set:%(CONFIGDIR)/neutrino.conf;lcd_brightness;{=lcd_brightness=}~cache=}
 {=ini-set:%(CONFIGDIR)/neutrino.conf;lcd_standbybrightness;{=lcd_standbybrightness=}~save=}
+{=func:reload_setup=}
 end-block~lcd_save_settings
 
 # ------- Buttons save Settings
@@ -101,6 +103,7 @@ start-block~buttons_save_settings
 {=ini-set:%(CONFIGDIR)/neutrino.conf;key_subchannel_up;{=key_subchannel_up=}~cache=}
 {=ini-set:%(CONFIGDIR)/neutrino.conf;key_tvradio_mode;{=key_tvradio_mode=}~cache=}
 {=ini-set:%(CONFIGDIR)/neutrino.conf;key_zaphistory;{=key_zaphistory=}~save=}
+{=func:reload_setup=}
 end-block~buttons_save_settings
 
 # ------- Personalize save Settings
@@ -143,6 +146,7 @@ start-block~personalize_save_settings
 {=ini-set:%(CONFIGDIR)/neutrino.conf;personalize_update;{=p_update=}~cache=}
 {=ini-set:%(CONFIGDIR)/neutrino.conf;personalize_bluebutton;{=p_bluebutton=}~cache=}
 {=ini-set:%(CONFIGDIR)/neutrino.conf;personalize_redbutton;{=p_redbutton=}~save=}
+{=func:reload_setup=}
 end-block~personalize_save_settings
 
 # ------- Ext save Settings

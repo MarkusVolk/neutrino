@@ -34,8 +34,6 @@ end-block~neutrino_form_helpbox
 start-block~neutrino_form_submit
 	<button type="button" ytype="save" title="{=L:save_values_desc=}" onclick="do_submit()">{=L:save=}</button>
 	&nbsp;
-	<button type="button" ytype="refresh" title="{=L:apply_desc=}" onclick="reload_neutrino_conf()">{=L:apply=}</button>
-	&nbsp;
 	<a href="javascript:top.top_main.prim_menu.nav('info', 'Y_Info_Help.yhtm');" class="inlink">{=L:help=}</a>
 end-block~neutrino_form_submit
 
@@ -193,6 +191,7 @@ start-block~neutrino_record_save_settings
 {=ini-set:%(CONFIGDIR)/timerd.conf;EXTRA_TIME_START;{=EXTRA_TIME_START=}~open=}
 {=ini-set:%(CONFIGDIR)/timerd.conf;EXTRA_TIME_END;{=EXTRA_TIME_END=}~cache=}
 {=ini-set:%(CONFIGDIR)/timerd.conf;ZAPTO_EXTRA_TIME_START;{=ZAPTO_EXTRA_TIME_START=}~save=}
+{=func:reload_setup=}
 end-block~neutrino_record_save_settings
 
 
@@ -239,6 +238,7 @@ end-block~neutrino_form-data_movieplayer
 # ------- yWeb save Settings
 start-block~neutrino_movieplayer_save_settings
 {=ini-set:%(CONFIGDIR)/neutrino.conf;network_nfs_moviedir;{=network_nfs_moviedir=}=}
+{=func:reload_setup=}
 end-block~neutrino_movieplayer_save_settings
 
 
@@ -316,6 +316,7 @@ start-block~neutrino_parental_save_settings
 {=ini-set:%(CONFIGDIR)/neutrino.conf;parentallock_prompt;{=parentallock_prompt=}~open=}
 {=ini-set:%(CONFIGDIR)/neutrino.conf;parentallock_lockage;{=parentallock_lockage=}~cache=}
 {=ini-set:%(CONFIGDIR)/neutrino.conf;parentallock_pincode;{=parentallock_pincode=}~save=}
+{=func:reload_setup=}
 end-block~neutrino_parental_save_settings
 
 # ------- Neutrino form-data: EPG -------------------------------
@@ -450,6 +451,7 @@ start-block~neutrino_epg_save_settings
 {=ini-set:%(CONFIGDIR)/neutrino.conf;epg_old_events;{=epg_old_events=}~cache=}
 {=ini-set:%(CONFIGDIR)/neutrino.conf;epg_scan_mode;{=epg_scan_mode=}~cache=}
 {=ini-set:%(CONFIGDIR)/neutrino.conf;epg_scan;{=epg_scan=}~save=}
+{=func:reload_setup=}
 end-block~neutrino_epg_save_settings
 
 # ------- Neutrino form-data: diverse -------------------------------
@@ -768,6 +770,7 @@ start-block~neutrino_diverse_save_settings
 {=ini-set:%(ZAPITDIR)/zapit.conf;saveLastChannel;{=save_lastchannel=}~cache=}
 {=ini-set:%(ZAPITDIR)/zapit.conf;startChannelRadio;{=startchannel_radio=}~cache=}
 {=ini-set:%(ZAPITDIR)/zapit.conf;startChannelTV;{=startchannel_tv=}~save=}
+{=func:reload_setup=}
 end-block~neutrino_diverse_save_settings
 
 # ------- Neutrino form-data: pictureviewer -------------------------------
@@ -830,6 +833,7 @@ start-block~neutrino_pictureviewer_save_settings
 {=ini-set:%(CONFIGDIR)/neutrino.conf;picviewer_scaling;{=picviewer_scaling=}~open=}
 {=ini-set:%(CONFIGDIR)/neutrino.conf;picviewer_slide_time;{=picviewer_slide_time=}~cache=}
 {=ini-set:%(CONFIGDIR)/neutrino.conf;network_nfs_picturedir;{=network_nfs_picturedir=}~save=}
+{=func:reload_setup=}
 end-block~neutrino_pictureviewer_save_settings
 
 # ------- Neutrino form-data: audioplayer -------------------------------
@@ -945,6 +949,7 @@ start-block~neutrino_audioplayer_save_settings
 {=ini-set:%(CONFIGDIR)/neutrino.conf;audioplayer_highprio;{=audioplayer_highprio=}~cache=}
 {=ini-set:%(CONFIGDIR)/neutrino.conf;network_nfs_audioplayerdir;{=network_nfs_audioplayerdir=}~cache=}
 {=ini-set:%(CONFIGDIR)/neutrino.conf;audioplayer_enable_sc_metadata;{=audioplayer_enable_sc_metadata=}~save=}
+{=func:reload_setup=}
 end-block~neutrino_audioplayer_save_settings
 
 # ------- Neutrino form-data: direct_recording -------------------------------
@@ -1125,6 +1130,7 @@ start-block~neutrino_direct_recording_save_settings
 {=ini-set:%(CONFIGDIR)/neutrino.conf;recording_dir_8;{=recording_dir_8=}~cache=}
 {=ini-set:%(CONFIGDIR)/neutrino.conf;recording_dir_9;{=recording_dir_9=}~cache=}
 {=ini-set:%(CONFIGDIR)/neutrino.conf;recording_dir_permissions_0;{=recording_dir_permissions_0=}~save=}
+{=func:reload_setup=}
 end-block~neutrino_direct_recording_save_settings
 
 # ------- list possible directorys for records
