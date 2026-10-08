@@ -85,6 +85,7 @@ void CLuaInstMisc::LuaMiscRegister(lua_State *L)
 		{ "postMsg",         CLuaInstMisc::postMsg },
 		{ "startPlugin",     CLuaInstMisc::startPlugin },
 		{ "getTimeOfDay",    CLuaInstMisc::getTimeOfDay },
+		{ "getLanguage",     CLuaInstMisc::getLanguage },
 		{ "__gc",            CLuaInstMisc::MiscDelete },
 		{ NULL, NULL }
 	};
@@ -375,6 +376,16 @@ int CLuaInstMisc::getTimeOfDay(lua_State *L)
 	dt = (double)t1.tv_sec + ((double)t1.tv_usec)/1000000ULL;
 
 	lua_pushnumber(L, (lua_Number)dt);
+	return 1;
+}
+
+/* the language of the OSD, as the locale files are named: a plugin
+ * shows its texts in it */
+int CLuaInstMisc::getLanguage(lua_State *L)
+{
+	CLuaMisc *D = MiscCheckData(L, 1);
+	if (!D) return 0;
+	lua_pushstring(L, settingsText(g_settings.language).c_str());
 	return 1;
 }
 
