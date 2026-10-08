@@ -457,8 +457,8 @@ int CAudioPlayerGui::show()
 
 		if (CNeutrinoApp::getInstance()->backKey(msg))
 		{
-			if (m_state == CAudioPlayerGui::STOP)
-				loop=false;
+			/* leaving stops what plays, the playlist stays */
+			loop=false;
 		}
 		else if (msg == CRCInput::RC_stop)
 		{
