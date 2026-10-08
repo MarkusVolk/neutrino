@@ -3294,6 +3294,10 @@ void CMoviePlayerGui::PlayFileLoop(void)
 		neutrino_msg_data_t data = 0;
 		g_RCInput->getMsg(&msg, &data, 10);	// 1 secs..
 
+		/* one key for both, as the two keys the player is bound to */
+		if (msg == CRCInput::RC_playpause)
+			msg = (playstate == CMoviePlayerGui::PLAY) ? g_settings.mpkey_pause : g_settings.mpkey_play;
+
 		// handle CRCInput::RC_playpause key
 		bool handle_key_play = true;
 		bool handle_key_pause = true;

@@ -3742,7 +3742,7 @@ void CNeutrinoApp::RealRun()
 				}
 			}
 #endif
-			else if (msg == (neutrino_msg_t) g_settings.key_timeshift && CMoviePlayerGui::LiveHeld()) {
+			else if ((msg == (neutrino_msg_t) g_settings.key_timeshift || msg == CRCInput::RC_playpause) && CMoviePlayerGui::LiveHeld()) {
 				/* the held picture plays on, from the timeshift when the
 				 * stream's buffer does not reach that far */
 				if (!CMoviePlayerGui::getInstance().ResumeLive()) {
@@ -3750,7 +3750,7 @@ void CNeutrinoApp::RealRun()
 					CRecordManager::getInstance()->StartTimeshift();
 				}
 			}
-			else if(msg == (neutrino_msg_t) g_settings.key_timeshift) {
+			else if (msg == (neutrino_msg_t) g_settings.key_timeshift || msg == CRCInput::RC_playpause) {
 				/* The live stream holds its picture at once while the timeshift
 				 * records on; switching to the recording before it plays would
 				 * blank the picture for a moment. The picture is held first:
@@ -3918,14 +3918,14 @@ void CNeutrinoApp::RealRun()
 				as.exec(NULL, "-1");
 				StartSubtitles();
 			}
-			else if ((msg == CRCInput::RC_play || msg == CRCInput::RC_playpause) && CMoviePlayerGui::LiveHeld())
+			else if (msg == CRCInput::RC_play && CMoviePlayerGui::LiveHeld())
 			{
 				if (!CMoviePlayerGui::getInstance().ResumeLive()) {
 					CMoviePlayerGui::getInstance().setTimeshiftDelay(CMoviePlayerGui::getInstance().LiveDelay());
 					CRecordManager::getInstance()->StartTimeshift();
 				}
 			}
-			else if( msg == CRCInput::RC_video || msg == CRCInput::RC_play || msg == CRCInput::RC_playpause || msg == CRCInput::RC_pvr)
+			else if( msg == CRCInput::RC_video || msg == CRCInput::RC_play || msg == CRCInput::RC_pvr)
 			{
 				//open moviebrowser via media player menu object
 				if (g_settings.recording_type != CNeutrinoApp::RECORDING_OFF)

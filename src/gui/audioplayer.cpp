@@ -425,14 +425,8 @@ int CAudioPlayerGui::show()
 		}
 		g_RCInput->getMsg(&msg, &data, 10); // 1 sec timeout to update play/stop state display
 
-		if (msg == CRCInput::RC_playpause)
-		{
-			// manipulate msg
-			if (m_state == CAudioPlayerGui::PAUSE)
-				msg = CRCInput::RC_play;
-			else
-				msg = CRCInput::RC_pause;
-		}
+		msg = CRCInput::resolvePlayPause(msg, m_state == CAudioPlayerGui::PLAY
+			|| m_state == CAudioPlayerGui::FF || m_state == CAudioPlayerGui::REV);
 
 		if (msg == CRCInput::RC_timeout || msg == NeutrinoMessages::EVT_TIMER)
 		{
@@ -598,6 +592,15 @@ int CAudioPlayerGui::show()
 				}
 			}
 		}
+		else if (msg == CRCInput::RC_play && m_state == CAudioPlayerGui::PAUSE)
+		{
+			pause();
+		}
+		else if (msg == CRCInput::RC_pause)
+		{
+			if (m_state != CAudioPlayerGui::STOP)
+				pause();
+		}
 		else if (msg == CRCInput::RC_ok || msg == CRCInput::RC_play)
 		{
 			if (!m_playlist.empty())
@@ -632,11 +635,6 @@ int CAudioPlayerGui::show()
 				// key_level==2
 			}
 
-		}
-		else if (msg == CRCInput::RC_stop)
-		{
-			if (m_key_level == 1)
-				stop();
 		}
 		else if ((msg == CRCInput::RC_rewind) || (msg == CRCInput::RC_green))
 		{
@@ -680,7 +678,7 @@ int CAudioPlayerGui::show()
 				}
 			}
 		}
-		else if ((msg == CRCInput::RC_pause) || (msg == CRCInput::RC_yellow))
+		else if (msg == CRCInput::RC_yellow)
 		{
 			if (m_key_level == 0)
 			{

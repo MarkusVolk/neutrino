@@ -22,6 +22,7 @@
 
 #include <global.h>
 #include <neutrino.h>
+#include <driver/audioplay.h>
 #include <driver/rcinput.h>
 #include <gui/movieplayer.h>
 
@@ -304,6 +305,11 @@ std::string CMprisServer::playbackStatus()
 	CMoviePlayerGui &mp = CMoviePlayerGui::getInstance();
 	if (mp.Playing())
 		return mp.getState() == CMoviePlayerGui::PAUSE ? "Paused" : "Playing";
+	CBaseDec::State audio = CAudioPlayer::getInstance()->getState();
+	if (audio == CBaseDec::PAUSE)
+		return "Paused";
+	if (audio != CBaseDec::STOP)
+		return "Playing";
 	return CMoviePlayerGui::LiveHeld() ? "Paused" : "Playing";
 }
 
@@ -340,10 +346,13 @@ void CMprisServer::act(const char *method)
 	bool paused = playbackStatus() == "Paused";
 	int key = CRCInput::RC_nokey;
 
-	if (!strcmp(method, "PlayPause") ||
-	    (!strcmp(method, "Pause") && !paused) ||
-	    (!strcmp(method, "Play") && paused))
-		key = player ? g_settings.mpkey_pause : g_settings.key_timeshift;
+	/* the players resolve the toggle against their state */
+	if (!strcmp(method, "PlayPause"))
+		key = CRCInput::RC_playpause;
+	else if (!strcmp(method, "Pause") && !paused)
+		key = CRCInput::RC_pause;
+	else if (!strcmp(method, "Play") && paused)
+		key = CRCInput::RC_play;
 	else if (!strcmp(method, "Next"))
 		key = g_settings.mpkey_forward;
 	else if (!strcmp(method, "Previous"))

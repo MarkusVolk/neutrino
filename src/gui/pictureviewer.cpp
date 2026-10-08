@@ -612,16 +612,14 @@ int CPictureViewerGui::show()
 		{
 			m_currentTitle = m_audioPlayer->getAudioPlayerM_current();
 
-			if (msg == CRCInput::RC_playpause)
-			{
-				// manipulate msg
-				if (m_audioPlayer->getState() == CAudioPlayerGui::PAUSE)
-					msg = CRCInput::RC_play;
-				else
-					msg = CRCInput::RC_pause;
-			}
+			msg = CRCInput::resolvePlayPause(msg, m_audioPlayer->getState() == CAudioPlayerGui::PLAY
+				|| m_audioPlayer->getState() == CAudioPlayerGui::FF || m_audioPlayer->getState() == CAudioPlayerGui::REV);
 
-			if (msg == CRCInput::RC_play)
+			if (msg == CRCInput::RC_play && m_audioPlayer->getState() == CAudioPlayerGui::PAUSE)
+			{
+				m_audioPlayer->pause();
+			}
+			else if (msg == CRCInput::RC_play)
 			{
 				if (m_currentTitle > -1)
 					m_audioPlayer->play((unsigned int)m_currentTitle);

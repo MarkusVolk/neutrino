@@ -259,6 +259,12 @@ class CRCInput
 		~CRCInput(); //destructor - closes rc-device
 
 		static bool isNumeric(const neutrino_msg_t key);
+		/* RC_playpause is one key for both: it pauses what plays and starts
+		 * or resumes what does not; the player tells which it is */
+		static neutrino_msg_t resolvePlayPause(const neutrino_msg_t msg, bool playing)
+		{
+			return msg == RC_playpause ? (playing ? RC_pause : RC_play) : msg;
+		}
 		static int getNumericValue(const neutrino_msg_t key);
 		static unsigned int convertDigitToKey(const unsigned int digit);
 		static const char *getUnicodeValue(const neutrino_msg_t key);
