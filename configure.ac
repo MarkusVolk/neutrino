@@ -461,6 +461,7 @@ if test "$enable_iwd" = "yes"; then
 fi
 AM_CONDITIONAL(ENABLE_IWD, test "$enable_iwd" = "yes")
 
+
 AC_ARG_ENABLE(bluetooth,
 	AS_HELP_STRING([--enable-bluetooth], [pair and connect Bluetooth devices through BlueZ @<:@default=no@:>@]),
 	[enable_bluetooth="$enableval"],
@@ -924,7 +925,6 @@ lib/libconfigfile/Makefile
 lib/liblcddisplay/Makefile
 lib/libdvbsub/Makefile
 lib/libeventserver/Makefile
-lib/libiw/Makefile
 lib/libmd5sum/Makefile
 lib/libnet/Makefile
 lib/libtuxtxt/Makefile

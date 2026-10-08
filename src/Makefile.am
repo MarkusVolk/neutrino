@@ -116,7 +116,6 @@ neutrino_LDADD = \
 	$(top_builddir)/lib/libmd5sum/libmd5sum.a \
 	$(top_builddir)/lib/libtuxtxt/libtuxtxt.a \
 	$(top_builddir)/lib/libdvbsub/libdvbsub.a \
-	$(top_builddir)/lib/libiw/libiw.a \
 	$(top_builddir)/src/gui/widget/yaft/libneutrino_gui_terminal.a \
 	@CURL_LIBS@ \
 	@FREETYPE_LIBS@ \
