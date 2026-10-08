@@ -48,6 +48,9 @@ static const file_ext_s file_ext[] =
 	{ "aac",	CFile::FILE_AAC		},
 	{ "asf",	CFile::FILE_ASF		},
 	{ "avi",	CFile::FILE_AVI		},
+#ifdef ENABLE_HEIF
+	{ "avif",	CFile::FILE_PICTURE	},
+#endif
 	{ "bin",	CFile::FILE_BIN_PACKAGE	},
 	{ "bmp",	CFile::FILE_PICTURE	},
 	{ "cdr",	CFile::FILE_CDR		},
@@ -56,11 +59,18 @@ static const file_ext_s file_ext[] =
 	{ "flac",	CFile::FILE_FLAC	},
 	{ "flv",	CFile::FILE_MPG		},
 	{ "gif",	CFile::FILE_PICTURE	},
+#ifdef ENABLE_HEIF
+	{ "heic",	CFile::FILE_PICTURE	},
+	{ "heif",	CFile::FILE_PICTURE	},
+#endif
 	{ "imu",	CFile::STREAM_PICTURE	},
 	{ "ipk",	CFile::FILE_PKG_PACKAGE	},
 	{ "iso",	CFile::FILE_ISO		},
 	{ "jpeg",	CFile::FILE_PICTURE	},
 	{ "jpg",	CFile::FILE_PICTURE	},
+#ifdef ENABLE_JXL
+	{ "jxl",	CFile::FILE_PICTURE	},
+#endif
 	{ "m2a",	CFile::FILE_MP3		},
 	{ "m3u",	CFile::FILE_PLAYLIST	},
 	{ "m3u8",	CFile::FILE_PLAYLIST	},
@@ -84,6 +94,9 @@ static const file_ext_s file_ext[] =
 	{ "url",	CFile::STREAM_AUDIO	},
 	{ "vob",	CFile::FILE_VOB		},
 	{ "wav",	CFile::FILE_WAV		},
+#ifdef ENABLE_WEBP
+	{ "webp",	CFile::FILE_PICTURE	},
+#endif
 	{ "xml",	CFile::FILE_XML		},
 	{ "zip",	CFile::FILE_ZIP_PACKAGE	}
 };

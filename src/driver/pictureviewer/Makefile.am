@@ -11,7 +11,10 @@ AM_CPPFLAGS = \
 	@SIGC_CFLAGS@ \
 	@FREETYPE_CFLAGS@ \
 	@LUA_CFLAGS@ \
-	@HWLIB_CFLAGS@
+	@HWLIB_CFLAGS@ \
+	@WEBP_CFLAGS@ \
+	@HEIF_CFLAGS@ \
+	@JXL_CFLAGS@
 
 
 noinst_LIBRARIES = libneutrino_pictureviewer.a
@@ -22,3 +25,15 @@ libneutrino_pictureviewer_a_SOURCES = \
 	jpeg.cpp \
 	pictureviewer.cpp \
 	png.cpp bmp.cpp svg.cpp
+
+if ENABLE_WEBP
+libneutrino_pictureviewer_a_SOURCES += webp.cpp
+endif
+
+if ENABLE_HEIF
+libneutrino_pictureviewer_a_SOURCES += heif.cpp
+endif
+
+if ENABLE_JXL
+libneutrino_pictureviewer_a_SOURCES += jxl.cpp
+endif

@@ -4,3 +4,12 @@
 #define FBV_SUPPORT_GIF
 #define FBV_SUPPORT_CRW
 #define FBV_SUPPORT_SVG
+#ifdef ENABLE_WEBP
+#define FBV_SUPPORT_WEBP
+#endif
+#ifdef ENABLE_HEIF
+#define FBV_SUPPORT_HEIF
+#endif
+#ifdef ENABLE_JXL
+#define FBV_SUPPORT_JXL
+#endif

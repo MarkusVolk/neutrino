@@ -50,6 +50,21 @@ extern int fh_svg_load (const char *, unsigned char **, int *, int *);
 extern int svg_load_resize(const char *name, unsigned char **buffer, int* ox, int* oy, int dx, int dy);
 extern int fh_svg_id (const char *);
 #endif
+#ifdef FBV_SUPPORT_WEBP
+extern int fh_webp_getsize (const char *, int *, int *, int, int);
+extern int fh_webp_load (const char *, unsigned char **, int *, int *);
+extern int fh_webp_id (const char *);
+#endif
+#ifdef FBV_SUPPORT_HEIF
+extern int fh_heif_getsize (const char *, int *, int *, int, int);
+extern int fh_heif_load (const char *, unsigned char **, int *, int *);
+extern int fh_heif_id (const char *);
+#endif
+#ifdef FBV_SUPPORT_JXL
+extern int fh_jxl_getsize (const char *, int *, int *, int, int);
+extern int fh_jxl_load (const char *, unsigned char **, int *, int *);
+extern int fh_jxl_id (const char *);
+#endif
 double CPictureViewer::m_aspect_ratio_correction;
 
 void CPictureViewer::add_format (int (*picsize) (const char *, int *, int *, int, int), int (*picread) (const char *, unsigned char **, int *, int *), int (*id) (const char *))
@@ -86,6 +101,17 @@ void CPictureViewer::getSupportedImageFormats(std::vector<std::string>& exts)
 #ifdef FBV_SUPPORT_SVG
 	exts.push_back(".svg");
 #endif
+#ifdef FBV_SUPPORT_WEBP
+	exts.push_back(".webp");
+#endif
+#ifdef FBV_SUPPORT_HEIF
+	exts.push_back(".heic");
+	exts.push_back(".heif");
+	exts.push_back(".avif");
+#endif
+#ifdef FBV_SUPPORT_JXL
+	exts.push_back(".jxl");
+#endif
 }
 
 void CPictureViewer::init_handlers (void)
@@ -107,6 +133,15 @@ void CPictureViewer::init_handlers (void)
 #endif
 #ifdef FBV_SUPPORT_SVG
   add_format (fh_svg_getsize, fh_svg_load, fh_svg_id);
+#endif
+#ifdef FBV_SUPPORT_WEBP
+  add_format (fh_webp_getsize, fh_webp_load, fh_webp_id);
+#endif
+#ifdef FBV_SUPPORT_HEIF
+  add_format (fh_heif_getsize, fh_heif_load, fh_heif_id);
+#endif
+#ifdef FBV_SUPPORT_JXL
+  add_format (fh_jxl_getsize, fh_jxl_load, fh_jxl_id);
 #endif
 }
 

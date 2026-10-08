@@ -118,6 +118,17 @@ CPictureViewerGui::CPictureViewerGui()
 	picture_filter.addFilter("jpeg");
 	picture_filter.addFilter("gif");
 	picture_filter.addFilter("crw");
+#ifdef ENABLE_WEBP
+	picture_filter.addFilter("webp");
+#endif
+#ifdef ENABLE_HEIF
+	picture_filter.addFilter("heic");
+	picture_filter.addFilter("heif");
+	picture_filter.addFilter("avif");
+#endif
+#ifdef ENABLE_JXL
+	picture_filter.addFilter("jxl");
+#endif
 
 	decodeT		= 0;
 	decodeTflag	= false;

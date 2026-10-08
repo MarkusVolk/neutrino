@@ -570,6 +570,39 @@ AC_ARG_ENABLE(giflib,
 	AC_DEFINE(ENABLE_GIFLIB, 1, [use giflib instead of libungif]))
 AM_CONDITIONAL(ENABLE_GIFLIB, test "$enable_giflib" = "yes")
 
+AC_ARG_ENABLE(webp,
+	AS_HELP_STRING([--enable-webp], [show WebP pictures through libwebp @<:@default=no@:>@]),
+	[enable_webp="$enableval"],
+	[enable_webp="no"])
+
+if test "$enable_webp" = "yes"; then
+	PKG_CHECK_MODULES([WEBP], [libwebp])
+	AC_DEFINE(ENABLE_WEBP, 1, [show WebP pictures through libwebp])
+fi
+AM_CONDITIONAL(ENABLE_WEBP, test "$enable_webp" = "yes")
+
+AC_ARG_ENABLE(heif,
+	AS_HELP_STRING([--enable-heif], [show HEIF, HEIC and AVIF pictures through libheif @<:@default=no@:>@]),
+	[enable_heif="$enableval"],
+	[enable_heif="no"])
+
+if test "$enable_heif" = "yes"; then
+	PKG_CHECK_MODULES([HEIF], [libheif])
+	AC_DEFINE(ENABLE_HEIF, 1, [show HEIF, HEIC and AVIF pictures through libheif])
+fi
+AM_CONDITIONAL(ENABLE_HEIF, test "$enable_heif" = "yes")
+
+AC_ARG_ENABLE(jxl,
+	AS_HELP_STRING([--enable-jxl], [show JPEG XL pictures through libjxl @<:@default=no@:>@]),
+	[enable_jxl="$enableval"],
+	[enable_jxl="no"])
+
+if test "$enable_jxl" = "yes"; then
+	PKG_CHECK_MODULES([JXL], [libjxl])
+	AC_DEFINE(ENABLE_JXL, 1, [show JPEG XL pictures through libjxl])
+fi
+AM_CONDITIONAL(ENABLE_JXL, test "$enable_jxl" = "yes")
+
 AC_ARG_ENABLE(pugixml,
 	AS_HELP_STRING([--enable-pugixml], [use pugixml instead of xmltree @<:@default=no@:>@]),
 	AC_DEFINE(USE_PUGIXML, 1, [use pugixml instead of xmltree]))

@@ -163,6 +163,18 @@ else
 neutrino_LDADD += -lungif
 endif
 
+if ENABLE_WEBP
+neutrino_LDADD += @WEBP_LIBS@
+endif
+
+if ENABLE_HEIF
+neutrino_LDADD += @HEIF_LIBS@
+endif
+
+if ENABLE_JXL
+neutrino_LDADD += @JXL_LIBS@
+endif
+
 if ENABLE_FRIBIDI
 neutrino_LDADD += -lfribidi
 endif
