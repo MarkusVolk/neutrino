@@ -44,7 +44,8 @@ libneutrino_system_a_SOURCES = \
 	stacktrace.cpp \
 	supportinfo.cpp \
 	sysload.cpp \
-	setting_helpers.cpp
+	setting_helpers.cpp \
+	wlan_client.cpp
 #	safe_system.c
 
 if HAVE_UCLIBC
@@ -69,6 +70,9 @@ endif
 if ENABLE_IWD
 libneutrino_system_a_SOURCES += \
 	iwd_client.cpp
+else
+libneutrino_system_a_SOURCES += \
+	wpa_client.cpp
 endif
 
 if ENABLE_BLUETOOTH

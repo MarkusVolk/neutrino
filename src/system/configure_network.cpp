@@ -104,15 +104,11 @@ void CNetworkConfig::init_vars(void)
 
 	mac_addr = mac_tmp.str().substr(0,17);
 
-	key = "";
-	ssid = "";
 	wireless = 0;
 	std::string tmp = "/sys/class/net/" + ifname + "/wireless";
 
 	if(access(tmp, R_OK) == 0)
 		wireless = 1;
-	if(wireless)
-		readWpaConfig();
 
 	printf("CNetworkConfig: %s loaded, wireless %s\n", ifname.c_str(), wireless ? "yes" : "no");
 }
@@ -128,8 +124,6 @@ void CNetworkConfig::copy_to_orig(void)
 	orig_inet_static     = inet_static;
 	orig_hostname	     = hostname;
 	orig_ifname	     = ifname;
-	orig_ssid	     = ssid;
-	orig_key	     = key;
 }
 
 bool CNetworkConfig::modified_from_orig(void)
@@ -152,10 +146,6 @@ bool CNetworkConfig::modified_from_orig(void)
 		if(orig_ifname	      != ifname)
 			printf("CNetworkConfig::modified_from_orig: ifname changed\n");
 #endif
-	if(wireless) {
-		if((ssid != orig_ssid) || (key != orig_key))
-			return 1;
-	}
 	/* check for following changes with dhcp enabled trigger apply question on menu quit, 
 	 * even if apply already done */
 	if (inet_static) {
