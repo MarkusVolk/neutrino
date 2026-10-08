@@ -39,6 +39,77 @@ struct r_jpeg_error_mgr
 	jmp_buf envbuffer;
 };
 
+/* the orientation of the camera from the Exif header, 1 when there is none */
+static int exif_orientation(struct jpeg_decompress_struct *ciptr)
+{
+	for (jpeg_saved_marker_ptr m = ciptr->marker_list; m; m = m->next)
+	{
+		if (m->marker != JPEG_APP0 + 1 || m->data_length < 16 || memcmp(m->data, "Exif\0\0", 6))
+			continue;
+		const unsigned char *t = m->data + 6;
+		unsigned len = m->data_length - 6;
+		bool le = t[0] == 'I';
+		if (!(le && t[1] == 'I') && !(!le && t[0] == 'M' && t[1] == 'M'))
+			return 1;
+		auto u16 = [&](unsigned o) { return le ? t[o] | t[o + 1] << 8 : t[o] << 8 | t[o + 1]; };
+		auto u32 = [&](unsigned o) { return le ? (unsigned)t[o] | t[o + 1] << 8 | t[o + 2] << 16 | (unsigned)t[o + 3] << 24
+							: (unsigned)t[o] << 24 | t[o + 1] << 16 | t[o + 2] << 8 | t[o + 3]; };
+		unsigned ifd = u32(4);
+		if (ifd + 2 > len)
+			return 1;
+		unsigned n = u16(ifd);
+		for (unsigned i = 0; i < n; i++)
+		{
+			unsigned e = ifd + 2 + i * 12;
+			if (e + 12 > len)
+				return 1;
+			if (u16(e) == 0x0112 && u16(e + 2) == 3)
+			{
+				int o = u16(e + 8);
+				return (o >= 1 && o <= 8) ? o : 1;
+			}
+		}
+		return 1;
+	}
+	return 1;
+}
+
+/* a new buffer with the picture turned the way the camera held it */
+static unsigned char *exif_transform(unsigned char *src, int w, int h, int o, int *ow, int *oh)
+{
+	bool swap = o >= 5;
+	*ow = swap ? h : w;
+	*oh = swap ? w : h;
+	unsigned char *dst = (unsigned char *)malloc((size_t)w * h * 3);
+	if (!dst)
+	{
+		*ow = w;
+		*oh = h;
+		return src;
+	}
+	for (int y = 0; y < *oh; y++)
+	{
+		for (int x = 0; x < *ow; x++)
+		{
+			int sx, sy;
+			switch (o)
+			{
+				case 2: sx = w - 1 - x; sy = y; break;
+				case 3: sx = w - 1 - x; sy = h - 1 - y; break;
+				case 4: sx = x; sy = h - 1 - y; break;
+				case 5: sx = y; sy = x; break;
+				case 6: sx = y; sy = h - 1 - x; break;
+				case 7: sx = w - 1 - y; sy = h - 1 - x; break;
+				case 8: sx = w - 1 - y; sy = x; break;
+				default: sx = x; sy = y; break;
+			}
+			memcpy(dst + ((size_t)y * *ow + x) * 3, src + ((size_t)sy * w + sx) * 3, 3);
+		}
+	}
+	free(src);
+	return dst;
+}
+
 
 int fh_jpeg_id(const char *name)
 {
@@ -91,9 +162,16 @@ int fh_jpeg_load(const char *filename,unsigned char **buffer,int* x,int* y)
 
 	jpeg_create_decompress(ciptr);
 	jpeg_stdio_src(ciptr,fh);
+	jpeg_save_markers(ciptr, JPEG_APP0 + 1, 0xffff);
 	jpeg_read_header(ciptr,TRUE);
 	ciptr->out_color_space=JCS_RGB;
 	ciptr->dct_method=JDCT_FASTEST;
+	/* the size asked for is the one of the turned picture */
+	int orientation = exif_orientation(ciptr);
+	if (orientation >= 5)
+	{
+		int t = *x; *x = *y; *y = t;
+	}
 	ix = (int)ciptr->image_width;
 	if(*x == ix)
 		ciptr->scale_denom=1;
@@ -143,6 +221,15 @@ int fh_jpeg_load(const char *filename,unsigned char **buffer,int* x,int* y)
 	jpeg_finish_decompress(ciptr);
 	jpeg_destroy_decompress(ciptr);
 	fclose(fh);
+	if (orientation > 1)
+	{
+		*buffer = exif_transform(*buffer, px, py, orientation, x, y);
+		if (orientation < 5)
+		{
+			*x = px;
+			*y = py;
+		}
+	}
 	//dbout("fh_jpeg_load_local }\n");
 	return(FH_ERROR_OK);
 }
@@ -169,8 +256,14 @@ int fh_jpeg_getsize(const char *filename,int *x,int *y, int wanted_width, int wa
 
 	jpeg_create_decompress(&cinfo);
 	jpeg_stdio_src(&cinfo,fh);
+	jpeg_save_markers(&cinfo, JPEG_APP0 + 1, 0xffff);
 	jpeg_read_header(&cinfo,TRUE);
 	cinfo.out_color_space=JCS_RGB;
+	int orientation = exif_orientation(&cinfo);
+	if (orientation >= 5)
+	{
+		int t = wanted_width; wanted_width = wanted_height; wanted_height = t;
+	}
 	// should be more flexible...
 	if((int)cinfo.image_width/8 >= wanted_width ||
       (int)cinfo.image_height/8 >= wanted_height)
@@ -186,6 +279,10 @@ int fh_jpeg_getsize(const char *filename,int *x,int *y, int wanted_width, int wa
 
 	jpeg_start_decompress(&cinfo);
 	*x=cinfo.output_width; *y=cinfo.output_height;
+	if (orientation >= 5)
+	{
+		int t = *x; *x = *y; *y = t;
+	}
 	jpeg_destroy_decompress(&cinfo);
 	fclose(fh);
 //	 dbout("fh_jpeg_getsize }\n");
