@@ -1385,6 +1385,7 @@ bool CAudioPlayerGui::openFilebrowser(void)
 
 	hide();
 
+	unsigned int first_added = m_playlist.size();
 	if (filebrowser.exec(m_Path.c_str()))
 	{
 #ifdef AUDIOPLAYER_TIME_DEBUG
@@ -1568,6 +1569,8 @@ bool CAudioPlayerGui::openFilebrowser(void)
 	// if playlist is turned off -> start playing immediately
 	if (!m_show_playlist && !m_playlist.empty())
 		play(m_selected);
+	else if (filebrowser.Play_Pressed && first_added < m_playlist.size())
+		play(first_added);
 
 	return result;
 }

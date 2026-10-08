@@ -247,6 +247,7 @@ void CFileBrowser::commonInit()
 	Dirs_Selectable = false;
 	Dir_Mode = false;
 	Hide_records = false;
+	Play_Pressed = false;
 	selected = 0;
 	m_SMSKeyInput.setTimeout(SMSKEY_TIMEOUT);
 	//fontInit();
@@ -618,6 +619,7 @@ bool CFileBrowser::exec(const char * const dirname)
 	menu_ret = menu_return::RETURN_REPAINT;
 
 	playlistmode = false;
+	Play_Pressed = false;
 #ifdef ENABLE_INTERNETRADIO
 	if (m_Mode == ModeSC) {
 		m_baseurl = base;
@@ -713,7 +715,7 @@ bool CFileBrowser::exec(const char * const dirname)
 		if ((filelist.empty()))
 			continue;
 
-		if (msg == CRCInput::RC_yellow || msg == CRCInput::RC_play || msg == CRCInput::RC_playpause)
+		if (msg == CRCInput::RC_yellow)
 		{
 			if ((Multi_Select) && (selected < filelist.size()))
 			{
@@ -723,6 +725,24 @@ bool CFileBrowser::exec(const char * const dirname)
 					{
 						filelist[selected].Marked = !filelist[selected].Marked;
 						msg_repeatok = CRCInput::RC_down;	// jump to next item
+					}
+				}
+			}
+		}
+		else if (msg == CRCInput::RC_play || msg == CRCInput::RC_playpause)
+		{
+			/* the file or the whole folder, without marking it first; what
+			 * is marked already comes along */
+			if ((Multi_Select) && (selected < filelist.size()))
+			{
+				if(filelist[selected].getFileName() != "..")
+				{
+					if(!filelist[selected].isDir() || Dirs_Selectable)
+					{
+						filelist[selected].Marked = true;
+						Play_Pressed = true;
+						loop = false;
+						res = true;
 					}
 				}
 			}
@@ -1446,8 +1466,9 @@ int CFileBrowser::paintFoot(bool show)
 		{ NEUTRINO_ICON_BUTTON_RED,		NONEXISTANT_LOCALE,		sort_text.c_str(),	sort_text_len,	false },
 		{ NEUTRINO_ICON_BUTTON_OKAY,		LOCALE_FILEBROWSER_SELECT,	NULL,			0,		false },
 		{ NEUTRINO_ICON_BUTTON_MUTE_SMALL,	LOCALE_FILEBROWSER_DELETE,	NULL,			0,		false },
-		{ NEUTRINO_ICON_BUTTON_PLAY,		LOCALE_FILEBROWSER_MARK,	NULL,			0,		false },
 		{ NEUTRINO_ICON_BUTTON_BLUE,		locale_filebrowser_filter,	NULL,			0,		false },
+		{ NEUTRINO_ICON_BUTTON_YELLOW,		LOCALE_FILEBROWSER_MARK,	NULL,			0,		false },
+		{ NEUTRINO_ICON_BUTTON_PLAY,		LOCALE_AUDIOPLAYER_PLAY,	NULL,			0,		false },
 	};
 
 	if (playlistmode) {
@@ -1455,7 +1476,8 @@ int CFileBrowser::paintFoot(bool show)
 		if (!show)
 			return paintButtons(buttons_playlistmode, cnt, 0, 0, 0, 0, 0, false, NULL, NULL);
 	} else {
-		cnt = sizeof(buttons_filelistmode)/sizeof(button_label_ext);
+		/* marking and taking a file or folder at once need a list to choose from */
+		cnt = sizeof(buttons_filelistmode)/sizeof(button_label_ext) - (Multi_Select ? 0 : 2);
 		if (!show)
 			return paintButtons(buttons_filelistmode, cnt, 0, 0, 0, 0, 0, false, NULL, NULL);
 	}

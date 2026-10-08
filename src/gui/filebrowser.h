@@ -215,6 +215,7 @@ class CFileBrowser
 		bool			Dirs_Selectable;
 		bool			Dir_Mode;
 		bool                    Hide_records;
+		bool			Play_Pressed;	/* the play key took the selection, the caller may start it */
 		CFileFilter *	Filter;
 
 		CFileBrowser();
