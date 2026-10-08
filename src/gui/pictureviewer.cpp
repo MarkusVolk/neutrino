@@ -465,6 +465,7 @@ int CPictureViewerGui::show()
 
 				hide();
 
+				unsigned int first_added = playlist.size();
 				if (filebrowser.exec(Path.c_str()))
 				{
 					Path = filebrowser.getCurrentDir();
@@ -487,12 +488,23 @@ int CPictureViewerGui::show()
 						else
 							printf("Wrong Filetype %s:%d\n",files->Name.c_str(), files->getType());
 					}
+					/* the play key took them: the slideshow starts with the first one */
+					std::string first = first_added < playlist.size() ? playlist[first_added].Filename : "";
 					if (m_sort == FILENAME)
 						std::sort(playlist.begin(), playlist.end(), comparePictureByFilename);
 					else if (m_sort == DATE)
 						std::sort(playlist.begin(), playlist.end(), comparePictureByDate);
+					if (filebrowser.Play_Pressed && !first.empty())
+					{
+						for (unsigned int i = 0; i < playlist.size(); i++)
+							if (playlist[i].Filename == first)
+								selected = i;
+						m_time=(long)time(NULL);
+						view(selected);
+						m_state=SLIDESHOW;
+					}
 				}
-				update=true;
+				update = m_state == MENU;
 			}
 		}
 		else if (msg==CRCInput::RC_yellow)
