@@ -3141,7 +3141,8 @@ void CZapit::run()
 	}
 #endif
 	SdtMonitor.Start();
-	while (started && zapit_server.run(zapit_parse_command, CZapitMessages::ACTVERSION, true))
+	/* without a PMT filter to read nothing below waits, the loop would spin */
+	while (started && zapit_server.run(zapit_parse_command, CZapitMessages::ACTVERSION, true, pmt_update_fd != -1 ? 0 : 20))
 	{
 		if (pmt_update_fd != -1) {
 			unsigned char buf[4096];
@@ -3201,8 +3202,6 @@ void CZapit::run()
 			}
 #endif
 		}
-		/* yuck, don't waste that much cpu time :) */
-		usleep(0);
 	}
 
 	SaveChannelPids(current_channel);

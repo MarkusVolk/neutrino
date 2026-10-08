@@ -142,7 +142,7 @@ bool CBasicServer::parse(bool (parse_command)(CBasicMessage::Header &rmsg, int c
 	return parse_another_command;
 }
 
-bool CBasicServer::run(bool (parse_command)(CBasicMessage::Header &rmsg, int connfd), const CBasicMessage::t_version version, bool non_blocking)
+bool CBasicServer::run(bool (parse_command)(CBasicMessage::Header &rmsg, int connfd), const CBasicMessage::t_version version, bool non_blocking, int timeout_ms)
 {
 	if (non_blocking) {
 		struct pollfd pfd;
@@ -150,7 +150,7 @@ bool CBasicServer::run(bool (parse_command)(CBasicMessage::Header &rmsg, int con
 		pfd.fd = sock_fd;
 		pfd.events = (POLLIN | POLLPRI);
 
-		if (poll(&pfd, 1, 0) > 0)
+		if (poll(&pfd, 1, timeout_ms) > 0)
 			return parse(parse_command, version);
 		else
 			return true;

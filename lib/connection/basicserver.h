@@ -51,7 +51,8 @@ class CBasicServer
 	// if set to non-blocking, it will leave the socket open but
 	// will return immediately without parsing a command if no data
 	// is sent by a client
-	bool run(bool (parse_command)(CBasicMessage::Header &rmsg, int connfd), const CBasicMessage::t_version version, bool non_blocking = false);
+	/* non_blocking waits up to timeout_ms for a command and returns either way */
+	bool run(bool (parse_command)(CBasicMessage::Header &rmsg, int connfd), const CBasicMessage::t_version version, bool non_blocking = false, int timeout_ms = 0);
 
 	// manual stop, can and should only be used in non-blocking mode
 	void stop(void);
