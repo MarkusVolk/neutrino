@@ -40,6 +40,11 @@ private:
 	pthread_t	thrPlay;
 	CBaseDec::State state;
 	static void* PlayThread(void*);
+#if HAVE_GENERIC_HARDWARE
+	/* the file or stream played by libmpv instead of the decoders */
+	CBaseDec::RetCode playMpv();
+	bool streamMetaData(const std::string &icy_title);
+#endif
 	void clearFileData();
 	unsigned int m_SecondsToSkip;
 

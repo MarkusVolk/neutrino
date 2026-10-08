@@ -44,6 +44,9 @@
 #include <driver/netfile.h>
 #include <eitd/edvbstring.h> // UTF8
 #include <system/set_threadname.h>
+#if HAVE_GENERIC_HARDWARE
+#include <hardware/playback.h>
+#endif
 
 void CAudioPlayer::stop()
 {
@@ -90,12 +93,17 @@ void* CAudioPlayer::PlayThread( void* /*dummy*/ )
 {
 	int soundfd = -1;
 	set_threadname("audio:play");
+#if HAVE_GENERIC_HARDWARE
+	(void)soundfd;
+	CBaseDec::RetCode Status = getInstance()->playMpv();
+#else
 	/* Decode stdin to stdout. */
 	CBaseDec::RetCode Status =
 		CBaseDec::DecoderBase( &getInstance()->m_Audiofile, soundfd,
 				&getInstance()->state,
 				&getInstance()->m_played_time,
 				&getInstance()->m_SecondsToSkip );
+#endif
 
 	if (Status != CBaseDec::OK)
 	{
@@ -112,6 +120,109 @@ void* CAudioPlayer::PlayThread( void* /*dummy*/ )
 	pthread_exit(0);
 	return NULL;
 }
+
+#if HAVE_GENERIC_HARDWARE
+/* the title a radio station sends, "artist - title" by convention */
+bool CAudioPlayer::streamMetaData(const std::string &icy_title)
+{
+	std::string t = isUTF8(icy_title) ? icy_title : convertLatin1UTF8(icy_title);
+	std::string artist, title = t;
+	size_t sep = t.find(" - ");
+	if (sep != std::string::npos)
+	{
+		artist = t.substr(0, sep);
+		title = t.substr(sep + 3);
+	}
+	if (artist == m_Audiofile.MetaData.artist && title == m_Audiofile.MetaData.title)
+		return false;
+	m_Audiofile.MetaData.artist = artist;
+	m_Audiofile.MetaData.title = title;
+	m_Audiofile.MetaData.changed = true;
+	return true;
+}
+
+/* libmpv plays every format and stream it knows, the PCM goes the way of
+ * the movie player's; the states of the decoders are kept, so that the
+ * player screens see no difference */
+CBaseDec::RetCode CAudioPlayer::playMpv()
+{
+	const bool is_stream = m_Audiofile.FileType == CFile::STREAM_AUDIO
+		|| m_Audiofile.Filename.compare(0, 7, "http://") == 0
+		|| m_Audiofile.Filename.compare(0, 8, "https://") == 0;
+
+	cPlayback *playback = new cPlayback(0);
+	if (!playback->Open(PLAYMODE_FILE) || !playback->Start(m_Audiofile.Filename))
+	{
+		playback->Close();
+		delete playback;
+		return CBaseDec::READ_ERR;
+	}
+	playback->SetSpeed(1);
+
+	CBaseDec::State shown = CBaseDec::PLAY;
+	CBaseDec::RetCode ret = CBaseDec::OK;
+	int ticks = 0, title_tick = 0;
+	while (state != CBaseDec::STOP_REQ)
+	{
+		CBaseDec::State now = state;
+		if (now == CBaseDec::PAUSE && shown != CBaseDec::PAUSE)
+			playback->SetSpeed(0);
+		else if (now != CBaseDec::PAUSE && shown == CBaseDec::PAUSE)
+			playback->SetSpeed(1);
+		shown = now;
+
+		/* a number of seconds is one jump, without one the player skips on
+		 * as the decoders did, a second every quarter of a second */
+		if (!is_stream && (now == CBaseDec::FF || now == CBaseDec::REV))
+		{
+			int seconds = m_SecondsToSkip ? (int)m_SecondsToSkip : 1;
+			playback->SetPosition((now == CBaseDec::FF ? 1000 : -1250) * seconds, false);
+			if (m_SecondsToSkip)
+			{
+				m_SecondsToSkip = 0;
+				state = CBaseDec::PLAY;
+			}
+		}
+
+		int position = 0, duration = 0;
+		if (!playback->GetPosition(position, duration))
+		{
+			if (!playback->IsPlaying() && ticks == 0)
+				ret = CBaseDec::READ_ERR;
+			break;
+		}
+		if (!is_stream)
+		{
+			m_played_time = position / 1000;
+			if (duration > 0 && m_Audiofile.MetaData.total_time != duration / 1000)
+				m_Audiofile.MetaData.total_time = duration / 1000;
+		}
+		else
+		{
+			/* the time counts from the title the station names */
+			if (ticks % 8 == 0)
+			{
+				std::vector<std::string> keys, values;
+				playback->GetMetadata(keys, values);
+				for (size_t i = 0; i < keys.size(); i++)
+				{
+					if (keys[i] == "icy-title" && !values[i].empty() && streamMetaData(values[i]))
+						title_tick = ticks;
+					else if (keys[i] == "icy-name" && m_Audiofile.MetaData.sc_station.empty())
+						m_Audiofile.MetaData.sc_station = isUTF8(values[i]) ? values[i] : convertLatin1UTF8(values[i]);
+				}
+			}
+			m_played_time = (ticks - title_tick) / 4;
+		}
+		ticks++;
+		usleep(250000);
+	}
+
+	playback->Close();
+	delete playback;
+	return ret;
+}
+#endif
 
 bool CAudioPlayer::play(const CAudiofile* file, const bool highPrio)
 {
