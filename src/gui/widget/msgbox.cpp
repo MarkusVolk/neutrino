@@ -161,7 +161,8 @@ void CMsgBox::initButtons()
 	//assign button text, result values, direct keys and alternate keys
 	if (mb_show_button & mbOk){
 		btn.button = NEUTRINO_ICON_BUTTON_OKAY;
-		btn.text = BTN_TEXT(mbOk);
+		/* the icon of the key reads "OK" already */
+		btn.text = btn_text_ok;
 		btn.directKeys.clear();
 		btn.directKeys.push_back(CRCInput::RC_ok);
 		btn.btn_result = mbrOk;

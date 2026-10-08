@@ -299,6 +299,9 @@ void CComponentsFooter::setButtonLabels(const struct button_label_cc * const con
 	
 	for (size_t i = 0; i < l_count; i++){
 		CComponentsButton *btn = static_cast<CComponentsButton*>(btn_container->getCCItem(i));
+		/* a button with an icon only has no font */
+		if (!btn->getButtonFont())
+			continue;
 		int dy_font_tmp = btn->getButtonFont()->getHeight();
 		if (dy_font_tmp < dy_font_min)
 		{
