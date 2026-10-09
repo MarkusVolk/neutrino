@@ -449,13 +449,11 @@ struct SNeutrinoSettings
 	int video_Format;
 	int video_43mode;
 
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
 	int psi_brightness;
 	int psi_contrast;
 	int psi_saturation;
 	int psi_step;
 	int psi_tint;
-#endif
 
 	// hdmi cec
 	int hdmi_cec_mode;
@@ -481,13 +479,10 @@ struct SNeutrinoSettings
 	int srs_algo;
 	int srs_ref_volume;
 	int srs_nmgr_enable;
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
-	int ac3_pass;
+	int ac3_pass; /* AC3 and DTS pass through, where the box can switch it */
 	int dts_pass;
-#else
-	int hdmi_dd;
+	int hdmi_dd; /* the HDMI and S/PDIF modes elsewhere */
 	int spdif_dd;
-#endif // HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
 	int analog_out;
 
 	int avsync;
@@ -496,10 +491,8 @@ struct SNeutrinoSettings
 	int enabled_video_modes[VIDEOMENU_VIDEOMODE_OPTION_COUNT];
 	int enabled_auto_modes[VIDEOMENU_VIDEOMODE_OPTION_COUNT];
 
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
 	int zappingmode;
 	int hdmi_colorimetry;
-#endif
 
 	int cpufreq;
 	int standby_cpufreq;
@@ -510,18 +503,14 @@ struct SNeutrinoSettings
 	int ci_tuner;
 	int ci_rec_zapto;
 	int ci_mode;
-#if BOXMODEL_VUPLUS_ALL
 	int ci_delay;
-#endif
 	// ci-settings for each slot
 	int ci_ignore_messages[4];
 	int ci_save_pincode[4];
 	std::string ci_pincode[4];
 	int ci_op[4];
 	int ci_clock[4];
-#if BOXMODEL_VUPLUS_ALL
 	int ci_rpr[4];
-#endif
 
 	int make_hd_list;
 	int make_new_list;
@@ -719,10 +708,8 @@ struct SNeutrinoSettings
 
 	int record_hours;
 	int recording_already_found_check;
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
 	int recording_bufsize;
 	int recording_bufsize_dmx;
-#endif
 	int recording_choose_direct_rec_dir;
 	int recording_epg_for_end;
 	int recording_epg_for_filename;

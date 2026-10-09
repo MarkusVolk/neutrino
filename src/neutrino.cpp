@@ -64,7 +64,7 @@
 #include <driver/radiotext.h>
 #include <driver/scanepg.h>
 
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
+#if !HAVE_CST_HARDWARE
 #include "gui/psisetup.h"
 #endif
 #include "gui/adzap.h"
@@ -358,11 +358,7 @@ static SNeutrinoSettings::usermenu_t usermenu_default[] = {
 	{ CRCInput::RC_green,           "6",                                    "",     "green"         },
 	{ CRCInput::RC_yellow,          "7,36",                                 "",     "yellow"        },
 	{ CRCInput::RC_blue,            "12,11,20,21,19,14,30,15,35",           "",     "blue"          },
-#if BOXMODEL_HD51 || BOXMODEL_BRE2ZE4K || BOXMODEL_H7 || BOXMODEL_PROTEK4K || BOXMODEL_HD60 || BOXMODEL_HD61 || BOXMODEL_MULTIBOX || BOXMODEL_MULTIBOXSE
-	{ CRCInput::RC_playpause,       "9",                                    "",     "5"             },
-#else
-	{ CRCInput::RC_play,            "9",                                    "",     "5"             },
-#endif
+	{ CRCInput::RC_play,            "9",                                    "",     "5"             }, /* RC_playpause where that is the only key, see loadSetup */
 	{ CRCInput::RC_audio,           "6",                                    "",     "6"             },
 	{ CRCInput::RC_nokey,           "",                                     "",     ""              },
 };
@@ -421,13 +417,7 @@ int CNeutrinoApp::loadSetup(const char *fname)
 	g_settings.glcd_mirror_osd = configfile.getInt32("glcd_mirror_osd", 0);
 	g_settings.glcd_mirror_video = configfile.getInt32("glcd_mirror_video", 0);
 	g_settings.glcd_scroll = configfile.getInt32("glcd_scroll", 1);
-#if BOXMODEL_VUUNO4KSE
-	g_settings.glcd_scroll_speed = configfile.getInt32("glcd_scroll_speed", 1);
-#elif BOXMODEL_VUSOLO4K || BOXMODEL_VUDUO4K || BOXMODEL_VUDUO4KSE || BOXMODEL_VUULTIMO4K
-	g_settings.glcd_scroll_speed = configfile.getInt32("glcd_scroll_speed", 2);
-#else
-	g_settings.glcd_scroll_speed = configfile.getInt32("glcd_scroll_speed", 5);
-#endif
+	g_settings.glcd_scroll_speed = configfile.getInt32("glcd_scroll_speed", g_info.hw_caps->display_scroll_speed ? g_info.hw_caps->display_scroll_speed : 5);
 	g_settings.glcd_selected_config = configfile.getInt32("glcd_selected_config", 0);
 #endif
 
@@ -468,12 +458,7 @@ int CNeutrinoApp::loadSetup(const char *fname)
 
 
 	// video
-	int video_Mode_default = VIDEO_STD_720P50;
-#if HAVE_ARM_HARDWARE
-	video_Mode_default = VIDEO_STD_1080P50;
-#elif HAVE_CST_HARDWARE && defined(BOXMODEL_CST_HD2)
-	video_Mode_default = VIDEO_STD_1080P24;
-#endif
+	int video_Mode_default = g_info.hw_caps->video_std_default;
 	if (getenv("NEUTRINO_DEFAULT_SCART") != NULL)
 		video_Mode_default = VIDEO_STD_PAL;
 
@@ -488,13 +473,11 @@ int CNeutrinoApp::loadSetup(const char *fname)
 	g_settings.video_Format = configfile.getInt32("video_Format", DISPLAY_AR_16_9);
 	g_settings.video_43mode = configfile.getInt32("video_43mode", DISPLAY_AR_MODE_LETTERBOX);
 
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
 	g_settings.psi_brightness = configfile.getInt32("video_psi_brightness", 128);
 	g_settings.psi_contrast = configfile.getInt32("video_psi_contrast", 128);
 	g_settings.psi_saturation = configfile.getInt32("video_psi_saturation", 128);
 	g_settings.psi_step = configfile.getInt32("video_psi_step", 2);
 	g_settings.psi_tint = configfile.getInt32("video_psi_tint", 128);
-#endif
 
 	// hdmi cec
 	g_settings.hdmi_cec_mode = configfile.getInt32("hdmi_cec_mode", 0);
@@ -530,13 +513,10 @@ int CNeutrinoApp::loadSetup(const char *fname)
 	g_settings.srs_algo = configfile.getInt32("srs_algo", 1);
 	g_settings.srs_ref_volume = configfile.getInt32("srs_ref_volume", 75);
 	g_settings.srs_nmgr_enable = configfile.getInt32("srs_nmgr_enable", 0);
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
 	g_settings.ac3_pass = configfile.getInt32("ac3_pass", 0);
 	g_settings.dts_pass = configfile.getInt32("dts_pass", 0);
-#else
 	g_settings.hdmi_dd = configfile.getInt32("hdmi_dd", 0);
 	g_settings.spdif_dd = configfile.getInt32("spdif_dd", 1);
-#endif // HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
 	g_settings.analog_out = configfile.getInt32("analog_out", 1);
 
 	g_settings.avsync = configfile.getInt32("avsync", 1);
@@ -553,14 +533,15 @@ int CNeutrinoApp::loadSetup(const char *fname)
 		/*
 		   enable some defaults for g_settings.key_switchformat
 		*/
-		g_settings.enabled_video_modes[5] = 1; // VIDEO_STD_720P50
-		g_settings.enabled_video_modes[7] = 1; // VIDEO_STD_1080I50
-#if HAVE_CST_HARDWARE && defined(BOXMODEL_CST_HD2)
-		g_settings.enabled_video_modes[10] = 1; // VIDEO_STD_1080P24
-#elif HAVE_ARM_HARDWARE
-		g_settings.enabled_video_modes[13] = 1; // VIDEO_STD_1080P50
-		g_settings.enabled_video_modes[18] = 1; // VIDEO_STD_2160P50
-#endif
+		for (int i = 0; i < VIDEOMENU_VIDEOMODE_OPTION_COUNT; i++)
+		{
+			int mode = VIDEOMENU_VIDEOMODE_OPTIONS[i].key;
+			if (mode == VIDEO_STD_720P50 || mode == VIDEO_STD_1080I50 || mode == g_info.hw_caps->video_std_default)
+				g_settings.enabled_video_modes[i] = 1;
+			/* the best the box can do belongs to the format key too */
+			if (mode == VIDEO_STD_2160P50 && (g_info.hw_caps->video_std_mask & VIDEO_STD_BIT(mode)))
+				g_settings.enabled_video_modes[i] = 1;
+		}
 	}
 
 	for (int i = 0; i < VIDEOMENU_VIDEOMODE_OPTION_COUNT; i++)
@@ -569,10 +550,8 @@ int CNeutrinoApp::loadSetup(const char *fname)
 		g_settings.enabled_auto_modes[i] = configfile.getInt32(cfg_key, 1);
 	}
 
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
-	g_settings.zappingmode = configfile.getInt32("zappingmode", (strcmp(g_info.hw_caps->boxmodel, "e4hdultra") == 0) ? 2 : 0);
+	g_settings.zappingmode = configfile.getInt32("zappingmode", g_info.hw_caps->standby_zappingmode_mute ? 2 : 0);
 	g_settings.hdmi_colorimetry = configfile.getInt32("hdmi_colorimetry", 0);
-#endif
 
 	g_settings.cpufreq = g_info.hw_caps->can_cpufreq ? configfile.getInt32("cpufreq", 0) : 0;
 	g_settings.standby_cpufreq = g_info.hw_caps->can_cpufreq ? configfile.getInt32("standby_cpufreq", 100) : 50;
@@ -583,9 +562,7 @@ int CNeutrinoApp::loadSetup(const char *fname)
 	g_settings.ci_tuner = configfile.getInt32("ci_tuner", -1);
 	g_settings.ci_rec_zapto = configfile.getInt32("ci_rec_zapto", 0);
 	g_settings.ci_mode = configfile.getInt32("ci_mode", 0);
-#if BOXMODEL_VUPLUS_ALL
 	g_settings.ci_delay = configfile.getInt32("ci_delay", 128);
-#endif
 	// ci-settings for each slot
 	unsigned int ci_slots = cCA::GetInstance()->GetNumberCISlots();
 	if (strcmp(g_info.hw_caps->boxvendor, "Coolstream") == 0)
@@ -607,15 +584,9 @@ int CNeutrinoApp::loadSetup(const char *fname)
 		snprintf(cfg_key, sizeof(cfg_key), "ci_op_%d", i);
 		g_settings.ci_op[i] = configfile.getInt32(cfg_key, 0);
 		snprintf(cfg_key, sizeof(cfg_key), "ci_clock_%d", i);
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
-		g_settings.ci_clock[i] = configfile.getInt32(cfg_key, 6);
-#else
-		g_settings.ci_clock[i] = configfile.getInt32(cfg_key, 9);
-#endif
-#if BOXMODEL_VUPLUS_ALL
+		g_settings.ci_clock[i] = configfile.getInt32(cfg_key, g_info.hw_caps->can_ci_clock ? 6 : 9);
 		snprintf(cfg_key, sizeof(cfg_key), "ci_rpr_%d", i);
 		g_settings.ci_rpr[i] = configfile.getInt32(cfg_key, 9);
-#endif
 	}
 
 	g_settings.make_hd_list = configfile.getInt32("make_hd_list", 0);
@@ -857,10 +828,8 @@ int CNeutrinoApp::loadSetup(const char *fname)
 	// recording
 	g_settings.record_hours = configfile.getInt32("record_hours", 4);
 	g_settings.recording_already_found_check = configfile.getBool("recording_already_found_check", false);
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
 	g_settings.recording_bufsize = configfile.getInt32("recording_bufsize", 4);
 	g_settings.recording_bufsize_dmx = configfile.getInt32("recording_bufsize_dmx", 2);
-#endif
 	g_settings.recording_choose_direct_rec_dir = configfile.getInt32("recording_choose_direct_rec_dir", 0);
 	g_settings.recording_epg_for_end = configfile.getBool("recording_epg_for_end", true);
 	g_settings.recording_epg_for_filename = configfile.getBool("recording_epg_for_filename", true);
@@ -1046,10 +1015,7 @@ int CNeutrinoApp::loadSetup(const char *fname)
 	g_settings.auto_cover = configfile.getInt32("auto_cover", 0);
 
 	// screen configuration
-	int osd_res = OSDMODE_720;
-#if HAVE_ARM_HARDWARE || (HAVE_CST_HARDWARE && defined(BOXMODEL_CST_HD2))
-	osd_res = OSDMODE_1080;
-#endif
+	int osd_res = g_info.hw_caps->osd_default_height == 1080 ? OSDMODE_1080 : OSDMODE_720;
 	g_settings.osd_resolution = (osd_resolution_tmp == -1) ? configfile.getInt32("osd_resolution", osd_res) : osd_resolution_tmp;
 	COsdHelpers::getInstance()->g_settings_osd_resolution_save = g_settings.osd_resolution;
 
@@ -1381,6 +1347,8 @@ int CNeutrinoApp::loadSetup(const char *fname)
 		{
 			SNeutrinoSettings::usermenu_t *u = new SNeutrinoSettings::usermenu_t;
 			*u = *um;
+			if (u->key == CRCInput::RC_play && g_info.hw_caps->rc_has_playpause && !g_info.hw_caps->rc_has_separate_play)
+				u->key = CRCInput::RC_playpause;
 			g_settings.usermenu.push_back(u);
 		}
 	}
@@ -1651,13 +1619,11 @@ void CNeutrinoApp::saveSetup(const char *fname)
 	configfile.setInt32("video_Format", g_settings.video_Format);
 	configfile.setInt32("video_43mode", g_settings.video_43mode);
 
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
 	configfile.setInt32("video_psi_brightness", g_settings.psi_brightness);
 	configfile.setInt32("video_psi_contrast", g_settings.psi_contrast);
 	configfile.setInt32("video_psi_saturation", g_settings.psi_saturation);
 	configfile.setInt32("video_psi_step", g_settings.psi_step);
 	configfile.setInt32("video_psi_tint", g_settings.psi_tint);
-#endif
 
 	// hdmi cec
 	configfile.setInt32("hdmi_cec_mode", g_settings.hdmi_cec_mode);
@@ -1683,13 +1649,10 @@ void CNeutrinoApp::saveSetup(const char *fname)
 	configfile.setInt32("srs_algo", g_settings.srs_algo);
 	configfile.setInt32("srs_ref_volume", g_settings.srs_ref_volume);
 	configfile.setInt32("srs_nmgr_enable", g_settings.srs_nmgr_enable);
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
 	configfile.setInt32("ac3_pass", g_settings.ac3_pass);
 	configfile.setInt32("dts_pass", g_settings.dts_pass);
-#else
 	configfile.setInt32("hdmi_dd", g_settings.hdmi_dd);
 	configfile.setInt32("spdif_dd", g_settings.spdif_dd);
-#endif
 	configfile.setInt32("analog_out", g_settings.analog_out);
 
 	configfile.setInt32("avsync", g_settings.avsync);
@@ -1706,10 +1669,8 @@ void CNeutrinoApp::saveSetup(const char *fname)
 		configfile.setInt32(cfg_key, g_settings.enabled_auto_modes[i]);
 	}
 
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
 	configfile.setInt32("zappingmode", g_settings.zappingmode);
 	configfile.setInt32("hdmi_colorimetry", g_settings.hdmi_colorimetry);
-#endif
 
 	configfile.setInt32("cpufreq", g_settings.cpufreq);
 	configfile.setInt32("standby_cpufreq", g_settings.standby_cpufreq);
@@ -1720,9 +1681,7 @@ void CNeutrinoApp::saveSetup(const char *fname)
 	configfile.setInt32("ci_tuner", g_settings.ci_tuner);
 	configfile.setInt32("ci_rec_zapto", g_settings.ci_rec_zapto);
 	configfile.setInt32("ci_mode", g_settings.ci_mode);
-#if BOXMODEL_VUPLUS_ALL
 	configfile.setInt32("ci_delay", g_settings.ci_delay);
-#endif
 	// ci-settings for each slot
 	for (unsigned int i = 0; i < cCA::GetInstance()->GetNumberCISlots(); i++)
 	{
@@ -1736,10 +1695,8 @@ void CNeutrinoApp::saveSetup(const char *fname)
 		configfile.setInt32(cfg_key, g_settings.ci_op[i]);
 		snprintf(cfg_key, sizeof(cfg_key), "ci_clock_%d", i);
 		configfile.setInt32(cfg_key, g_settings.ci_clock[i]);
-#if BOXMODEL_VUPLUS_ALL
 		snprintf(cfg_key, sizeof(cfg_key), "ci_rpr_%d", i);
 		configfile.setInt32(cfg_key, g_settings.ci_rpr[i]);
-#endif
 	}
 
 	configfile.setInt32("make_hd_list", g_settings.make_hd_list);
@@ -1927,10 +1884,8 @@ void CNeutrinoApp::saveSetup(const char *fname)
 	// recording
 	configfile.setInt32("record_hours", g_settings.record_hours);
 	configfile.setBool("recording_already_found_check", g_settings.recording_already_found_check);
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
 	configfile.setInt32("recording_bufsize", g_settings.recording_bufsize);
 	configfile.setInt32("recording_bufsize_dmx", g_settings.recording_bufsize_dmx);
-#endif
 	configfile.setInt32("recording_choose_direct_rec_dir", g_settings.recording_choose_direct_rec_dir);
 	configfile.setBool("recording_epg_for_end", g_settings.recording_epg_for_end);
 	configfile.setBool("recording_epg_for_filename", g_settings.recording_epg_for_filename);
@@ -3202,10 +3157,8 @@ TIMER_START();
 	ZapStart_arg.uselastchannel = g_settings.uselastchannel;
 	ZapStart_arg.video_mode = g_settings.video_Mode;
 	memcpy(ZapStart_arg.ci_clock, g_settings.ci_clock, sizeof(g_settings.ci_clock));
-#if BOXMODEL_VUPLUS_ALL
 	ZapStart_arg.ci_delay = g_settings.ci_delay;
 	memcpy(ZapStart_arg.ci_rpr, g_settings.ci_rpr, sizeof(g_settings.ci_rpr));
-#endif
 	memcpy(ZapStart_arg.ci_op, g_settings.ci_op, sizeof(g_settings.ci_op));
 	ZapStart_arg.volume = g_settings.current_volume;
 	ZapStart_arg.webtv_xml = &g_settings.webtv_xml;
@@ -3222,19 +3175,20 @@ TIMER_START();
 	// init audio settings
 	audioDecoder->SetSRS(g_settings.srs_enable, g_settings.srs_nmgr_enable, g_settings.srs_algo, g_settings.srs_ref_volume);
 	//audioDecoder->setVolume(g_settings.current_volume, g_settings.current_volume);
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
-	audioDecoder->SetHdmiDD(g_settings.ac3_pass ? true : false);
-	audioDecoder->SetSpdifDD(g_settings.dts_pass ? true : false);
-#else
-	audioDecoder->SetHdmiDD((HDMI_ENCODED_MODE)g_settings.hdmi_dd);
-	audioDecoder->SetSpdifDD(g_settings.spdif_dd ? true : false);
-#endif
+	if (g_info.hw_caps->can_dd_passthrough)
+	{
+		audioDecoder->SetHdmiDD(g_settings.ac3_pass ? true : false);
+		audioDecoder->SetSpdifDD(g_settings.dts_pass ? true : false);
+	}
+	else
+	{
+		audioDecoder->SetHdmiDD((HDMI_ENCODED_MODE)g_settings.hdmi_dd);
+		audioDecoder->SetSpdifDD(g_settings.spdif_dd ? true : false);
+	}
 	audioDecoder->EnableAnalogOut(g_settings.analog_out ? true : false);
 	audioSetupNotifier        = new CAudioSetupNotifier;
-#if HAVE_GENERIC_HARDWARE
-	if (!getenv("WAYLAND_DISPLAY") && !getenv("DISPLAY"))
+	if (g_info.hw_caps->can_select_audio_output && !getenv("WAYLAND_DISPLAY") && !getenv("DISPLAY"))
 		CAudioSetupNotifier::applyOutput();
-#endif
 	// trigger a change
 	if(g_settings.avsync != (AVSYNC_TYPE) AVSYNC_ENABLED)
 		audioSetupNotifier->changeNotify(LOCALE_AUDIOMENU_AVSYNC, NULL);
@@ -3432,8 +3386,9 @@ TIMER_START();
 #endif
 	//InitZapper();
 
-#if HAVE_ARM_HARDWARE
-	CPSISetup::getInstance()->blankScreen(false);
+#if !HAVE_CST_HARDWARE
+	if (g_info.hw_caps->can_psi)
+		CPSISetup::getInstance()->blankScreen(false);
 #endif
 	SHTDCNT::getInstance()->init();
 
@@ -3464,9 +3419,11 @@ TIMER_START();
 #endif
 	CWeather::getInstance()->setCoords(settingsText(g_settings.weather_location), settingsText(g_settings.weather_city));
 
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
-	videoDecoder->SetControl(VIDEO_CONTROL_ZAPPING_MODE, g_settings.zappingmode);
-	videoDecoder->SetHDMIColorimetry((HDMI_COLORIMETRY) g_settings.hdmi_colorimetry);
+#if !HAVE_CST_HARDWARE
+	if (g_info.hw_caps->can_zapping_mode)
+		videoDecoder->SetControl(VIDEO_CONTROL_ZAPPING_MODE, g_settings.zappingmode);
+	if (g_info.hw_caps->can_hdmi_colorimetry)
+		videoDecoder->SetHDMIColorimetry((HDMI_COLORIMETRY) g_settings.hdmi_colorimetry);
 #endif
 
 TIMER_STOP("################################## after all ##################################");
@@ -3481,8 +3438,8 @@ TIMER_STOP("################################## after all #######################
 	xmltv_xml_readepg();
 	xmltv_xml_auto_readepg();
 
-#if ENABLE_PIP && (BOXMODEL_E4HDULTRA || BOXMODEL_BRE2ZE4K || BOXMODEL_HD51 || BOXMODEL_H7)
-	if (g_info.hw_caps->can_pip)
+#if ENABLE_PIP
+	if (g_info.hw_caps->can_pip && g_info.hw_caps->pip_warmup)
 	{
 		CZapit::getInstance()->OpenPip(0);
 		if (pipVideoDecoder[0])
@@ -6323,11 +6280,10 @@ void CNeutrinoApp::loadKeys(const char *fname)
 	g_settings.key_channelList_cancel = tconfig->getInt32("key_channelList_cancel", CRCInput::RC_home);
 	g_settings.key_channelList_sort = tconfig->getInt32("key_channelList_sort", CRCInput::RC_blue);
 	g_settings.key_current_transponder = tconfig->getInt32("key_current_transponder", CRCInput::RC_nokey);
-#if BOXMODEL_HD51
-	g_settings.key_favorites = tconfig->getInt32("key_favorites", CRCInput::RC_video);
-#else
-	g_settings.key_favorites = tconfig->getInt32("key_favorites", CRCInput::RC_favorites);
-#endif
+	if (strcmp(g_info.hw_caps->boxmodel, "hd51") == 0)
+		g_settings.key_favorites = tconfig->getInt32("key_favorites", CRCInput::RC_video);
+	else
+		g_settings.key_favorites = tconfig->getInt32("key_favorites", CRCInput::RC_favorites);
 
 	g_settings.key_format_mode_active = tconfig->getInt32("key_format_mode_active", 1);
 	g_settings.key_help = tconfig->getInt32("key_help", CRCInput::RC_help);
@@ -6357,18 +6313,12 @@ void CNeutrinoApp::loadKeys(const char *fname)
 	g_settings.key_subchannel_down = tconfig->getInt32("key_subchannel_down", CRCInput::RC_left);
 	g_settings.key_subchannel_up = tconfig->getInt32("key_subchannel_up", CRCInput::RC_right);
 	g_settings.key_switchformat = tconfig->getInt32("key_switchformat", CRCInput::RC_nokey);
-#if BOXMODEL_HD51 || BOXMODEL_BRE2ZE4K || BOXMODEL_H7 || BOXMODEL_E4HDULTRA || BOXMODEL_PROTEK4K || BOXMODEL_HD60 || BOXMODEL_HD61 || BOXMODEL_MULTIBOX || BOXMODEL_MULTIBOXSE || BOXMODEL_OSMIO4K || BOXMODEL_OSMIO4KPLUS
-	g_settings.key_timeshift = tconfig->getInt32("key_timeshift", CRCInput::RC_nokey); // FIXME
-#elif BOXMODEL_VUPLUS_ALL
-	g_settings.key_timeshift = tconfig->getInt32("key_timeshift", CRCInput::RC_playpause);
-#else
-	g_settings.key_timeshift = tconfig->getInt32("key_timeshift", CRCInput::RC_pause);
-#endif
-#if BOXMODEL_E4HDULTRA || BOXMODEL_PROTEK4K || BOXMODEL_HD61
-	g_settings.key_tvradio_mode = tconfig->getInt32("key_tvradio_mode", CRCInput::RC_tv);
-#else
-	g_settings.key_tvradio_mode = tconfig->getInt32("key_tvradio_mode", CRCInput::RC_nokey);
-#endif
+	/* one play/pause key takes the pause key; a separate play key frees it for the timeshift */
+	neutrino_msg_t timeshift_default = CRCInput::RC_pause;
+	if (g_info.hw_caps->rc_has_playpause)
+		timeshift_default = g_info.hw_caps->rc_has_separate_play ? CRCInput::RC_playpause : CRCInput::RC_nokey;
+	g_settings.key_timeshift = tconfig->getInt32("key_timeshift", timeshift_default);
+	g_settings.key_tvradio_mode = tconfig->getInt32("key_tvradio_mode", g_info.hw_caps->rc_tvradio_combined ? CRCInput::RC_tv : CRCInput::RC_nokey);
 	g_settings.key_unlock = tconfig->getInt32("key_unlock", CRCInput::RC_setup);
 	g_settings.key_volumedown = tconfig->getInt32("key_volumedown", CRCInput::RC_minus);
 	g_settings.key_volumeup = tconfig->getInt32("key_volumeup", CRCInput::RC_plus);
@@ -6387,16 +6337,16 @@ void CNeutrinoApp::loadKeys(const char *fname)
 	g_settings.mpkey_forward = tconfig->getInt32("mpkey.forward", CRCInput::RC_forward);
 	g_settings.mpkey_goto = tconfig->getInt32("mpkey.goto", CRCInput::RC_nokey);
 	g_settings.mpkey_next_repeat_mode = tconfig->getInt32("mpkey.next_repeat_mode", CRCInput::RC_nokey);
-#if BOXMODEL_HD51 || BOXMODEL_BRE2ZE4K || BOXMODEL_H7 || BOXMODEL_PROTEK4K || BOXMODEL_HD60 || BOXMODEL_HD61 || BOXMODEL_MULTIBOX || BOXMODEL_MULTIBOXSE
-	g_settings.mpkey_pause = tconfig->getInt32("mpkey.pause", CRCInput::RC_playpause);
-	g_settings.mpkey_play = tconfig->getInt32("mpkey.play", CRCInput::RC_playpause);
-#elif BOXMODEL_VUPLUS_ALL
-	g_settings.mpkey_pause = tconfig->getInt32("mpkey.pause", CRCInput::RC_playpause);
-	g_settings.mpkey_play = tconfig->getInt32("mpkey.play", CRCInput::RC_play);
-#else
-	g_settings.mpkey_pause = tconfig->getInt32("mpkey.pause", CRCInput::RC_pause);
-	g_settings.mpkey_play = tconfig->getInt32("mpkey.play", CRCInput::RC_play);
-#endif
+	if (g_info.hw_caps->rc_has_playpause)
+	{
+		g_settings.mpkey_pause = tconfig->getInt32("mpkey.pause", CRCInput::RC_playpause);
+		g_settings.mpkey_play = tconfig->getInt32("mpkey.play", g_info.hw_caps->rc_has_separate_play ? CRCInput::RC_play : CRCInput::RC_playpause);
+	}
+	else
+	{
+		g_settings.mpkey_pause = tconfig->getInt32("mpkey.pause", CRCInput::RC_pause);
+		g_settings.mpkey_play = tconfig->getInt32("mpkey.play", CRCInput::RC_play);
+	}
 	g_settings.mpkey_plugin = tconfig->getInt32("mpkey.plugin", CRCInput::RC_nokey);
 	g_settings.mpkey_rewind = tconfig->getInt32("mpkey.rewind", CRCInput::RC_rewind);
 	g_settings.mpkey_stop = tconfig->getInt32("mpkey.stop", CRCInput::RC_stop);

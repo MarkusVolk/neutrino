@@ -48,6 +48,23 @@ hw_caps_t *get_hwcaps(void)
 	caps.force_tuner_2G = 0;
 	strcpy(caps.startup_file, "");
 	strcpy(caps.boxvendor, "Coolstream");
+	caps.video_std_mask = VIDEO_STD_BIT(VIDEO_STD_NTSC) | VIDEO_STD_BIT(VIDEO_STD_PAL) | VIDEO_STD_BIT(VIDEO_STD_SECAM) |
+		VIDEO_STD_BIT(VIDEO_STD_480P) | VIDEO_STD_BIT(VIDEO_STD_576P) |
+		VIDEO_STD_BIT(VIDEO_STD_720P50) | VIDEO_STD_BIT(VIDEO_STD_720P60) |
+		VIDEO_STD_BIT(VIDEO_STD_1080I50) | VIDEO_STD_BIT(VIDEO_STD_1080I60) |
+		VIDEO_STD_BIT(VIDEO_STD_1080P24) | VIDEO_STD_BIT(VIDEO_STD_1080P25) | VIDEO_STD_BIT(VIDEO_STD_AUTO);
+	caps.video_std_default = VIDEO_STD_720P50;
+	caps.osd_default_height = 720;
+	strcpy(caps.rc_device, "/dev/input/nevis_ir");
+	strcpy(caps.rc_device_fallback, "/dev/input/event0");
+	caps.rc_scan_evdev = 1;
+#ifdef BOXMODEL_CST_HD2
+	caps.video_std_mask |= VIDEO_STD_BIT(VIDEO_STD_1080P2397) | VIDEO_STD_BIT(VIDEO_STD_1080P2997) |
+		VIDEO_STD_BIT(VIDEO_STD_1080P50) | VIDEO_STD_BIT(VIDEO_STD_1080P60);
+	caps.video_std_default = VIDEO_STD_1080P24;
+	caps.osd_default_height = 1080;
+	caps.can_osd_1080 = 1;
+#endif
 	switch (rev) {
 	case 6:
 	case 7: // Black Stallion Edition

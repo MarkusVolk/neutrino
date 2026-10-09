@@ -3062,14 +3062,15 @@ bool CZapit::Start(Z_start_arg *ZapStart_arg)
 #endif
 	}
 
-#if BOXMODEL_VUPLUS_ALL
+#if HAVE_LIBSTB_HAL
 	// dvb wait delay for ci response
-	ca->SetCIDelay(ZapStart_arg->ci_delay);
+	if (g_info.hw_caps->can_ci_delay)
+		ca->SetCIDelay(ZapStart_arg->ci_delay);
 
 	// relevant pids routing
-	for (unsigned int i = 0; i < ca->GetNumberCISlots(); i++) {
-		ca->SetCIRelevantPidsRouting(ZapStart_arg->ci_rpr[i], i);
-	}
+	if (g_info.hw_caps->can_ci_rpr)
+		for (unsigned int i = 0; i < ca->GetNumberCISlots(); i++)
+			ca->SetCIRelevantPidsRouting(ZapStart_arg->ci_rpr[i], i);
 #endif
 
 #if HAVE_LIBSTB_HAL

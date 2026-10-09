@@ -33,6 +33,8 @@
 #include <gui/widget/menue.h>
 #include <string>
 
+extern CMenuOptionChooser::keyval_ext VIDEOMENU_VIDEOMODE_OPTIONS[];
+
 class CFrameBuffer;
 class CVideoSettings : public CMenuWidget, CChangeObserver
 {

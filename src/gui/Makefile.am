@@ -177,12 +177,7 @@ libneutrino_gui_a_SOURCES += \
 	update_ext.cpp
 endif
 
-if BOXTYPE_ARMBOX
-libneutrino_gui_a_SOURCES += \
-	psisetup.cpp
-endif
-
-if BOXTYPE_MIPSBOX
+if !BOXTYPE_CST
 libneutrino_gui_a_SOURCES += \
 	psisetup.cpp
 endif
