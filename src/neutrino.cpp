@@ -171,6 +171,7 @@
 #endif
 #ifdef ENABLE_MPRIS
 #include <system/mpris.h>
+#include <system/trayicon.h>
 #endif
 int old_b_id = -1;
 
@@ -3263,6 +3264,9 @@ TIMER_START();
 #ifdef ENABLE_MPRIS
 	CMprisServer::getInstance()->Start();
 #endif
+#ifdef ENABLE_TRAY
+	CTrayIcon::getInstance()->Start();
+#endif
 
 #ifndef DISABLE_SECTIONSD
 	CSectionsdClient::epg_config config;
@@ -6114,6 +6118,9 @@ void stop_daemons(bool stopall, bool for_flash)
 	}
 #ifdef ENABLE_MPRIS
 	CMprisServer::getInstance()->Stop();
+#endif
+#ifdef ENABLE_TRAY
+	CTrayIcon::getInstance()->Stop();
 #endif
 	printf("streaming shutdown\n");
 	CStreamManager::getInstance()->Stop();

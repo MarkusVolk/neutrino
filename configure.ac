@@ -482,10 +482,20 @@ if test "$enable_mpris" = "yes"; then
 fi
 AM_CONDITIONAL(ENABLE_MPRIS, test "$enable_mpris" = "yes")
 
-if test "$enable_iwd" = "yes" -o "$enable_bluetooth" = "yes" -o "$enable_mpris" = "yes"; then
+AC_ARG_ENABLE(tray,
+	AS_HELP_STRING([--enable-tray], [show an icon in the tray of the desktop, so a window away in standby can be brought back @<:@default=no@:>@]),
+	[enable_tray="$enableval"],
+	[enable_tray="no"])
+
+if test "$enable_tray" = "yes"; then
+	AC_DEFINE(ENABLE_TRAY, 1, [show an icon in the tray of the desktop])
+fi
+AM_CONDITIONAL(ENABLE_TRAY, test "$enable_tray" = "yes")
+
+if test "$enable_iwd" = "yes" -o "$enable_bluetooth" = "yes" -o "$enable_mpris" = "yes" -o "$enable_tray" = "yes"; then
 	PKG_CHECK_MODULES([DBUS], [dbus-1])
 fi
-AM_CONDITIONAL(USE_DBUS, test "$enable_iwd" = "yes" -o "$enable_bluetooth" = "yes" -o "$enable_mpris" = "yes")
+AM_CONDITIONAL(USE_DBUS, test "$enable_iwd" = "yes" -o "$enable_bluetooth" = "yes" -o "$enable_mpris" = "yes" -o "$enable_tray" = "yes")
 
 AC_ARG_ENABLE(terminal,
 	AS_HELP_STRING([--enable-terminal], [run plugins with a text user interface in a terminal on the OSD @<:@default=no@:>@]),

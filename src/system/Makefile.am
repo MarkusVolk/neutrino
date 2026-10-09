@@ -85,6 +85,11 @@ libneutrino_system_a_SOURCES += \
 	mpris.cpp
 endif
 
+if ENABLE_TRAY
+libneutrino_system_a_SOURCES += \
+	trayicon.cpp
+endif
+
 if ENABLE_ASSISTANT
 libneutrino_system_a_SOURCES += \
 	http_request.cpp \
