@@ -268,6 +268,15 @@ CNeutrinoApp::CNeutrinoApp()
 
 	/* this needs to happen before the framebuffer is set up */
 	hal_api_init();
+	/* the display starts in the mode of the saved video system, not in the
+	 * mode it had before and then once more in that one */
+	{
+		CConfigFile saved('\t');
+		int video_mode = get_hwcaps()->video_std_default;
+		if (saved.loadConfig(NEUTRINO_SETTINGS_FILE))
+			video_mode = saved.getInt32("video_Mode", video_mode);
+		hal_set_video_system(video_mode);
+	}
 #endif
 	osd_resolution_tmp        = -1;
 	frameBufferInitialized    = false;
