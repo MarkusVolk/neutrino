@@ -3797,15 +3797,15 @@ void CNeutrinoApp::RealRun()
 				StartSubtitles();
 			}
 			else if (((msg == CRCInput::RC_tv) || (msg == CRCInput::RC_radio)) && (g_settings.key_tvradio_mode == (int)CRCInput::RC_nokey)) {
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
-				if (msg == CRCInput::RC_tv)
+				/* an enigma2 remote: TV and radio switch the mode, or show the info in it */
+				if (g_info.hw_caps->rc_e2_keys && msg == CRCInput::RC_tv)
 				{
 					if (mode == NeutrinoModes::mode_radio || mode == NeutrinoModes::mode_webradio)
 						tvMode();
 					else if (!g_InfoViewer->is_visible)
 						g_RCInput->postMsg(CRCInput::RC_info, 0);
 				}
-				else if (msg == CRCInput::RC_radio)
+				else if (g_info.hw_caps->rc_e2_keys && msg == CRCInput::RC_radio)
 				{
 					if (mode == NeutrinoModes::mode_tv || mode == NeutrinoModes::mode_webtv)
 						radioMode();
@@ -3813,7 +3813,6 @@ void CNeutrinoApp::RealRun()
 						g_RCInput->postMsg(CRCInput::RC_info, 0);
 				}
 				else
-#endif
 					switchTvRadioMode(); //used with defined default tv/radio rc key
 			}
 			/* in case key_subchannel_up/down redefined */
@@ -4689,11 +4688,9 @@ int CNeutrinoApp::handleMsg(const neutrino_msg_t _msg, neutrino_msg_data_t data)
 		if (g_Radiotext)
 			g_Radiotext->setPid(0);
 
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
 		if (!CRecordManager::getInstance()->GetRecordCount()) {
 			CVFD::getInstance()->ShowIcon(FP_ICON_CAM1, false);
 		}
-#endif
 		return messages_return::handled;
 	}
 	else if (msg == NeutrinoMessages::EVT_STREAM_STOP) {
@@ -5519,9 +5516,10 @@ void CNeutrinoApp::standbyMode(bool bOnOff, bool fromDeepStandby)
 		if (FILE *f = fopen("/tmp/.standby", "w"))
 			fclose(f);
 
-#if BOXMODEL_E4HDULTRA
+#if !HAVE_CST_HARDWARE
 		// ensure a blank screen in standby mode
-		videoDecoder->SetControl(VIDEO_CONTROL_ZAPPING_MODE, 2); // force mutetilllock
+		if (g_info.hw_caps->standby_zappingmode_mute)
+			videoDecoder->SetControl(VIDEO_CONTROL_ZAPPING_MODE, 2); // force mutetilllock
 #endif
 
 #ifdef ENABLE_GRAPHLCD
@@ -5615,9 +5613,10 @@ void CNeutrinoApp::standbyMode(bool bOnOff, bool fromDeepStandby)
 		if (cpuFreq)
 			cpuFreq->SetCpuFreq(g_settings.cpufreq * 1000 * 1000);
 
-#if BOXMODEL_E4HDULTRA
+#if !HAVE_CST_HARDWARE
 		// reset to users choice
-		videoDecoder->SetControl(VIDEO_CONTROL_ZAPPING_MODE, g_settings.zappingmode);
+		if (g_info.hw_caps->standby_zappingmode_mute)
+			videoDecoder->SetControl(VIDEO_CONTROL_ZAPPING_MODE, g_settings.zappingmode);
 #endif
 
 		videoDecoder->Standby(false);
@@ -6039,13 +6038,9 @@ int CNeutrinoApp::exec(CMenuTarget* parent, const std::string & actionKey)
 		INFO("blank_screen on");
 		blank_screen = true;
 		frameBuffer->paintBackground(); //clear entire screen
-#if HAVE_ARM_HARDWARE
-		/*
-		   Hack to get sure we have a blank screen.
-		   stopFrame()-function seems not work correctly on ARM_HARDWARE
-		*/
-		frameBuffer->showFrame("blackscreen.jpg");
-#endif
+		/* where stopFrame() leaves a picture, a black frame is drawn first */
+		if (g_info.hw_caps->video_needs_blank_frame)
+			frameBuffer->showFrame("blackscreen.jpg");
 		frameBuffer->stopFrame();
 		videoDecoder->setBlank(blank_screen);
 		returnval = menu_return::RETURN_EXIT_ALL;

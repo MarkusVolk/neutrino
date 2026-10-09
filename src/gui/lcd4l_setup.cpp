@@ -28,6 +28,7 @@
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
+#include <vector>
 #endif
 #include <iostream>
 #include <fstream>
@@ -67,9 +68,7 @@ const CMenuOptionChooser::keyval_ext LCD4L_DISPLAY_TYPE_OPTIONS[] =
 	{ CLCD4l::SAMSUNG800x480,  NONEXISTANT_LOCALE, "800x480 Samsung SPF"},
 	{ CLCD4l::SAMSUNG800x600,  NONEXISTANT_LOCALE, "800x600 Samsung SPF"},
 	{ CLCD4l::SAMSUNG1024x600, NONEXISTANT_LOCALE, "1024x600 Samsung SPF"},
-#if defined BOXMODEL_VUSOLO4K
 	{ CLCD4l::VUSOLO4K480x320, NONEXISTANT_LOCALE, "480x320 VUSolo4K"},
-#endif
 	{ CLCD4l::PNG800x480,      NONEXISTANT_LOCALE, "800x480 PNG"},
 	{ CLCD4l::PNG800x600,      NONEXISTANT_LOCALE, "800x600 PNG"},
 	{ CLCD4l::PNG1024x600,     NONEXISTANT_LOCALE, "1024x600 PNG"}
@@ -190,7 +189,13 @@ int CLCD4lSetup::show()
 
 	lcd4lSetup->addItem(GenericMenuSeparatorLine);
 
-	mc = new CMenuOptionChooser(LOCALE_LCD4L_DISPLAY_TYPE, &temp_lcd4l_display_type, LCD4L_DISPLAY_TYPE_OPTIONS, LCD4L_DISPLAY_TYPE_OPTION_COUNT, true, this, CRCInput::RC_green);
+	/* the box's own 480x320 display is an option where it has one */
+	std::vector<CMenuOptionChooser::keyval_ext> display_types;
+	for (unsigned i = 0; i < LCD4L_DISPLAY_TYPE_OPTION_COUNT; i++)
+		if (LCD4L_DISPLAY_TYPE_OPTIONS[i].key != CLCD4l::VUSOLO4K480x320 ||
+		    (g_info.hw_caps->display_type == HW_DISPLAY_GFX && g_info.hw_caps->display_xres == 480 && g_info.hw_caps->display_yres == 320))
+			display_types.push_back(LCD4L_DISPLAY_TYPE_OPTIONS[i]);
+	mc = new CMenuOptionChooser(LOCALE_LCD4L_DISPLAY_TYPE, &temp_lcd4l_display_type, &display_types[0], display_types.size(), true, this, CRCInput::RC_green);
 	mc->setHint(NEUTRINO_ICON_HINT_LCD4LINUX, LOCALE_MENU_HINT_LCD4L_DISPLAY_TYPE);
 	lcd4lSetup->addItem(mc);
 

@@ -112,15 +112,21 @@ const CMenuOptionChooser::keyval LEDMENU_OPTIONS[LEDMENU_OPTION_COUNT] =
 };
 
 #define LCD_INFO_OPTION_COUNT 2
-const CMenuOptionChooser::keyval LCD_INFO_OPTIONS[LCD_INFO_OPTION_COUNT] =
+/* what the info line shows besides the clock: the channel name, or its number where the display is too small */
+static CMenuOptionChooser::keyval *lcdInfoOptions()
 {
-#if BOXMODEL_H7 || BOXMODEL_BRE2ZE4K
-	{ 0, LOCALE_LCD_INFO_LINE_CHANNELNUMBER },
-#else
-	{ 0, LOCALE_LCD_INFO_LINE_CHANNELNAME },
-#endif
-	{ 1, LOCALE_LCD_INFO_LINE_CLOCK }
-};
+	static const CMenuOptionChooser::keyval by_name[LCD_INFO_OPTION_COUNT] =
+	{
+		{ 0, LOCALE_LCD_INFO_LINE_CHANNELNAME },
+		{ 1, LOCALE_LCD_INFO_LINE_CLOCK }
+	};
+	static const CMenuOptionChooser::keyval by_number[LCD_INFO_OPTION_COUNT] =
+	{
+		{ 0, LOCALE_LCD_INFO_LINE_CHANNELNUMBER },
+		{ 1, LOCALE_LCD_INFO_LINE_CLOCK }
+	};
+	return (CMenuOptionChooser::keyval *)(g_info.hw_caps->display_has_channel_number ? by_number : by_name);
+}
 
 int CVfdSetup::showSetup()
 {
@@ -186,7 +192,7 @@ int CVfdSetup::showSetup()
 
 #ifndef ENABLE_LCD
 		// info line options
-		oj = new CMenuOptionChooser(LOCALE_LCD_INFO_LINE, &g_settings.lcd_info_line, LCD_INFO_OPTIONS, LCD_INFO_OPTION_COUNT, vfd_enabled);
+		oj = new CMenuOptionChooser(LOCALE_LCD_INFO_LINE, &g_settings.lcd_info_line, lcdInfoOptions(), LCD_INFO_OPTION_COUNT, vfd_enabled);
 		oj->setHint("", LOCALE_MENU_HINT_VFD_INFOLINE);
 		vfds->addItem(oj);
 
@@ -218,7 +224,7 @@ int CVfdSetup::showSetup()
 	{
 		// LED NUM info line options
 		CMenuOptionChooser *led_num;
-		led_num = new CMenuOptionChooser(LOCALE_LCD_INFO_LINE, &g_settings.lcd_info_line, LCD_INFO_OPTIONS, LCD_INFO_OPTION_COUNT, vfd_enabled);
+		led_num = new CMenuOptionChooser(LOCALE_LCD_INFO_LINE, &g_settings.lcd_info_line, lcdInfoOptions(), LCD_INFO_OPTION_COUNT, vfd_enabled);
 		led_num->setHint("", LOCALE_MENU_HINT_VFD_INFOLINE);
 		vfds->addItem(led_num);
 	}

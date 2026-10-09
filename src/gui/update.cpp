@@ -77,7 +77,7 @@
 
 #include <cs_api.h>
 
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
+#if !HAVE_CST_HARDWARE
 #include <hardware/video.h>
 extern cVideo *videoDecoder;
 #endif
@@ -91,19 +91,13 @@ extern cVideo *videoDecoder;
 
 #define LIST_OF_UPDATES_LOCAL_FILENAME "update.list"
 
-// TODO: move this mess below to libstb-hal
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
-#define FILEBROWSER_UPDATE_FILTER	"tgz"
-#define MTD_OF_WHOLE_IMAGE		999
-#define MTD_DEVICE_OF_UPDATE_PART	"/dev/mtd999"
-#else
-#define FILEBROWSER_UPDATE_FILTER	"img"
-#define MTD_OF_WHOLE_IMAGE		0
+/* a box flashed with ofgwrite takes a whole image as tgz, the others write a partition */
+#define FILEBROWSER_UPDATE_FILTER	(g_info.hw_caps->can_ofgwrite ? "tgz" : "img")
+#define MTD_OF_WHOLE_IMAGE		(g_info.hw_caps->can_ofgwrite ? 999 : 0)
 #ifdef BOXMODEL_CST_HD2
 #define MTD_DEVICE_OF_UPDATE_PART	"/dev/mtd0"
 #else
-#define MTD_DEVICE_OF_UPDATE_PART	"/dev/mtd3"
-#endif
+#define MTD_DEVICE_OF_UPDATE_PART	(g_info.hw_caps->can_ofgwrite ? "/dev/mtd999" : "/dev/mtd3")
 #endif
 
 int pinghost(const std::string &hostname, std::string *ip = NULL);
@@ -384,13 +378,11 @@ bool CFlashUpdate::selectHttpImage(void)
 		}
 	}
 #endif
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
-	if (gotImage && (filename.substr(filename.find_last_of(".") + 1) == "tgz" || filename.substr(filename.find_last_of(".") + 1) == "zip"))
+	if (g_info.hw_caps->can_ofgwrite && gotImage && (filename.substr(filename.find_last_of(".") + 1) == "tgz" || filename.substr(filename.find_last_of(".") + 1) == "zip"))
 	{
 		// manipulate fileType for tgz- or zip-packages
 		fileType = 'Z';
 	}
-#endif
 	dprintf(DEBUG_NORMAL, "[update] filename %s type %c newVersion %s md5 %s\n", filename.c_str(), fileType, newVersion.c_str(), file_md5.c_str());
 
 	return true;
@@ -451,9 +443,8 @@ bool CFlashUpdate::checkVersion4Update()
 		CFileFilter UpdatesFilter;
 
 		UpdatesFilter.addFilter(FILEBROWSER_UPDATE_FILTER);
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
-		UpdatesFilter.addFilter("zip");
-#endif
+		if (g_info.hw_caps->can_ofgwrite)
+			UpdatesFilter.addFilter("zip");
 
 		std::string filters[] = {"bin", "txt"};
 		for (size_t i = 0; i < sizeof(filters) / sizeof(filters[0]) ; i++)
@@ -620,8 +611,7 @@ int CFlashUpdate::exec(CMenuTarget *parent, const std::string &actionKey)
 		sleep(2);
 		ft.reboot();
 	}
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
-	else if (fileType == 'Z') // flashing image with ofgwrite
+	else if (fileType == 'Z' && g_info.hw_caps->can_ofgwrite) // flashing image with ofgwrite
 	{
 		bool flashing = false;
 		showGlobalStatus(100);
@@ -659,11 +649,9 @@ int CFlashUpdate::exec(CMenuTarget *parent, const std::string &actionKey)
 			bool active = !strcmp(c, to_string(i).c_str());
 			bool enable = true;
 			std::string m_title = "Partition " + to_string(i);
-#if BOXMODEL_VUPLUS_ARM
 			// own partition blocked, because fix needed for flashing own partition
-			if (active)
+			if (active && g_info.hw_caps->multiboot_first_partition)
 				enable = false;
-#endif
 			mf = new CMenuForwarder(m_title, enable, NULL, selector, to_string(i).c_str(), CRCInput::convertDigitToKey(i));
 			mf->iconName_Info_right = active ? NEUTRINO_ICON_MARKER_DIALOG_OK : NULL;
 			m.addItem(mf, active);
@@ -738,7 +726,6 @@ int CFlashUpdate::exec(CMenuTarget *parent, const std::string &actionKey)
 #endif
 		return menu_return::RETURN_EXIT_ALL;
 	}
-#endif
 	else if (fileType == 'T') // not image, display file contents
 	{
 		FILE *fd = fopen(filename.c_str(), "r");

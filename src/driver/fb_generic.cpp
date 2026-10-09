@@ -69,14 +69,12 @@ extern CPictureViewer * g_PicViewer;
 
 void CFrameBuffer::waitForIdle(const char *func)
 {
-#if HAVE_ARM_HARDWARE
 /*
- * On ARM systems (e.g. hd51) we try to wait for
- * vertical sync before critical framebuffer operations
- * to reduce tearing / artifacts while scrolling.
+ * Where the box asks for it (hw_caps->fb_wait_vsync, e.g. hd51) we try to
+ * wait for vertical sync before critical framebuffer operations to reduce
+ * tearing / artifacts while scrolling.
  *
  * This is only used when
- *  - HAVE_ARM_HARDWARE is defined and
  *  - FBIO_WAITFORVSYNC is provided by the kernel and
  *  - NEUTRINO_NO_FB_VSYNC is NOT set.
  */
@@ -87,6 +85,10 @@ void CFrameBuffer::waitForIdle(const char *func)
 		return;
 
 	if (vsync_state == -1) {
+		if (!g_info.hw_caps->fb_wait_vsync) {
+			vsync_state = 0;
+			return;
+		}
 		const char *no_vsync = getenv("NEUTRINO_NO_FB_VSYNC");
 		if (no_vsync && no_vsync[0]) {
 			vsync_state = 0;
@@ -119,7 +121,6 @@ void CFrameBuffer::waitForIdle(const char *func)
 		} else
 			last_wait_ms = now;
 	}
-#endif
 #else
 	(void)func;
 #endif

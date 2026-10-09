@@ -260,7 +260,7 @@ void CFrontend::getFEInfo(void)
 	deliverySystemMask = UNKNOWN_DS;
 	forcedSystemMask = ALL_CABLE|ALL_TERR|ALL_SAT;
 
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
+	/* the enigma2 kernels list the tuners here */
 	std::ifstream in;
 	if (adapter == 0)
 		in.open("/proc/bus/nim_sockets");
@@ -276,24 +276,26 @@ void CFrontend::getFEInfo(void)
 			if ((line.find("Name:") != std::string::npos) && found)
 			{
 				//printf("NIM SOCKET: %s\n", line.substr(line.find_first_of(":") + 2).c_str());
-#if BOXMODEL_VUPLUS_ALL
-				sprintf(info.name,"%s", line.substr(line.find_first_of(":") + 9).c_str());
-				// no hybrid for BCM3466 T2 tuner
-				if (!strncmp(line.substr(line.find_first_of("(") + 1).c_str(), "BCM3466)", 8))
+				if (get_hwcaps()->nim_socket_vuplus_format)
 				{
-					found = false;
-					deliverySystemMask |= DVB_T2;
+					sprintf(info.name,"%s", line.substr(line.find_first_of(":") + 9).c_str());
+					// no hybrid for BCM3466 T2 tuner
+					if (!strncmp(line.substr(line.find_first_of("(") + 1).c_str(), "BCM3466)", 8))
+					{
+						found = false;
+						deliverySystemMask |= DVB_T2;
+					}
 				}
-#else
-				std::string tmp = info.name;
-				sprintf(info.name,"%s (%s)", tmp.c_str(), line.substr(line.find_first_of(":") + 2).c_str());
-#endif
+				else
+				{
+					std::string tmp = info.name;
+					sprintf(info.name,"%s (%s)", tmp.c_str(), line.substr(line.find_first_of(":") + 2).c_str());
+				}
 				break;
 			}
 		}
 	in.close();
 	}
-#endif // HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
 
 #if (DVB_API_VERSION >= 5) && (DVB_API_VERSION_MINOR >= 5)
 	dtv_property prop[1];
@@ -395,9 +397,8 @@ void CFrontend::Init(void)
 	secSetTone(SEC_TONE_OFF, 20);
 	setDiseqcType((diseqc_t) config.diseqcType, true);
 	setTsidOnid(0);
-#if BOXMODEL_E4HDULTRA || BOXMODEL_PROTEK4K
-	secSetVoltage(SEC_VOLTAGE_OFF, 50);
-#endif
+	if (get_hwcaps()->tuner_voltage_off_at_init)
+		secSetVoltage(SEC_VOLTAGE_OFF, 50);
 	mutex.unlock();
 }
 

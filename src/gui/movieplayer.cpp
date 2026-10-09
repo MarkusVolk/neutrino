@@ -3685,16 +3685,11 @@ void CMoviePlayerGui::PlayFileLoop(void)
 			disableOsdElements(NO_MUTE);
 			showHelp();
 			enableOsdElements(NO_MUTE);
-		} else if (msg == CRCInput::RC_info) {
+		} else if (msg == CRCInput::RC_info ||
+			   (g_info.hw_caps->rc_e2_keys && (msg == CRCInput::RC_tv || msg == CRCInput::RC_radio))) {
 			callInfoViewer();
 			update_lcd = true;
 			clearSubtitle();
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
-		} else if (msg == CRCInput::RC_tv || msg == CRCInput::RC_radio) {
-			callInfoViewer();
-			update_lcd = true;
-			clearSubtitle();
-#endif
 		} else if (timeshift != TSHIFT_MODE_OFF && msg == (neutrino_msg_t) g_settings.key_record) {
 			/* keeps the running timeshift as a recording */
 			if (g_settings.recording_type != CNeutrinoApp::RECORDING_OFF)

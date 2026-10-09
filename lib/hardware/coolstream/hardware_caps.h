@@ -92,6 +92,10 @@ typedef struct hw_caps
 	int can_ofgwrite; /* images are flashed with ofgwrite */
 	int can_boxmode; /* boxmode= on the kernel command line */
 	int tuner_needs_setup_menu;
+	int tuner_voltage_off_at_init; /* the LNB voltage goes off after the diseqc setup */
+	int nim_socket_vuplus_format; /* /proc/bus/nim_sockets names the tuner the VU+ way */
+	int multiboot_first_partition; /* mmcblk0p<n> is the first image slot, 0: no such layout */
+	int multiboot_devicetree; /* the slot is read from the device tree */
 } hw_caps_t;
 
 hw_caps_t *get_hwcaps(void);

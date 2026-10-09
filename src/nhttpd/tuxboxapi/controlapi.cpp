@@ -60,48 +60,6 @@ extern cVideo * videoDecoder;
 extern CPlugins *g_Plugins;//for relodplugins
 extern CBouquetManager *g_bouquetManager;
 
-#if HAVE_CST_HARDWARE
-#ifndef RC_DEVICE
-#define RC_DEVICE "/dev/input/nevis_ir"
-#endif
-#ifndef RC_DEVICE_FALLBACK
-#define RC_DEVICE_FALLBACK "/dev/input/event0"
-#endif
-
-#elif BOXMODEL_H7
-#ifndef RC_DEVICE
-#define RC_DEVICE "/dev/input/event2"
-#endif
-#ifndef RC_DEVICE_FALLBACK
-#define RC_DEVICE_FALLBACK "/dev/input/event1"
-#endif
-
-#elif HAVE_GENERIC_HARDWARE
-/* the input FIFO that libstb-hal reads next to the window's own keys */
-#ifndef RC_DEVICE
-#define RC_DEVICE "/tmp/neutrino.input"
-#endif
-#ifndef RC_DEVICE_FALLBACK
-#define RC_DEVICE_FALLBACK "/tmp/neutrino.input"
-#endif
-
-#elif BOXMODEL_MULTIBOX || BOXMODEL_MULTIBOXSE || BOXMODEL_OSMIO4K || BOXMODEL_OSMIO4KPLUS
-#ifndef RC_DEVICE
-#define RC_DEVICE "/dev/input/event0"
-#endif
-#ifndef RC_DEVICE_FALLBACK
-#define RC_DEVICE_FALLBACK "/dev/input/event1"
-#endif
-
-#else
-#ifndef RC_DEVICE
-#define RC_DEVICE "/dev/input/event1"
-#endif
-#ifndef RC_DEVICE_FALLBACK
-#define RC_DEVICE_FALLBACK "/dev/input/event0"
-#endif
-
-#endif
 
 //-----------------------------------------------------------------------------
 //=============================================================================
@@ -1128,11 +1086,11 @@ void CControlAPI::RCEmCGI(CyhookHandler *hh)
 		repeat = atoi(hh->ParamList["repeat"].c_str());
 #endif
 #if 1
-	int evd = open(RC_DEVICE, O_RDWR);
+	int evd = open(g_info.hw_caps->rc_device, O_RDWR);
 	if (evd < 0)
-		evd = open(RC_DEVICE_FALLBACK, O_RDWR);
+		evd = open(g_info.hw_caps->rc_device_fallback, O_RDWR);
 	if (evd < 0) {
-		perror("opening " RC_DEVICE " failed");
+		perror(g_info.hw_caps->rc_device);
 		hh->SendError();
 		return;
 	}

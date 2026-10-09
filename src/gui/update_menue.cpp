@@ -115,16 +115,16 @@ int CSoftwareUpdate::showSoftwareUpdate()
 	mf->setHint("", LOCALE_MENU_HINT_SOFTUPDATE_SETTINGS);
 	softUpdate.addItem(mf);
 
-#if !HAVE_ARM_HARDWARE && !HAVE_MIPS_HARDWARE
-	softUpdate.addItem(GenericMenuSeparatorLine);
-
 	// expert-functions
 	CMenuWidget mtdexpert(LOCALE_FLASHUPDATE_EXPERTFUNCTIONS, NEUTRINO_ICON_UPDATE, width, MN_WIDGET_ID_MTDEXPERT);
-	showSoftwareUpdateExpert(&mtdexpert);
-	mf = new CMenuForwarder(LOCALE_FLASHUPDATE_EXPERTFUNCTIONS, true, NULL, &mtdexpert, NULL, CRCInput::RC_blue);
-	mf->setHint("", LOCALE_MENU_HINT_SOFTUPDATE_EXPERT);
-	softUpdate.addItem(mf);
-#endif
+	if (!g_info.hw_caps->can_ofgwrite)
+	{
+		softUpdate.addItem(GenericMenuSeparatorLine);
+		showSoftwareUpdateExpert(&mtdexpert);
+		mf = new CMenuForwarder(LOCALE_FLASHUPDATE_EXPERTFUNCTIONS, true, NULL, &mtdexpert, NULL, CRCInput::RC_blue);
+		mf->setHint("", LOCALE_MENU_HINT_SOFTUPDATE_EXPERT);
+		softUpdate.addItem(mf);
+	}
 
 	unsigned int nextShortcut = (unsigned int)softUpdate.getNextShortcut();
 

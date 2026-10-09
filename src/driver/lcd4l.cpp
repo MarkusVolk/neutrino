@@ -913,11 +913,9 @@ void CLCD4l::ParseInfo(uint64_t parseID, bool newID, bool firstRun)
 			case PNG1024x600:
 				DisplayType = "PNG" + eol + "1024x600" + eol;
 				break;
-#if defined BOXMODEL_VUSOLO4K
 			case VUSOLO4K480x320:
 				DisplayType = "VUSolo4K" + eol + "480x320" + eol;
 				break;
-#endif
 			case SAMSUNG800x480:
 				DisplayType = "Samsung" + eol + "800x480" + eol;
 				break;

@@ -962,6 +962,9 @@ int CEpgData::show(const t_channel_id channel_id, uint64_t a_id, time_t* a_start
 			g_RCInput->getMsgAbsoluteTimeout( &msg, &data, &timeoutEnd );
 			if ( msg <= CRCInput::RC_MaxRC )
 				timeoutEnd = CRCInput::calcTimeoutEnd(timeout);
+			/* the TV and radio keys of an enigma2 remote close the view like info does */
+			if (g_info.hw_caps->rc_e2_keys && (msg == CRCInput::RC_tv || msg == CRCInput::RC_radio))
+				msg = CRCInput::RC_info;
 
 			scrollCount = medlinecount;
 
@@ -1385,10 +1388,6 @@ int CEpgData::show(const t_channel_id channel_id, uint64_t a_id, time_t* a_start
 					show(channel_id, id, &startzeit, false, call_fromfollowlist);
 				showPos=0;
 				break;
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
-			case CRCInput::CRCInput::RC_tv:
-			case CRCInput::CRCInput::RC_radio:
-#endif
 			case CRCInput::RC_info:
 			case CRCInput::RC_ok:
 			case CRCInput::RC_timeout:

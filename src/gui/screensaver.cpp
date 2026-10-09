@@ -162,13 +162,9 @@ void CScreenSaver::Start()
 		m_viewer->SetAspectRatio(float(4.0 / 3));
 
 	m_viewer->Cleanup();
-#if HAVE_ARM_HARDWARE
-	/*
-	   Hack to get sure we have a blank screen.
-	   stopFrame()-function seems not work correctly on ARM_HARDWARE
-	*/
-	m_frameBuffer->showFrame("blackscreen.jpg");
-#endif
+	/* where stopFrame() leaves a picture, a black frame is drawn first */
+	if (g_info.hw_caps->video_needs_blank_frame)
+		m_frameBuffer->showFrame("blackscreen.jpg");
 #endif
 	m_frameBuffer->stopFrame();
 

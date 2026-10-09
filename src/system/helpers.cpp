@@ -2331,7 +2331,8 @@ int getBoxMode()
 {
 	int boxmode = -1;
 
-#if BOXMODEL_HD51 || BOXMODEL_BRE2ZE4K || BOXMODEL_H7
+	if (!g_info.hw_caps->can_boxmode)
+		return boxmode;
 	FILE *f = fopen("/proc/cmdline", "r");
 	if (f)
 	{
@@ -2345,7 +2346,6 @@ int getBoxMode()
 		}
 		fclose(f);
 	}
-#endif
 
 	return boxmode;
 }
@@ -2354,118 +2354,69 @@ int getActivePartition()
 {
 	int c = -1;
 
-#if BOXMODEL_VUPLUS_ARM
-	FILE *f;
-	f = fopen("/proc/cmdline", "r");
-	if (f)
+	if (g_info.hw_caps->multiboot_first_partition)
 	{
-		char buf[256] = "";
-		while (fgets(buf, sizeof(buf), f) != NULL)
-		{
-#if BOXMODEL_VUUNO4K || BOXMODEL_VUUNO4KSE || BOXMODEL_VUSOLO4K || BOXMODEL_VUULTIMO4K
-			if (strstr(buf, "mmcblk0p5") != NULL)
-			{
-				c = 1;
-				break;
-			}
-			if (strstr(buf, "mmcblk0p7") != NULL)
-			{
-				c = 2;
-				break;
-			}
-			if (strstr(buf, "mmcblk0p9") != NULL)
-			{
-				c = 3;
-				break;
-			}
-			if (strstr(buf, "mmcblk0p11") != NULL)
-			{
-				c = 4;
-				break;
-			}
-#elif BOXMODEL_VUZERO4K
-			if (strstr(buf, "mmcblk0p8") != NULL)
-			{
-				c = 1;
-				break;
-			}
-			if (strstr(buf, "mmcblk0p10") != NULL)
-			{
-				c = 2;
-				break;
-			}
-			if (strstr(buf, "mmcblk0p12") != NULL)
-			{
-				c = 3;
-				break;
-			}
-			if (strstr(buf, "mmcblk0p14") != NULL)
-			{
-				c = 4;
-				break;
-			}
-#elif BOXMODEL_VUDUO4K
-			if (strstr(buf, "mmcblk0p10") != NULL)
-			{
-				c = 1;
-				break;
-			}
-			if (strstr(buf, "mmcblk0p12") != NULL)
-			{
-				c = 2;
-				break;
-			}
-			if (strstr(buf, "mmcblk0p14") != NULL)
-			{
-				c = 3;
-				break;
-			}
-			if (strstr(buf, "mmcblk0p16") != NULL)
-			{
-				c = 4;
-				break;
-			}
-#endif
-		}
-		fclose(f);
-	}
-#elif BOXMODEL_HD51 || BOXMODEL_BRE2ZE4K || BOXMODEL_H7 || BOXMODEL_E4HDULTRA || BOXMODEL_PROTEK4K || BOXMODEL_HD60 || BOXMODEL_HD61 || BOXMODEL_MULTIBOX || BOXMODEL_MULTIBOXSE || BOXMODEL_OSMIO4K || BOXMODEL_OSMIO4KPLUS
-	FILE *f;
-	// first check for subdirboot layout
-	f = fopen("/sys/firmware/devicetree/base/chosen/bootargs", "r");
-	if (f)
-	{
-		char line[1024];
-		char *p;
-		if (fgets(line, sizeof(line), f) != NULL)
-		{
-			p = strtok(line, " =");
-			while (p != NULL)
-			{
-				if (strncmp("linuxrootfs", p, 11) == 0)
-				{
-					c = atoi(p + 11);
-					break;
-				}
-				p = strtok(NULL, " =");
-			}
-		}
-		fclose(f);
-	}
-	// then check for classic layout
-	if (c < 0)
-	{
-		f = fopen("/sys/firmware/devicetree/base/chosen/kerneldev", "r");
+		/* the image slots sit on every second partition from the first one on */
+		FILE *f = fopen("/proc/cmdline", "r");
 		if (f)
 		{
-			if (fseek(f, -2, SEEK_END) == 0)
+			char buf[256] = "";
+			while (fgets(buf, sizeof(buf), f) != NULL)
 			{
-				c = (int)fgetc(f);
+				for (int slot = 1; slot <= 4; slot++)
+				{
+					char part[32];
+					snprintf(part, sizeof(part), "mmcblk0p%d", g_info.hw_caps->multiboot_first_partition + 2 * (slot - 1));
+					if (strstr(buf, part) != NULL)
+					{
+						c = slot;
+						break;
+					}
+				}
+				if (c > 0)
+					break;
 			}
 			fclose(f);
 		}
 	}
-#endif
+	else if (g_info.hw_caps->multiboot_devicetree)
+	{
+		FILE *f;
+		// first check for subdirboot layout
+		f = fopen("/sys/firmware/devicetree/base/chosen/bootargs", "r");
+		if (f)
+		{
+			char line[1024];
+			char *p;
+			if (fgets(line, sizeof(line), f) != NULL)
+			{
+				p = strtok(line, " =");
+				while (p != NULL)
+				{
+					if (strncmp("linuxrootfs", p, 11) == 0)
+					{
+						c = atoi(p + 11);
+						break;
+					}
+					p = strtok(NULL, " =");
+				}
+			}
+			fclose(f);
+		}
+		// then check for classic layout
+		if (c < 0)
+		{
+			f = fopen("/sys/firmware/devicetree/base/chosen/kerneldev", "r");
+			if (f)
+			{
+				if (fseek(f, -2, SEEK_END) == 0)
+				{
+					c = (int)fgetc(f);
+				}
+				fclose(f);
+			}
+		}
+	}
 
 	return c;
 }

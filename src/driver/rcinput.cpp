@@ -197,13 +197,14 @@ void CRCInput::open(bool recheck)
 
 	struct in_dev id;
 
-#if !HAVE_GENERIC_HARDWARE
-	DIR *dir;
-	dir = opendir("/dev/input");
-	if (! dir) {
+	/* a desktop keeps its input devices for itself, the window brings the keys */
+	DIR *dir = g_info.hw_caps->rc_scan_evdev ? opendir("/dev/input") : NULL;
+	if (g_info.hw_caps->rc_scan_evdev && !dir) {
 		printf("[rcinput:%s] opendir failed: %m\n", __func__);
 		return;
 	}
+	if (dir)
+	{
 	unsigned long evbit;
 	struct dirent *dentry;
 	while ((dentry = readdir(dir)) != NULL)
@@ -245,8 +246,9 @@ void CRCInput::open(bool recheck)
 		printf("[rcinput:%s] opened %s (fd %d) ev 0x%lx\n", __func__, id.path.c_str(), id.fd, evbit);
 		indev.push_back(id);
 	}
-	closedir(dir);
-#endif
+	if (dir)
+		closedir(dir);
+	}
 	id.path = "/tmp/neutrino.input";
 	if (! checkpath(id)) {
 		id.fd = ::open(id.path.c_str(), O_RDWR|O_NONBLOCK|O_CLOEXEC);
@@ -1376,10 +1378,8 @@ void CRCInput::getMsg_us(neutrino_msg_t * msg, neutrino_msg_data_t * data, uint6
 					now_pressed -= (t2.tv_usec + t2.tv_sec * 1000000ULL);
 				}
 				SHTDCNT::getInstance()->resetSleepTimer();
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
-				if ((ev.code == 0 || ev.code == 1) && ev.value && firstKey)
+				if (g_info.hw_caps->rc_e2_keys && (ev.code == 0 || ev.code == 1) && ev.value && firstKey)
 					continue;
-#endif
 				if (ev.value && firstKey) {
 					firstKey = false;
 					CTimerManager::getInstance()->cancelShutdownOnWakeup();
@@ -1816,18 +1816,24 @@ int CRCInput::translate(int code)
 			return RC_page_up;
 		case KEY_CHANNELDOWN:
 			return RC_page_down;
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
-		case KEY_TV2:
-			return RC_tv;
-		case KEY_SWITCHVIDEOMODE:
-			return RC_mode;
-		case KEY_FASTFORWARD:
-			return RC_forward;
-		case 0xb0: // vuplus timer key
-			return RC_timer;
-#endif
 		default:
 			break;
+	}
+	if (g_info.hw_caps->rc_e2_keys)
+	{
+		switch(code)
+		{
+			case KEY_TV2:
+				return RC_tv;
+			case KEY_SWITCHVIDEOMODE:
+				return RC_mode;
+			case KEY_FASTFORWARD:
+				return RC_forward;
+			case 0xb0: // vuplus timer key
+				return RC_timer;
+			default:
+				break;
+		}
 	}
 	if ((code >= 0) && (code <= KEY_MAX))
 		return code;
@@ -1849,20 +1855,25 @@ int CRCInput::translate_revert(int code)
 			return KEY_CHANNELUP;
 		case RC_page_down:
 			return KEY_CHANNELDOWN;
-#ifdef HAVE_ARM_HARDWARE
-		case RC_tv:
-			return KEY_TV2;
-		case RC_mode:
-			return KEY_SWITCHVIDEOMODE;
-		case RC_forward:
-			return KEY_FASTFORWARD;
-		case RC_play:
-		case RC_pause:
-			return KEY_PLAYPAUSE;
-#endif
 		default:
 			break;
 	}
+	if (g_info.hw_caps->rc_e2_keys)
+	{
+		switch(code)
+		{
+			case RC_tv:
+				return KEY_TV2;
+			case RC_mode:
+				return KEY_SWITCHVIDEOMODE;
+			case RC_forward:
+				return KEY_FASTFORWARD;
+			default:
+				break;
+		}
+	}
+	if (g_info.hw_caps->rc_has_playpause && (code == RC_play || code == RC_pause))
+		return KEY_PLAYPAUSE;
 	return code;
 }
 
