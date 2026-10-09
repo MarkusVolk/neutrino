@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <dirent.h>
+#include <time.h>
 #include <string>
 #include <set>
 #include <system/helpers.h>
@@ -453,6 +454,21 @@ bool readEventsFromFile(std::string &epgname, int &ev_count)
 	return true;
 }
 
+/* an XMLTV time, "20261009053000 +0200", as seconds since the epoch */
+static time_t xmltvTime(const char *s)
+{
+	struct tm t;
+	char sign = '+';
+	int offset_h = 0, offset_m = 0;
+	memset(&t, 0, sizeof(t));
+	if (!s || sscanf(s, "%04d%02d%02d%02d%02d%02d %c%02d%02d", &t.tm_year, &t.tm_mon, &t.tm_mday,
+			 &t.tm_hour, &t.tm_min, &t.tm_sec, &sign, &offset_h, &offset_m) < 6)
+		return 0;
+	t.tm_year -= 1900;
+	t.tm_mon -= 1;
+	return timegm(&t) - (sign == '-' ? -1 : 1) * (offset_h * 3600 + offset_m * 60);
+}
+
 bool readEventsFromXMLTV(std::string &epgname, int &ev_count, bool delete_after)
 {
 	xmlDocPtr event_parser = NULL;
@@ -483,27 +499,9 @@ bool readEventsFromXMLTV(std::string &epgname, int &ev_count, bool delete_after)
 		const char *start = xmlGetAttribute(programme, "start");
 		const char *stop  = xmlGetAttribute(programme, "stop");
 
-		struct tm starttime, stoptime;
-#ifdef BOXMODEL_CST_HD2
-		char sign;
-		int offset_h;
-		int offset_m;
-		sscanf(start, "%04d%02d%02d%02d%02d%02d %c%02d%02d", &(starttime.tm_year), &(starttime.tm_mon), &(starttime.tm_mday), &(starttime.tm_hour), &(starttime.tm_min), &(starttime.tm_sec), &sign, &offset_h, &offset_m);
-		starttime.tm_year -= 1900;
-		starttime.tm_mon -= 1;
-		starttime.tm_isdst = -1;
-		starttime.tm_gmtoff = (sign == '-' ? -1 : 1) * (offset_h*60*60 + offset_m*60);
-		sscanf(stop, "%04d%02d%02d%02d%02d%02d %c%02d%02d", &(stoptime.tm_year), &(stoptime.tm_mon), &(stoptime.tm_mday), &(stoptime.tm_hour), &(stoptime.tm_min), &(stoptime.tm_sec), &sign, &offset_h, &offset_m);
-		stoptime.tm_year -= 1900;
-		stoptime.tm_mon -= 1;
-		stoptime.tm_isdst = -1;
-		stoptime.tm_gmtoff = (sign == '-' ? -1 : 1) * (offset_h*60*60 + offset_m*60);
-#else
-		strptime(start, "%Y%m%d%H%M%S %z", &starttime);
-		strptime(stop, "%Y%m%d%H%M%S %z", &stoptime);
-#endif
-		time_t start_time = mktime(&starttime) + starttime.tm_gmtoff;
-		time_t duration = mktime(&stoptime) + stoptime.tm_gmtoff - start_time;
+		/* XMLTV gives the time of day with its offset to UTC */
+		time_t start_time = xmltvTime(start);
+		time_t duration = xmltvTime(stop) - start_time;
 
 		t_channel_id epgid = 0;
 		time_t current_time;
