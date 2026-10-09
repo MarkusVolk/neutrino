@@ -92,7 +92,7 @@ int CPowerOffMenu::exec(CMenuTarget *parent, const std::string &actionKey)
 		int p = g_settings.power_off_selected;
 		if (p == 0 && CNeutrinoApp::getInstance()->getMode() != NeutrinoModes::mode_standby)
 			return exec(parent, "standby");
-		if (p == 2)
+		if (p == 2 && g_info.hw_caps->can_shutdown)
 			return exec(parent, "reboot");
 		if (g_info.hw_caps->can_shutdown)	// p==1, or standby not available here
 			return exec(parent, "shutdown");
@@ -117,12 +117,15 @@ int CPowerOffMenu::exec(CMenuTarget *parent, const std::string &actionKey)
 	fw_sleep->setHint(NEUTRINO_ICON_HINT_SLEEPTIMER, LOCALE_MENU_HINT_SLEEPTIMER);
 	m.addItem(fw_sleep);
 
-	// --- Reboot – RC_yellow ---
-	const char *marker_reboot = (g_settings.power_off_selected == 2) ? NEUTRINO_ICON_BUTTON_POWER : NULL;
-	CMenuForwarder *fw_reboot = new CMenuForwarder(LOCALE_MAINMENU_REBOOT,
-		true, NULL, this, "reboot", CRCInput::RC_yellow, NULL, marker_reboot);
-	fw_reboot->setHint(NEUTRINO_ICON_HINT_REBOOT, LOCALE_MENU_HINT_REBOOT);
-	m.addItem(fw_reboot);
+	// --- Reboot – RC_yellow --- a box only, a desktop restarts itself
+	if (g_info.hw_caps->can_shutdown)
+	{
+		const char *marker_reboot = (g_settings.power_off_selected == 2) ? NEUTRINO_ICON_BUTTON_POWER : NULL;
+		CMenuForwarder *fw_reboot = new CMenuForwarder(LOCALE_MAINMENU_REBOOT,
+			true, NULL, this, "reboot", CRCInput::RC_yellow, NULL, marker_reboot);
+		fw_reboot->setHint(NEUTRINO_ICON_HINT_REBOOT, LOCALE_MENU_HINT_REBOOT);
+		m.addItem(fw_reboot);
+	}
 
 	// --- Standby – RC_green ---
 	// Only shown when not already in standby mode.

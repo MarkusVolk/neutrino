@@ -257,11 +257,14 @@ void CNeutrinoApp::InitMenuMain()
 	personalize.addItem(MENU_MAIN, mf, &g_settings.personalize[SNeutrinoSettings::P_MAIN_SLEEPTIMER],
 		false, CPersonalizeGui::PERSONALIZE_SHOW_AS_ITEM_OPTION, poweroff_menu);
 
-	// reboot
-	mf = new CMenuForwarder(LOCALE_MAINMENU_REBOOT, true, NULL, this, "reboot");
-	mf->setHint(NEUTRINO_ICON_HINT_REBOOT, LOCALE_MENU_HINT_REBOOT);
-	personalize.addItem(MENU_MAIN, mf, &g_settings.personalize[SNeutrinoSettings::P_MAIN_REBOOT],
-		false, CPersonalizeGui::PERSONALIZE_SHOW_AS_ITEM_OPTION, poweroff_menu);
+	// reboot - a box only, a desktop restarts itself
+	if (g_info.hw_caps->can_shutdown)
+	{
+		mf = new CMenuForwarder(LOCALE_MAINMENU_REBOOT, true, NULL, this, "reboot");
+		mf->setHint(NEUTRINO_ICON_HINT_REBOOT, LOCALE_MENU_HINT_REBOOT);
+		personalize.addItem(MENU_MAIN, mf, &g_settings.personalize[SNeutrinoSettings::P_MAIN_REBOOT],
+			false, CPersonalizeGui::PERSONALIZE_SHOW_AS_ITEM_OPTION, poweroff_menu);
+	}
 
 	// standby (legacy / master parity) - shown when the power menu is hidden (anchored to poweroff_menu)
 	mf = new CMenuForwarder(LOCALE_MAINMENU_STANDBY, true, NULL, this, "standby");
@@ -272,11 +275,14 @@ void CNeutrinoApp::InitMenuMain()
 	// shutdown direct (legacy) - master parity: carries the same RC_standby DirectKey (+ auto power
 	// icon). Active only when the power menu is hidden (observer-anchor); the menu loop skips the
 	// then-inactive poweroff_menu and routes RC_standby here, so icon+key appear exactly in legacy mode.
-	mf = new CMenuForwarder(LOCALE_MAINMENU_SHUTDOWN, true, NULL, new CPowerOffDirect(), NULL,
-		CRCInput::RC_standby);
-	mf->setHint(NEUTRINO_ICON_HINT_SHUTDOWN, LOCALE_MENU_HINT_SHUTDOWN);
-	personalize.addItem(MENU_MAIN, mf, &g_settings.personalize[SNeutrinoSettings::P_MAIN_SHUTDOWN],
-		false, CPersonalizeGui::PERSONALIZE_SHOW_AS_ITEM_OPTION, poweroff_menu);
+	if (g_info.hw_caps->can_shutdown)
+	{
+		mf = new CMenuForwarder(LOCALE_MAINMENU_SHUTDOWN, true, NULL, new CPowerOffDirect(), NULL,
+			CRCInput::RC_standby);
+		mf->setHint(NEUTRINO_ICON_HINT_SHUTDOWN, LOCALE_MENU_HINT_SHUTDOWN);
+		personalize.addItem(MENU_MAIN, mf, &g_settings.personalize[SNeutrinoSettings::P_MAIN_SHUTDOWN],
+			false, CPersonalizeGui::PERSONALIZE_SHOW_AS_ITEM_OPTION, poweroff_menu);
+	}
 	// separator
 	personalize.addSeparator(MENU_MAIN);
 
