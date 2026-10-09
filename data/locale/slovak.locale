@@ -1305,6 +1305,7 @@ mainmenu.movieplayer Prehrávač filmov
 mainmenu.pausesectionsd Načítavanie EPG
 mainmenu.pictureviewer Prehliadač obrázkov
 mainmenu.poweroff_menu Vypnutie
+mainmenu.quit Ukončiť
 mainmenu.radiomode Rádio
 mainmenu.reboot Reštartovať
 mainmenu.recording Nahrávanie
@@ -1746,6 +1747,7 @@ menu.hint_progressbar_timescale_red Výber množstva červenej vo farebnosti inf
 menu.hint_progressbar_timescale_yellow Výber množstva žltej vo farebnosti infobaru
 menu.hint_protection Ochrana obsahu PIN kódom\nVýchodzí PIN 0000
 menu.hint_quadpip Aktivácia QuadPiP
+menu.hint_quit Ukončí Neutrino, pracovná plocha beží ďalej
 menu.hint_radiomode Prepne prijímač do režimu Rádio
 menu.hint_reboot Reštartovanie zariadenia - bez potvrdzovania
 menu.hint_record_already_found_check Kontroly pred nastavením nového časovača nahrávania v prípade, že titulný titul už existuje

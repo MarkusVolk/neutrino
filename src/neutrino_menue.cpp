@@ -280,9 +280,14 @@ void CNeutrinoApp::InitMenuMain()
 		mf = new CMenuForwarder(LOCALE_MAINMENU_SHUTDOWN, true, NULL, new CPowerOffDirect(), NULL,
 			CRCInput::RC_standby);
 		mf->setHint(NEUTRINO_ICON_HINT_SHUTDOWN, LOCALE_MENU_HINT_SHUTDOWN);
-		personalize.addItem(MENU_MAIN, mf, &g_settings.personalize[SNeutrinoSettings::P_MAIN_SHUTDOWN],
-			false, CPersonalizeGui::PERSONALIZE_SHOW_AS_ITEM_OPTION, poweroff_menu);
 	}
+	else
+	{
+		mf = new CMenuForwarder(LOCALE_MAINMENU_QUIT, true, NULL, new CPowerOffDirect());
+		mf->setHint(NEUTRINO_ICON_HINT_SHUTDOWN, LOCALE_MENU_HINT_QUIT);
+	}
+	personalize.addItem(MENU_MAIN, mf, &g_settings.personalize[SNeutrinoSettings::P_MAIN_SHUTDOWN],
+		false, CPersonalizeGui::PERSONALIZE_SHOW_AS_ITEM_OPTION, poweroff_menu);
 	// separator
 	personalize.addSeparator(MENU_MAIN);
 

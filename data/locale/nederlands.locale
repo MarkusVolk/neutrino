@@ -1305,6 +1305,7 @@ mainmenu.movieplayer Videospeler
 mainmenu.pausesectionsd Lees EPG
 mainmenu.pictureviewer Afbeeldingen
 mainmenu.poweroff_menu Uitschakelen
+mainmenu.quit Afsluiten
 mainmenu.radiomode Radio mode
 mainmenu.reboot Herstart systeem
 mainmenu.recording Opnemen
@@ -1746,6 +1747,7 @@ menu.hint_progressbar_timescale_red Selecteer het rode deel van gekleurde voortg
 menu.hint_progressbar_timescale_yellow Selecteer het gele deel van gekleurde voortgangsbalks
 menu.hint_protection Bescherm content met een pincode\nDe standaard pincode is 0000.
 menu.hint_quadpip QuadPiP activeren
+menu.hint_quit Sluit Neutrino af, de desktop blijft draaien
 menu.hint_radiomode Schakel de ontvanger in radio modus.
 menu.hint_reboot Herstart de ontvanger \n zonder bevestiging.
 menu.hint_record_already_found_check Controleert bij een nieuwe opnametimer of een gelijknamige titel al bestaat

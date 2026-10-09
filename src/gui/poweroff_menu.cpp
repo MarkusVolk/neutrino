@@ -60,7 +60,7 @@ int CPowerOffMenu::exec(CMenuTarget *parent, const std::string &actionKey)
 	if (actionKey == "shutdown")
 	{
 		g_settings.power_off_selected = 1;
-		g_RCInput->postMsg(NeutrinoMessages::SHUTDOWN, 0);
+		g_RCInput->postMsg(g_info.hw_caps->can_shutdown ? NeutrinoMessages::SHUTDOWN : NeutrinoMessages::EXIT, 0);
 		return menu_return::RETURN_EXIT_ALL;
 	}
 	if (actionKey == "reboot")
@@ -94,7 +94,7 @@ int CPowerOffMenu::exec(CMenuTarget *parent, const std::string &actionKey)
 			return exec(parent, "standby");
 		if (p == 2 && g_info.hw_caps->can_shutdown)
 			return exec(parent, "reboot");
-		if (g_info.hw_caps->can_shutdown)	// p==1, or standby not available here
+		if (p == 1 || g_info.hw_caps->can_shutdown)	// p==1, or standby not available here
 			return exec(parent, "shutdown");
 		return exec(parent, "standby");
 	}
@@ -138,13 +138,12 @@ int CPowerOffMenu::exec(CMenuTarget *parent, const std::string &actionKey)
 		m.addItem(fw);
 	}
 
-	// --- Deep-Standby / Shutdown – RC_red ---
-	if (g_info.hw_caps->can_shutdown)
+	// --- Deep-Standby / Shutdown – RC_red --- on a desktop the program ends instead
 	{
 		const char *marker = (g_settings.power_off_selected == 1) ? NEUTRINO_ICON_BUTTON_POWER : NULL;
-		CMenuForwarder *fw = new CMenuForwarder(LOCALE_MAINMENU_SHUTDOWN,
+		CMenuForwarder *fw = new CMenuForwarder(g_info.hw_caps->can_shutdown ? LOCALE_MAINMENU_SHUTDOWN : LOCALE_MAINMENU_QUIT,
 			true, NULL, this, "shutdown", CRCInput::RC_red, NULL, marker);
-		fw->setHint(NEUTRINO_ICON_HINT_SHUTDOWN, LOCALE_MENU_HINT_SHUTDOWN);
+		fw->setHint(NEUTRINO_ICON_HINT_SHUTDOWN, g_info.hw_caps->can_shutdown ? LOCALE_MENU_HINT_SHUTDOWN : LOCALE_MENU_HINT_QUIT);
 		std::string rec_opt = recordingProtectionOption();
 		if (!rec_opt.empty())
 			fw->setOption(rec_opt);
@@ -195,7 +194,8 @@ int CPowerOffMenu::exec(CMenuTarget *parent, const std::string &actionKey)
 			{
 				if (strcmp(name, g_Locale->getText(LOCALE_MAINMENU_STANDBY))  == 0)
 					g_settings.power_off_selected = 0;
-				else if (strcmp(name, g_Locale->getText(LOCALE_MAINMENU_SHUTDOWN)) == 0)
+				else if (strcmp(name, g_Locale->getText(LOCALE_MAINMENU_SHUTDOWN)) == 0 ||
+					 strcmp(name, g_Locale->getText(LOCALE_MAINMENU_QUIT)) == 0)
 					g_settings.power_off_selected = 1;
 				else if (strcmp(name, g_Locale->getText(LOCALE_MAINMENU_REBOOT))   == 0)
 					g_settings.power_off_selected = 2;
@@ -213,7 +213,7 @@ int CPowerOffMenu::exec(CMenuTarget *parent, const std::string &actionKey)
 
 int CPowerOffDirect::exec(CMenuTarget * /*parent*/, const std::string & /*actionKey*/)
 {
-	g_RCInput->postMsg(NeutrinoMessages::SHUTDOWN, 0);
+	g_RCInput->postMsg(g_info.hw_caps->can_shutdown ? NeutrinoMessages::SHUTDOWN : NeutrinoMessages::EXIT, 0);
 	return menu_return::RETURN_EXIT_ALL;
 }
 
