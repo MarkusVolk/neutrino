@@ -67,10 +67,7 @@ extern cVideo *videoDecoder;
 #include <gui/channellist.h>
 #include <gui/movieplayer.h>
 #include <zapit/zapit.h>
-#if HAVE_GENERIC_HARDWARE
-#include <glfb.h>
-extern GLFramebuffer *glfb;
-#endif
+#include <init.h>
 #include <gui/lua/luainstance.h>
 
 extern CPlugins *g_Plugins;
@@ -440,17 +437,11 @@ int CPlugins::startFullscreenPlugin(int number)
 	CMoviePlayerGui::getInstance().stopPlayBack();
 	g_Zapit->lockPlayBack();
 	frameBuffer->Lock();
-#if HAVE_GENERIC_HARDWARE
-	if (glfb)
-		glfb->suspend();
-#endif
+	hal_display_suspend();
 
 	my_system(2, "/bin/sh", script);
 
-#if HAVE_GENERIC_HARDWARE
-	if (glfb)
-		glfb->resume();
-#endif
+	hal_display_resume();
 	frameBuffer->Unlock();
 	frameBuffer->paintBackground();
 	frameBuffer->blit();

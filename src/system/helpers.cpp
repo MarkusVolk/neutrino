@@ -731,10 +731,8 @@ bool exec_controlscript(std::string script, std::string command)
 
 bool exec_initscript(std::string script, std::string command, std::string system_command)
 {
-#if HAVE_GENERIC_HARDWARE
 	if (getuid())
 		dprintf(DEBUG_NORMAL, "[helpers] [%s - %d] WARNING: current user is not root!\n", __func__, __LINE__);
-#endif
 
 	if (system_command.empty())
 		system_command = "service";

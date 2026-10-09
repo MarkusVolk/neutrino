@@ -1576,7 +1576,7 @@ static bool doNtpTimeSync(void)
 
 void CTimeThread::run()
 {
-#if HAVE_GENERIC_HARDWARE
+	/* without root the time is the system's business */
 	if (getuid()){
 		debug(DEBUG_NORMAL, "Set Neutrino time from system (PC). You are not root.");
 		struct timeval tv;
@@ -1584,7 +1584,6 @@ void CTimeThread::run()
 		sendTimeEvent(0, tv.tv_sec);
 		return;
 	}
-#endif
 
 	time_t dvb_time = 0;
 	bool retry = false; /* if time seems fishy, set to true and try again */

@@ -2697,7 +2697,7 @@ bool CMoviePlayerGui::PlayBackgroundStart(const std::string &file, const std::st
 
 /* what the live stream has read ahead of its picture: a web channel's
  * playback, or the live TV session of generic hardware */
-#if HAVE_GENERIC_HARDWARE
+#if !HAVE_CST_HARDWARE
 static int liveBufferedMs(cPlayback *playback, bool webtv)
 {
 	if (webtv)
@@ -2709,7 +2709,9 @@ static int liveBufferedMs(cPlayback *playback, bool webtv)
 bool CMoviePlayerGui::HoldLive()
 {
 	bool ok = false;
-#if HAVE_GENERIC_HARDWARE
+#if !HAVE_CST_HARDWARE
+	if (!g_info.hw_caps->can_live_pause)
+		return false;
 	mutex.lock();
 	bool webtv = webtv_started;
 	if (webtv && playback) {
@@ -2735,7 +2737,7 @@ bool CMoviePlayerGui::HoldLive()
 bool CMoviePlayerGui::ResumeLive()
 {
 	bool ok = false;
-#if HAVE_GENERIC_HARDWARE
+#if !HAVE_CST_HARDWARE
 	mutex.lock();
 	if (live_held && liveBufferedMs(playback, live_held_webtv) + 10000 >= live_hold_buffer_ms + LiveHeldFor()) {
 		if (live_held_webtv && webtv_started && playback) {
@@ -2762,7 +2764,9 @@ int CMoviePlayerGui::LiveHeldFor()
  * opens as it always did. */
 int CMoviePlayerGui::LiveDelay()
 {
-#if HAVE_GENERIC_HARDWARE
+#if !HAVE_CST_HARDWARE
+	if (!g_info.hw_caps->can_live_pause)
+		return -1;
 	if (live_held)
 		return live_hold_buffer_ms + LiveHeldFor();
 	return liveBufferedMs(playback, webtv_started);

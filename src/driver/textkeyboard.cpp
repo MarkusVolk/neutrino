@@ -34,10 +34,7 @@
 
 #include <driver/textkeyboard.h>
 
-#if HAVE_GENERIC_HARDWARE
-#include <glfb.h>
-extern GLFramebuffer *glfb;
-#endif
+#include <init.h>
 
 /* the layout switched to last, for the next keyboard and the next dialog */
 static xkb_layout_index_t layoutIndex = 0;
@@ -116,10 +113,8 @@ void CTextKeyboard::open()
 		return;
 	opened = true;
 	pending.clear();
-#if HAVE_GENERIC_HARDWARE
-	if (glfb && pipe2(pipefd, O_CLOEXEC | O_NONBLOCK) == 0)
-		glfb->setTerminalFd(pipefd[1]);
-#endif
+	if (pipe2(pipefd, O_CLOEXEC | O_NONBLOCK) == 0)
+		hal_set_terminal_fd(pipefd[1]);
 	openKeyboards();
 }
 
@@ -128,10 +123,8 @@ void CTextKeyboard::close()
 	if (!opened)
 		return;
 	opened = false;
-#if HAVE_GENERIC_HARDWARE
-	if (glfb && pipefd[1] >= 0)
-		glfb->setTerminalFd(-1);
-#endif
+	if (pipefd[1] >= 0)
+		hal_set_terminal_fd(-1);
 	if (pipefd[0] >= 0)
 		::close(pipefd[0]);
 	if (pipefd[1] >= 0)
@@ -316,7 +309,6 @@ void CTextKeyboard::readKeyboards()
 	}
 }
 
-#if HAVE_GENERIC_HARDWARE
 static uint32_t keysym(uint32_t code, uint32_t mods)
 {
 	switch (code)
@@ -324,7 +316,7 @@ static uint32_t keysym(uint32_t code, uint32_t mods)
 		case KEY_ENTER:		return XKB_KEY_Return;
 		case KEY_ESC:		return XKB_KEY_Escape;
 		case KEY_BACKSPACE:	return XKB_KEY_BackSpace;
-		case KEY_TAB:		return (mods & GLFB_MOD_SHIFT) ? XKB_KEY_ISO_Left_Tab : XKB_KEY_Tab;
+		case KEY_TAB:		return (mods & HAL_MOD_SHIFT) ? XKB_KEY_ISO_Left_Tab : XKB_KEY_Tab;
 		case KEY_UP:		return XKB_KEY_Up;
 		case KEY_DOWN:		return XKB_KEY_Down;
 		case KEY_LEFT:		return XKB_KEY_Left;
@@ -350,24 +342,22 @@ static uint32_t keysym(uint32_t code, uint32_t mods)
 		default:		return XKB_KEY_NoSymbol;
 	}
 }
-#endif
 
 /* the keyboard of the window, typed characters from libstb-hal */
 void CTextKeyboard::readWindow()
 {
-#if HAVE_GENERIC_HARDWARE
 	if (pipefd[0] < 0)
 		return;
-	struct glfb_term_key g;
+	struct hal_term_key g;
 	while (::read(pipefd[0], &g, sizeof(g)) == sizeof(g))
 	{
 		struct text_key k;
 		memset(&k, 0, sizeof(k));
-		if (g.mods & GLFB_MOD_SHIFT)
+		if (g.mods & HAL_MOD_SHIFT)
 			k.mods |= TEXT_KEY_SHIFT;
-		if (g.mods & GLFB_MOD_CTRL)
+		if (g.mods & HAL_MOD_CTRL)
 			k.mods |= TEXT_KEY_CTRL;
-		if (g.mods & GLFB_MOD_ALT)
+		if (g.mods & HAL_MOD_ALT)
 			k.mods |= TEXT_KEY_ALT;
 		if (g.code)
 		{
@@ -383,7 +373,6 @@ void CTextKeyboard::readWindow()
 		}
 		pending.push_back(k);
 	}
-#endif
 }
 
 bool CTextKeyboard::read(struct text_key &key)
