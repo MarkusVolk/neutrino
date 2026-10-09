@@ -78,14 +78,11 @@ const CMenuOptionChooser::keyval OPTIONS_CI_MODE_OPTIONS[] =
 
 static const CMenuOptionChooser::keyval CI_CLOCK_OPTIONS[] = {
 	{  6, LOCALE_CI_CLOCK_NORMAL },
-	{  7, LOCALE_CI_CLOCK_HIGH }
-#if BOXMODEL_VUPLUS_ALL
-	,{ 12, LOCALE_CI_CLOCK_EXTRA_HIGH }
-#endif
+	{  7, LOCALE_CI_CLOCK_HIGH },
+	{ 12, LOCALE_CI_CLOCK_EXTRA_HIGH }
 };
-#define CI_CLOCK_OPTION_COUNT (sizeof(CI_CLOCK_OPTIONS)/sizeof(CMenuOptionChooser::keyval))
+#define CI_CLOCK_OPTION_COUNT (g_info.hw_caps->ci_clock_max >= 12 ? 3 : 2)
 
-#if BOXMODEL_VUPLUS_ALL
 #define CI_DELAY_OPTION_COUNT 5
 static const CMenuOptionChooser::keyval_ext CI_DELAY_OPTIONS[CI_DELAY_OPTION_COUNT] = {
 	{  16, NONEXISTANT_LOCALE, "16"  },
@@ -94,7 +91,6 @@ static const CMenuOptionChooser::keyval_ext CI_DELAY_OPTIONS[CI_DELAY_OPTION_COU
 	{ 128, NONEXISTANT_LOCALE, "128" },
 	{ 256, NONEXISTANT_LOCALE, "256" }
 };
-#endif
 
 void CCAMMenuHandler::init(void)
 {
@@ -158,9 +154,8 @@ int CCAMMenuHandler::doMainMenu()
 
 	int CiSlots = ca ? ca->GetNumberCISlots() : 0;
 	if(CiSlots) {
-#if BOXMODEL_VUPLUS_ALL
-		cammenu->addItem(new CMenuOptionChooser(LOCALE_CI_DELAY, &g_settings.ci_delay, CI_DELAY_OPTIONS, CI_DELAY_OPTION_COUNT, true, this));
-#endif
+		if (g_info.hw_caps->can_ci_delay)
+			cammenu->addItem(new CMenuOptionChooser(LOCALE_CI_DELAY, &g_settings.ci_delay, CI_DELAY_OPTIONS, CI_DELAY_OPTION_COUNT, true, this));
 		cammenu->addItem(new CMenuOptionChooser(LOCALE_CI_RESET_STANDBY, &g_settings.ci_standby_reset, OPTIONS_OFF0_ON1_OPTIONS, OPTIONS_OFF0_ON1_OPTION_COUNT, true));
 	}
 #if HAVE_LIBSTB_HAL
@@ -213,14 +208,12 @@ int CCAMMenuHandler::doMainMenu()
 			cammenu->addItem(new CMenuForwarder(LOCALE_CI_RESET, true, NULL, this, tmp));
 			memset(name1,0,sizeof(name1));
 if (i == 0) { // only for slot 0 valid - fix later
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
-			cammenu->addItem(new CMenuOptionChooser(LOCALE_CI_CLOCK, &g_settings.ci_clock[i], CI_CLOCK_OPTIONS, CI_CLOCK_OPTION_COUNT, true, this));
-#else
-			cammenu->addItem(new CMenuOptionNumberChooser(LOCALE_CI_CLOCK, &g_settings.ci_clock[i], true, 6, 12, this));
-#endif
-#if BOXMODEL_VUPLUS_ALL
-			cammenu->addItem(new CMenuOptionChooser(LOCALE_CI_RPR, &g_settings.ci_rpr[i], OPTIONS_OFF0_ON1_OPTIONS, OPTIONS_OFF0_ON1_OPTION_COUNT, true, this));
-#endif
+			if (g_info.hw_caps->can_ci_clock)
+				cammenu->addItem(new CMenuOptionChooser(LOCALE_CI_CLOCK, &g_settings.ci_clock[i], CI_CLOCK_OPTIONS, CI_CLOCK_OPTION_COUNT, true, this));
+			else
+				cammenu->addItem(new CMenuOptionNumberChooser(LOCALE_CI_CLOCK, &g_settings.ci_clock[i], true, 6, 12, this));
+			if (g_info.hw_caps->can_ci_rpr)
+				cammenu->addItem(new CMenuOptionChooser(LOCALE_CI_RPR, &g_settings.ci_rpr[i], OPTIONS_OFF0_ON1_OPTIONS, OPTIONS_OFF0_ON1_OPTION_COUNT, true, this));
 #if HAVE_LIBSTB_HAL
 			cammenu->addItem(new CMenuOptionChooser(LOCALE_CI_OP, &g_settings.ci_op[i], OPTIONS_OFF0_ON1_OPTIONS, OPTIONS_OFF0_ON1_OPTION_COUNT, true, this));
 #endif
@@ -622,7 +615,7 @@ int CCAMMenuHandler::doMenu(int slot, CA_SLOT_TYPE slotType)
 
 bool CCAMMenuHandler::changeNotify(const neutrino_locale_t OptionName, void * Data)
 {
-#if BOXMODEL_VUPLUS_ALL
+#if HAVE_LIBSTB_HAL
 	if (ARE_LOCALES_EQUAL(OptionName, LOCALE_CI_DELAY)) {
 		printf("CCAMMenuHandler::changeNotify: ci_delay %d\n", g_settings.ci_delay);
 		ca->SetCIDelay(g_settings.ci_delay);

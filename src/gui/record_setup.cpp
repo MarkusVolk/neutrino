@@ -240,19 +240,18 @@ int CRecordSetup::showRecordSetup()
 	cover->setHint("", LOCALE_MENU_HINT_RECORD_AUTO_COVER);
 	recordingSettings->addItem(cover);
 
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
-	CMenuOptionNumberChooser *ch;
+	if (g_info.hw_caps->can_record_bufsize)
+	{
+		CMenuOptionNumberChooser *ch;
 
-	ch = new CMenuOptionNumberChooser(LOCALE_EXTRA_RECORD_BUFSIZE, &g_settings.recording_bufsize, true, 1, 25, NULL);
-	ch->setNumberFormat("%d MB");
-	//TODO: ch->setHint("", LOCALE_MENU_HINT_RECORD_BUFSIZE);
-	recordingSettings->addItem(ch);
+		ch = new CMenuOptionNumberChooser(LOCALE_EXTRA_RECORD_BUFSIZE, &g_settings.recording_bufsize, true, 1, 25, NULL);
+		ch->setNumberFormat("%d MB");
+		recordingSettings->addItem(ch);
 
-	ch = new CMenuOptionNumberChooser(LOCALE_EXTRA_RECORD_BUFSIZE_DMX, &g_settings.recording_bufsize_dmx, true, 1, 25, NULL);
-	ch->setNumberFormat("%d MB");
-	//TODO: ch->setHint("", LOCALE_MENU_HINT_RECORD_BUFSIZE_DMX);
-	recordingSettings->addItem(ch);
-#endif
+		ch = new CMenuOptionNumberChooser(LOCALE_EXTRA_RECORD_BUFSIZE_DMX, &g_settings.recording_bufsize_dmx, true, 1, 25, NULL);
+		ch->setNumberFormat("%d MB");
+		recordingSettings->addItem(ch);
+	}
 
 	recordingSettings->addItem(GenericMenuSeparatorLine);
 

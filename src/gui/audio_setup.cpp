@@ -127,7 +127,6 @@ const CMenuOptionChooser::keyval AUDIOMENU_HDMI_DD_OPTIONS[AUDIOMENU_HDMI_DD_OPT
 	{ HDMI_ENCODED_FORCED,		LOCALE_AUDIOMENU_HDMI_DD_FORCE	}
 };
 
-#if HAVE_GENERIC_HARDWARE
 #define AUDIOMENU_OUTPUT_OPTION_COUNT 6
 const CMenuOptionChooser::keyval_ext AUDIOMENU_OUTPUT_OPTIONS[AUDIOMENU_OUTPUT_OPTION_COUNT] =
 {
@@ -138,7 +137,6 @@ const CMenuOptionChooser::keyval_ext AUDIOMENU_OUTPUT_OPTIONS[AUDIOMENU_OUTPUT_O
 	{ 4, NONEXISTANT_LOCALE,	"USB"		},
 	{ 5, NONEXISTANT_LOCALE,	"Bluetooth"	}
 };
-#endif
 
 /* audio settings menu */
 int CAudioSetup::showAudioSetup()
@@ -156,24 +154,30 @@ int CAudioSetup::showAudioSetup()
 	CMenuOptionChooser * as_oj_ddsubchn 	= new CMenuOptionChooser(LOCALE_AUDIOMENU_DOLBYDIGITAL, &g_settings.audio_DolbyDigital, OPTIONS_OFF0_ON1_OPTIONS, OPTIONS_OFF0_ON1_OPTION_COUNT, true, audioSetupNotifier);
 	as_oj_ddsubchn->setHint("", LOCALE_MENU_HINT_AUDIO_DD);
 
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
-	CMenuOptionChooser * as_oj_ac3 = new CMenuOptionChooser(LOCALE_AUDIOMENU_AC3, &g_settings.ac3_pass, OPTIONS_OFF0_ON1_OPTIONS, OPTIONS_OFF0_ON1_OPTION_COUNT, true, audioSetupNotifier);
-	as_oj_ac3->setHint("", LOCALE_MENU_HINT_AUDIO_AC3);
-
-	CMenuOptionChooser * as_oj_dts = new CMenuOptionChooser(LOCALE_AUDIOMENU_DTS, &g_settings.dts_pass, OPTIONS_OFF0_ON1_OPTIONS, OPTIONS_OFF0_ON1_OPTION_COUNT, true, audioSetupNotifier);
-	as_oj_dts->setHint("", LOCALE_MENU_HINT_AUDIO_DTS);
-#else
-	//dd via hdmi
+	CMenuOptionChooser *as_oj_ac3 = NULL;
+	CMenuOptionChooser *as_oj_dts = NULL;
 	CMenuOptionChooser *as_oj_dd_hdmi = NULL;
-	if (g_info.hw_caps->has_HDMI) {
-		as_oj_dd_hdmi = new CMenuOptionChooser(LOCALE_AUDIOMENU_HDMI_DD, &g_settings.hdmi_dd, AUDIOMENU_HDMI_DD_OPTIONS, AUDIOMENU_HDMI_DD_OPTION_COUNT, true, audioSetupNotifier);
-		as_oj_dd_hdmi->setHint("", LOCALE_MENU_HINT_AUDIO_HDMI_DD);
-	}
+	CMenuOptionChooser *as_oj_dd_spdif = NULL;
+	if (g_info.hw_caps->can_dd_passthrough)
+	{
+		as_oj_ac3 = new CMenuOptionChooser(LOCALE_AUDIOMENU_AC3, &g_settings.ac3_pass, OPTIONS_OFF0_ON1_OPTIONS, OPTIONS_OFF0_ON1_OPTION_COUNT, true, audioSetupNotifier);
+		as_oj_ac3->setHint("", LOCALE_MENU_HINT_AUDIO_AC3);
 
-	//dd via spdif
-	CMenuOptionChooser * as_oj_dd_spdif 	= new CMenuOptionChooser(LOCALE_AUDIOMENU_SPDIF_DD, &g_settings.spdif_dd, OPTIONS_OFF0_ON1_OPTIONS, OPTIONS_OFF0_ON1_OPTION_COUNT, true, audioSetupNotifier);
-	as_oj_dd_spdif->setHint("", LOCALE_MENU_HINT_AUDIO_SPDIF_DD);
-#endif // HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
+		as_oj_dts = new CMenuOptionChooser(LOCALE_AUDIOMENU_DTS, &g_settings.dts_pass, OPTIONS_OFF0_ON1_OPTIONS, OPTIONS_OFF0_ON1_OPTION_COUNT, true, audioSetupNotifier);
+		as_oj_dts->setHint("", LOCALE_MENU_HINT_AUDIO_DTS);
+	}
+	else
+	{
+		//dd via hdmi
+		if (g_info.hw_caps->has_HDMI) {
+			as_oj_dd_hdmi = new CMenuOptionChooser(LOCALE_AUDIOMENU_HDMI_DD, &g_settings.hdmi_dd, AUDIOMENU_HDMI_DD_OPTIONS, AUDIOMENU_HDMI_DD_OPTION_COUNT, true, audioSetupNotifier);
+			as_oj_dd_hdmi->setHint("", LOCALE_MENU_HINT_AUDIO_HDMI_DD);
+		}
+
+		//dd via spdif
+		as_oj_dd_spdif = new CMenuOptionChooser(LOCALE_AUDIOMENU_SPDIF_DD, &g_settings.spdif_dd, OPTIONS_OFF0_ON1_OPTIONS, OPTIONS_OFF0_ON1_OPTION_COUNT, true, audioSetupNotifier);
+		as_oj_dd_spdif->setHint("", LOCALE_MENU_HINT_AUDIO_SPDIF_DD);
+	}
 
 	CMenuOptionChooser * as_oj_avsync = NULL;
 	CMenuOptionNumberChooser * as_oj_vsteps = NULL;
@@ -232,25 +236,26 @@ int CAudioSetup::showAudioSetup()
 	//paint items
 	audioSettings->addIntroItems(LOCALE_MAINSETTINGS_AUDIO);
 	//---------------------------------------------------------
-#if HAVE_GENERIC_HARDWARE
 	/* without root the output is the one the desktop has chosen */
 	int desktop_output = 0;
-	bool root = !geteuid();
-	CMenuOptionChooser *as_output = new CMenuOptionChooser(LOCALE_AUDIOMENU_OUTPUT, root ? &g_settings.audio_output : &desktop_output, AUDIOMENU_OUTPUT_OPTIONS, AUDIOMENU_OUTPUT_OPTION_COUNT, root, audioSetupNotifier);
-	as_output->setHint("", LOCALE_MENU_HINT_AUDIO_OUTPUT);
-	audioSettings->addItem(as_output);
-#endif
+	if (g_info.hw_caps->can_select_audio_output)
+	{
+		bool root = !geteuid();
+		CMenuOptionChooser *as_output = new CMenuOptionChooser(LOCALE_AUDIOMENU_OUTPUT, root ? &g_settings.audio_output : &desktop_output, AUDIOMENU_OUTPUT_OPTIONS, AUDIOMENU_OUTPUT_OPTION_COUNT, root, audioSetupNotifier);
+		as_output->setHint("", LOCALE_MENU_HINT_AUDIO_OUTPUT);
+		audioSettings->addItem(as_output);
+	}
 	audioSettings->addItem(as_oj_analogmode);
 	audioSettings->addItem(GenericMenuSeparatorLine);
 	//---------------------------------------------------------
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
-	audioSettings->addItem(as_oj_ac3);
-	audioSettings->addItem(as_oj_dts);
-#else
-	if (g_info.hw_caps->has_HDMI)
+	if (as_oj_ac3)
+		audioSettings->addItem(as_oj_ac3);
+	if (as_oj_dts)
+		audioSettings->addItem(as_oj_dts);
+	if (as_oj_dd_hdmi)
 		audioSettings->addItem(as_oj_dd_hdmi);
-	audioSettings->addItem(as_oj_dd_spdif);
-#endif // HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
+	if (as_oj_dd_spdif)
+		audioSettings->addItem(as_oj_dd_spdif);
 	audioSettings->addItem(as_oj_ddsubchn);
 	//---------------------------------------------------------
 	audioSettings->addItem(GenericMenuSeparatorLine);

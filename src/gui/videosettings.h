@@ -34,6 +34,8 @@
 #include <string>
 
 extern CMenuOptionChooser::keyval_ext VIDEOMENU_VIDEOMODE_OPTIONS[];
+/* whether the box offers the video mode, by hw_caps */
+bool videoModeAvailable(int mode);
 
 class CFrameBuffer;
 class CVideoSettings : public CMenuWidget, CChangeObserver

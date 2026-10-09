@@ -381,7 +381,6 @@ bool CColorSetupNotifier::changeNotify(const neutrino_locale_t, void *)
 	return false;
 }
 
-#if HAVE_GENERIC_HARDWARE
 /* WirePlumber switches the output and keeps it; a profile switch can take a
  * moment, so this runs beside the menu */
 void CAudioSetupNotifier::applyOutput()
@@ -395,7 +394,6 @@ void CAudioSetupNotifier::applyOutput()
 		my_system(3, "wpexec", DATADIR "/neutrino/scripts/audio-output.lua", arg.c_str());
 	}).detach();
 }
-#endif
 
 bool CAudioSetupNotifier::changeNotify(const neutrino_locale_t OptionName, void *)
 {
@@ -410,16 +408,14 @@ bool CAudioSetupNotifier::changeNotify(const neutrino_locale_t OptionName, void 
 	{
 		g_Zapit->setAudioMode(g_settings.audio_AnalogMode);
 	}
-#if HAVE_GENERIC_HARDWARE
 	else if (ARE_LOCALES_EQUAL(OptionName, LOCALE_AUDIOMENU_OUTPUT))
 	{
 		applyOutput();
 	}
-#endif
 	else if (ARE_LOCALES_EQUAL(OptionName, LOCALE_AUDIOMENU_ANALOG_OUT))
 	{
 		audioDecoder->EnableAnalogOut(g_settings.analog_out ? true : false);
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
+#if !HAVE_CST_HARDWARE
 	}
 	else if (ARE_LOCALES_EQUAL(OptionName, LOCALE_AUDIOMENU_AC3))
 	{
@@ -801,7 +797,7 @@ bool CCpuFreqNotifier::changeNotify(const neutrino_locale_t, void *data)
 	return false;
 }
 
-extern CMenuOptionChooser::keyval_ext VIDEOMENU_VIDEOMODE_OPTIONS[];
+#include <gui/videosettings.h>
 bool CAutoModeNotifier::changeNotify(const neutrino_locale_t /*OptionName*/, void * /*data*/)
 {
 	int i;
@@ -811,7 +807,7 @@ bool CAutoModeNotifier::changeNotify(const neutrino_locale_t /*OptionName*/, voi
 
 	for (i = 0; i < VIDEOMENU_VIDEOMODE_OPTION_COUNT; i++)
 	{
-		if (VIDEOMENU_VIDEOMODE_OPTIONS[i].key < 0) // not available on this platform
+		if (!videoModeAvailable(VIDEOMENU_VIDEOMODE_OPTIONS[i].key))
 			continue;
 		if (VIDEOMENU_VIDEOMODE_OPTIONS[i].key >= VIDEO_STD_MAX)
 		{

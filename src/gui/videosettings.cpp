@@ -47,7 +47,8 @@
 #include <gui/widget/msgbox.h>
 #include <gui/osd_setup.h>
 #include <gui/osd_helpers.h>
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
+#include <vector>
+#if !HAVE_CST_HARDWARE
 #include <gui/psisetup.h>
 #endif
 
@@ -209,37 +210,7 @@ const CMenuOptionChooser::keyval VIDEOMENU_VIDEOSIGNAL_HD1PLUS_CINCH_OPTIONS[VID
 };
 #endif
 
-/*
- * key value of -1 means the mode is not available
- * TODO: instead of #ifdef select at run time
- */
-#if BOXMODEL_CST_HD1
-// numbers corresponding to video.cpp from zapit
-CMenuOptionChooser::keyval_ext VIDEOMENU_VIDEOMODE_OPTIONS[VIDEOMENU_VIDEOMODE_OPTION_COUNT] =
-{
-	{ VIDEO_STD_NTSC,	NONEXISTANT_LOCALE, "NTSC"		},
-	{ VIDEO_STD_PAL,	NONEXISTANT_LOCALE, "PAL"		},
-	{ VIDEO_STD_SECAM,	NONEXISTANT_LOCALE, "SECAM"		},
-	{ VIDEO_STD_480P,	NONEXISTANT_LOCALE, "480p"		},
-	{ VIDEO_STD_576P,	NONEXISTANT_LOCALE, "576p"		},
-	{ VIDEO_STD_720P50,	NONEXISTANT_LOCALE, "720p 50Hz"		},
-	{ VIDEO_STD_720P60,	NONEXISTANT_LOCALE, "720p 60Hz"		},
-	{ VIDEO_STD_1080I50,	NONEXISTANT_LOCALE, "1080i 50Hz"	},
-	{ VIDEO_STD_1080I60,	NONEXISTANT_LOCALE, "1080i 60Hz"	},
-	{ -1,			NONEXISTANT_LOCALE, "1080p 23.97Hz"	},
-	{ VIDEO_STD_1080P24,	NONEXISTANT_LOCALE, "1080p 24Hz"	},
-	{ VIDEO_STD_1080P25,	NONEXISTANT_LOCALE, "1080p 25Hz"	},
-	{ -1,			NONEXISTANT_LOCALE, "1080p 29.97Hz"	},
-	{ -1,			NONEXISTANT_LOCALE, "1080p 50Hz"	},
-	{ -1,			NONEXISTANT_LOCALE, "1080p 60Hz"	},
-	{ -1,			NONEXISTANT_LOCALE, "2160p 24Hz"	},
-	{ -1,			NONEXISTANT_LOCALE, "2160p 25Hz"	},
-	{ -1,			NONEXISTANT_LOCALE, "2160p 30Hz"	},
-	{ -1,			NONEXISTANT_LOCALE, "2160p 50Hz"	},
-	{ VIDEO_STD_AUTO,	NONEXISTANT_LOCALE, "Auto"		}
-};
-#elif BOXMODEL_CST_HD2
-// numbers corresponding to video.cpp from zapit
+/* every mode there is; which ones the box offers says hw_caps->video_std_mask */
 CMenuOptionChooser::keyval_ext VIDEOMENU_VIDEOMODE_OPTIONS[VIDEOMENU_VIDEOMODE_OPTION_COUNT] =
 {
 	{ VIDEO_STD_NTSC,	NONEXISTANT_LOCALE, "NTSC"		},
@@ -257,101 +228,32 @@ CMenuOptionChooser::keyval_ext VIDEOMENU_VIDEOMODE_OPTIONS[VIDEOMENU_VIDEOMODE_O
 	{ VIDEO_STD_1080P2997,	NONEXISTANT_LOCALE, "1080p 29.97Hz"	},
 	{ VIDEO_STD_1080P50,	NONEXISTANT_LOCALE, "1080p 50Hz"	},
 	{ VIDEO_STD_1080P60,	NONEXISTANT_LOCALE, "1080p 60Hz"	},
-	{ -1,			NONEXISTANT_LOCALE, "2160p 24Hz"	},
-	{ -1,			NONEXISTANT_LOCALE, "2160p 25Hz"	},
-	{ -1,			NONEXISTANT_LOCALE, "2160p 30Hz"	},
-	{ -1,			NONEXISTANT_LOCALE, "2160p 50Hz"	},
+	{ VIDEO_STD_2160P24,	NONEXISTANT_LOCALE, "2160p 24Hz"	},
+	{ VIDEO_STD_2160P25,	NONEXISTANT_LOCALE, "2160p 25Hz"	},
+	{ VIDEO_STD_2160P30,	NONEXISTANT_LOCALE, "2160p 30Hz"	},
+	{ VIDEO_STD_2160P50,	NONEXISTANT_LOCALE, "2160p 50Hz"	},
 	{ VIDEO_STD_AUTO,	NONEXISTANT_LOCALE, "Auto"		}
 };
-#elif BOXMODEL_HD51 || BOXMODEL_BRE2ZE4K || BOXMODEL_H7 || BOXMODEL_E4HDULTRA || BOXMODEL_PROTEK4K || BOXMODEL_HD60 || BOXMODEL_HD61 || BOXMODEL_MULTIBOX || BOXMODEL_MULTIBOXSE || BOXMODEL_VUPLUS_ALL
-CMenuOptionChooser::keyval_ext VIDEOMENU_VIDEOMODE_OPTIONS[VIDEOMENU_VIDEOMODE_OPTION_COUNT] =
-{
-	{ -1,			NONEXISTANT_LOCALE, "NTSC"		},
-	{ VIDEO_STD_PAL,	NONEXISTANT_LOCALE, "PAL"		},
-	{ -1,			NONEXISTANT_LOCALE, "SECAM"		},
-	{ -1,			NONEXISTANT_LOCALE, "480p"		},
-	{ VIDEO_STD_576P,	NONEXISTANT_LOCALE, "576p"		},
-	{ VIDEO_STD_720P50,	NONEXISTANT_LOCALE, "720p 50Hz"		},
-	{ VIDEO_STD_720P60,	NONEXISTANT_LOCALE, "720p 60Hz"		},
-	{ VIDEO_STD_1080I50,	NONEXISTANT_LOCALE, "1080i 50Hz"	},
-	{ VIDEO_STD_1080I60,	NONEXISTANT_LOCALE, "1080i 60Hz"	},
-	{ -1,			NONEXISTANT_LOCALE, "1080p 23.97Hz"	},
-	{ VIDEO_STD_1080P24,	NONEXISTANT_LOCALE, "1080p 24Hz"	},
-	{ VIDEO_STD_1080P25,	NONEXISTANT_LOCALE, "1080p 25Hz"	},
-	{ -1,			NONEXISTANT_LOCALE, "1080p 29.97Hz"	},
-	{ VIDEO_STD_1080P50,	NONEXISTANT_LOCALE, "1080p 50Hz"	},
-	{ -1,			NONEXISTANT_LOCALE, "1080p 60Hz"	},
-	{ VIDEO_STD_2160P24,	NONEXISTANT_LOCALE, "2160p 24Hz"	},
-	{ VIDEO_STD_2160P25,	NONEXISTANT_LOCALE, "2160p 25Hz"	},
-	{ VIDEO_STD_2160P30,	NONEXISTANT_LOCALE, "2160p 30Hz"	},
-	{ VIDEO_STD_2160P50,	NONEXISTANT_LOCALE, "2160p 50Hz"	},
-	{ -1,			NONEXISTANT_LOCALE, "Auto"		}
-};
-#elif BOXMODEL_OSMIO4K || BOXMODEL_OSMIO4KPLUS
-CMenuOptionChooser::keyval_ext VIDEOMENU_VIDEOMODE_OPTIONS[VIDEOMENU_VIDEOMODE_OPTION_COUNT] =
-{
-	{ -1,			NONEXISTANT_LOCALE, "NTSC"		},
-	{ VIDEO_STD_PAL,	NONEXISTANT_LOCALE, "PAL"		},
-	{ -1,			NONEXISTANT_LOCALE, "SECAM"		},
-	{ -1,			NONEXISTANT_LOCALE, "480p"		},
-	{ VIDEO_STD_576P,	NONEXISTANT_LOCALE, "576p"		},
-	{ VIDEO_STD_720P50,	NONEXISTANT_LOCALE, "720p 50Hz"		},
-	{ VIDEO_STD_720P60,	NONEXISTANT_LOCALE, "720p 60Hz"		},
-	{ VIDEO_STD_1080I50,	NONEXISTANT_LOCALE, "1080i 50Hz"	},
-	{ VIDEO_STD_1080I60,	NONEXISTANT_LOCALE, "1080i 60Hz"	},
-	{ -1,			NONEXISTANT_LOCALE, "1080p 23.97Hz"	},
-	{ VIDEO_STD_1080P24,	NONEXISTANT_LOCALE, "1080p 24Hz"	},
-	{ VIDEO_STD_1080P25,	NONEXISTANT_LOCALE, "1080p 25Hz"	},
-	{ -1,			NONEXISTANT_LOCALE, "1080p 29.97Hz"	},
-	{ VIDEO_STD_1080P50,	NONEXISTANT_LOCALE, "1080p 50Hz"	},
-	{ VIDEO_STD_1080P60,	NONEXISTANT_LOCALE, "1080p 60Hz"	},
-	{ VIDEO_STD_2160P24,	NONEXISTANT_LOCALE, "2160p 24Hz"	},
-	{ VIDEO_STD_2160P25,	NONEXISTANT_LOCALE, "2160p 25Hz"	},
-	{ VIDEO_STD_2160P30,	NONEXISTANT_LOCALE, "2160p 30Hz"	},
-	{ VIDEO_STD_2160P50,	NONEXISTANT_LOCALE, "2160p 50Hz"	},
-	{ -1,			NONEXISTANT_LOCALE, "Auto"		}
-};
-#else
-/* generic PC -> 5 different resolutions, 480, 576, 720 and 1080 lines */
-CMenuOptionChooser::keyval_ext VIDEOMENU_VIDEOMODE_OPTIONS[VIDEOMENU_VIDEOMODE_OPTION_COUNT] =
-{
-	{ VIDEO_STD_NTSC,	NONEXISTANT_LOCALE, "NTSC"		},
-	{ VIDEO_STD_PAL,	NONEXISTANT_LOCALE, "PAL"		},
-	{ -1,			NONEXISTANT_LOCALE, "SECAM"		},
-	{ -1,			NONEXISTANT_LOCALE, "480p"		},
-	{ -1,			NONEXISTANT_LOCALE, "576p"		},
-	{ VIDEO_STD_720P50,	NONEXISTANT_LOCALE, "720p 50Hz"		},
-	{ VIDEO_STD_720P60,	NONEXISTANT_LOCALE, "720p 60Hz"		},
-	{ VIDEO_STD_1080I50,	NONEXISTANT_LOCALE, "1080i 50Hz"	},
-	{ -1,			NONEXISTANT_LOCALE, "1080i 60Hz"	},
-	{ -1,			NONEXISTANT_LOCALE, "1080p 23.97Hz"	},
-	{ -1,			NONEXISTANT_LOCALE, "1080p 24Hz"	},
-	{ -1,			NONEXISTANT_LOCALE, "1080p 25Hz"	},
-	{ -1,			NONEXISTANT_LOCALE, "1080p 29.97Hz"	},
-	{ VIDEO_STD_1080P50,	NONEXISTANT_LOCALE, "1080p 50Hz"	},
-	{ VIDEO_STD_1080P60,	NONEXISTANT_LOCALE, "1080p 60Hz"	},
-	{ -1,			NONEXISTANT_LOCALE, "2160p 24Hz"	},
-	{ -1,			NONEXISTANT_LOCALE, "2160p 25Hz"	},
-	{ -1,			NONEXISTANT_LOCALE, "2160p 30Hz"	},
-	{ -1,			NONEXISTANT_LOCALE, "2160p 50Hz"	},
-	{ -1,			NONEXISTANT_LOCALE, "Auto"		}
-};
-#endif
 
-#if HAVE_GENERIC_HARDWARE
-#define VIDEOMENU_VIDEOFORMAT_OPTION_COUNT 4
-#else
-#define VIDEOMENU_VIDEOFORMAT_OPTION_COUNT 3
-#endif
-const CMenuOptionChooser::keyval VIDEOMENU_VIDEOFORMAT_OPTIONS[VIDEOMENU_VIDEOFORMAT_OPTION_COUNT] =
+bool videoModeAvailable(int mode)
 {
-	{ DISPLAY_AR_4_3, LOCALE_VIDEOMENU_VIDEOFORMAT_43 },
-	{ DISPLAY_AR_16_9, LOCALE_VIDEOMENU_VIDEOFORMAT_169 },
-#if HAVE_GENERIC_HARDWARE
-	{ DISPLAY_AR_21_9, LOCALE_VIDEOMENU_VIDEOFORMAT_219 },
+	return mode >= 0 && mode < 32 && (g_info.hw_caps->video_std_mask & VIDEO_STD_BIT(mode));
+}
+
+/* the formats the box offers, in the order of the menu */
+static std::vector<CMenuOptionChooser::keyval> videoFormatOptions()
+{
+	std::vector<CMenuOptionChooser::keyval> v;
+	v.push_back({ DISPLAY_AR_4_3, LOCALE_VIDEOMENU_VIDEOFORMAT_43 });
+	v.push_back({ DISPLAY_AR_16_9, LOCALE_VIDEOMENU_VIDEOFORMAT_169 });
+#if !HAVE_CST_HARDWARE
+	if (g_info.hw_caps->can_ar_21_9)
+		v.push_back({ DISPLAY_AR_21_9, LOCALE_VIDEOMENU_VIDEOFORMAT_219 });
 #endif
-	{ DISPLAY_AR_14_9, LOCALE_VIDEOMENU_VIDEOFORMAT_149 }
-};
+	if (g_info.hw_caps->can_ar_14_9)
+		v.push_back({ DISPLAY_AR_14_9, LOCALE_VIDEOMENU_VIDEOFORMAT_149 });
+	return v;
+}
 
 #define VIDEOMENU_DBDR_OPTION_COUNT 3
 const CMenuOptionChooser::keyval VIDEOMENU_DBDR_OPTIONS[VIDEOMENU_DBDR_OPTION_COUNT] =
@@ -361,7 +263,7 @@ const CMenuOptionChooser::keyval VIDEOMENU_DBDR_OPTIONS[VIDEOMENU_DBDR_OPTION_CO
 	{ 2, LOCALE_VIDEOMENU_DBDR_BOTH }
 };
 
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
+#if !HAVE_CST_HARDWARE
 #define VIDEOMENU_ZAPPINGMODE_OPTION_COUNT 4
 CMenuOptionChooser::keyval VIDEOMENU_ZAPPINGMODE_OPTIONS[VIDEOMENU_ZAPPINGMODE_OPTION_COUNT] =
 {
@@ -371,7 +273,7 @@ CMenuOptionChooser::keyval VIDEOMENU_ZAPPINGMODE_OPTIONS[VIDEOMENU_ZAPPINGMODE_O
 	{ 3, LOCALE_VIDEOMENU_ZAPPINGMODE_HOLDTILLLOCK }
 };
 
-#if BOXMODEL_VUPLUS_ARM
+#ifdef HDMI_COLORIMETRY_HAS_BT470
 #define VIDEOMENU_HDMI_COLORIMETRY_OPTION_COUNT 3
 const CMenuOptionChooser::keyval VIDEOMENU_HDMI_COLORIMETRY_OPTIONS[VIDEOMENU_HDMI_COLORIMETRY_OPTION_COUNT] =
 {
@@ -402,7 +304,7 @@ int CVideoSettings::showVideoSetup()
 	int vmode_option_count = 0;
 	for (int i = 0; i < VIDEOMENU_VIDEOMODE_OPTION_COUNT; i++)
 	{
-		if (VIDEOMENU_VIDEOMODE_OPTIONS[i].key == -1)
+		if (!videoModeAvailable(VIDEOMENU_VIDEOMODE_OPTIONS[i].key))
 			continue;
 		vmode_options[vmode_option_count] = VIDEOMENU_VIDEOMODE_OPTIONS[i];
 		vmode_option_count++;
@@ -445,7 +347,8 @@ int CVideoSettings::showVideoSetup()
 	vs_43mode_ch->setHint("", LOCALE_MENU_HINT_VIDEO_43MODE);
 
 	// display format
-	CMenuOptionChooser *vs_dispformat_ch = new CMenuOptionChooser(LOCALE_VIDEOMENU_VIDEOFORMAT, &g_settings.video_Format, VIDEOMENU_VIDEOFORMAT_OPTIONS, g_info.hw_caps->can_ar_14_9 ? VIDEOMENU_VIDEOFORMAT_OPTION_COUNT : VIDEOMENU_VIDEOFORMAT_OPTION_COUNT - 1, true, this); /* works only if 14:9 is last! */
+	std::vector<CMenuOptionChooser::keyval> format_options = videoFormatOptions();
+	CMenuOptionChooser *vs_dispformat_ch = new CMenuOptionChooser(LOCALE_VIDEOMENU_VIDEOFORMAT, &g_settings.video_Format, &format_options[0], format_options.size(), true, this);
 	vs_dispformat_ch->setHint("", LOCALE_MENU_HINT_VIDEO_FORMAT);
 
 	// video system
@@ -473,7 +376,7 @@ int CVideoSettings::showVideoSetup()
 		videomodes.addIntroItems(LOCALE_VIDEOMENU_ENABLED_MODES);
 
 		for (int i = 0; i < VIDEOMENU_VIDEOMODE_OPTION_COUNT; i++)
-			if (VIDEOMENU_VIDEOMODE_OPTIONS[i].key != -1)
+			if (videoModeAvailable(VIDEOMENU_VIDEOMODE_OPTIONS[i].key))
 				videomodes.addItem(new CMenuOptionChooser(VIDEOMENU_VIDEOMODE_OPTIONS[i].valname, &g_settings.enabled_video_modes[i], OPTIONS_OFF0_ON1_OPTIONS, OPTIONS_OFF0_ON1_OPTION_COUNT, true, &anotify));
 
 		if (g_info.hw_caps->has_button_vformat)
@@ -550,25 +453,23 @@ int CVideoSettings::showVideoSetup()
 	videosetup->addItem(quadpip);
 #endif
 
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
-	if (file_exists("/proc/stb/video/zapmode"))
+#if !HAVE_CST_HARDWARE
+	if (g_info.hw_caps->can_zapping_mode && file_exists("/proc/stb/video/zapmode"))
 	{
 		CMenuOptionChooser *zm = new CMenuOptionChooser(LOCALE_VIDEOMENU_ZAPPINGMODE, &g_settings.zappingmode, VIDEOMENU_ZAPPINGMODE_OPTIONS, VIDEOMENU_ZAPPINGMODE_OPTION_COUNT, true, this);
 		zm->setHint("", LOCALE_MENU_HINT_VIDEO_ZAPPINGMODE);
 		videosetup->addItem(zm);
 	}
 
-#if BOXMODEL_VUPLUS_ARM
-	if (file_exists("/proc/stb/video/hdmi_colorspace"))
-#else
-	if (file_exists("/proc/stb/video/hdmi_colorimetry"))
-#endif
+	if (g_info.hw_caps->can_hdmi_colorimetry && (file_exists("/proc/stb/video/hdmi_colorspace") || file_exists("/proc/stb/video/hdmi_colorimetry")))
 	{
 		CMenuOptionChooser *hm = new CMenuOptionChooser(LOCALE_VIDEOMENU_HDMI_COLORIMETRY, &g_settings.hdmi_colorimetry, VIDEOMENU_HDMI_COLORIMETRY_OPTIONS, VIDEOMENU_HDMI_COLORIMETRY_OPTION_COUNT, true, this);
 		hm->setHint("", LOCALE_MENU_HINT_VIDEO_HDMI_COLORIMETRY);
 		videosetup->addItem(hm);
 	}
 
+	if (g_info.hw_caps->can_psi)
+	{
 	videosetup->addItem(GenericMenuSeparatorLine);
 
 	CPSISetup *psiSetup = CPSISetup::getInstance();
@@ -604,6 +505,7 @@ int CVideoSettings::showVideoSetup()
 	mc->setHint("", LOCALE_MENU_HINT_VIDEO_TINT);
 	videosetup->addItem(mc);
 #endif
+	}
 #endif
 
 	int res = videosetup->exec(NULL, "");
@@ -710,8 +612,8 @@ bool CVideoSettings::changeNotify(const neutrino_locale_t OptionName, void * /* 
 	else if (ARE_LOCALES_EQUAL(OptionName, LOCALE_VIDEOMENU_VIDEOFORMAT) || ARE_LOCALES_EQUAL(OptionName, LOCALE_VIDEOMENU_43MODE))
 	{
 		if (g_settings.video_Format != 1 && g_settings.video_Format != 3 && g_settings.video_Format != 2
-#if HAVE_GENERIC_HARDWARE
-		    && g_settings.video_Format != DISPLAY_AR_21_9
+#if !HAVE_CST_HARDWARE
+		    && !(g_info.hw_caps->can_ar_21_9 && g_settings.video_Format == DISPLAY_AR_21_9)
 #endif
 		   )
 			g_settings.video_Format = 3;
@@ -760,7 +662,7 @@ bool CVideoSettings::changeNotify(const neutrino_locale_t OptionName, void * /* 
 		videoDecoder->SetControl(VIDEO_CONTROL_HUE, val);
 	}
 #endif
-#if HAVE_ARM_HARDWARE || HAVE_MIPS_HARDWARE
+#if !HAVE_CST_HARDWARE
 	else if (ARE_LOCALES_EQUAL(OptionName, LOCALE_VIDEOMENU_ZAPPINGMODE))
 	{
 		videoDecoder->SetControl(VIDEO_CONTROL_ZAPPING_MODE, g_settings.zappingmode);
@@ -807,21 +709,20 @@ void CVideoSettings::SwitchFormat()
 	neutrino_locale_t text;
 	int curmode = 0;
 
-	for (int i = 0; i < VIDEOMENU_VIDEOFORMAT_OPTION_COUNT; i++)
+	std::vector<CMenuOptionChooser::keyval> options = videoFormatOptions();
+	for (size_t i = 0; i < options.size(); i++)
 	{
-		if (VIDEOMENU_VIDEOFORMAT_OPTIONS[i].key == g_settings.video_Format)
+		if (options[i].key == g_settings.video_Format)
 		{
 			curmode = i;
 			break;
 		}
 	}
 	curmode++;
-	if (curmode >= VIDEOMENU_VIDEOFORMAT_OPTION_COUNT)
+	if (curmode >= (int)options.size())
 		curmode = 0;
-	if (VIDEOMENU_VIDEOFORMAT_OPTIONS[curmode].key == DISPLAY_AR_14_9 && g_info.hw_caps->can_ar_14_9 == 0)
-		curmode = 0;
-	text = VIDEOMENU_VIDEOFORMAT_OPTIONS[curmode].value;
-	g_settings.video_Format = VIDEOMENU_VIDEOFORMAT_OPTIONS[curmode].key;
+	text = options[curmode].value;
+	g_settings.video_Format = options[curmode].key;
 
 	videoDecoder->setAspectRatio(g_settings.video_Format, -1);
 #if ENABLE_PIP

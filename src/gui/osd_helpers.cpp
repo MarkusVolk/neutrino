@@ -150,23 +150,23 @@ int COsdHelpers::isVideoSystem1080(int res)
 	    (res == VIDEO_STD_1080P25))
 		return true;
 
-#ifdef BOXMODEL_CST_HD2
-	if ((res == VIDEO_STD_1080P50) ||
-	    (res == VIDEO_STD_1080P60) ||
-	    (res == VIDEO_STD_1080P2397) ||
-	    (res == VIDEO_STD_1080P2997))
-		return true;
+	if (g_info.hw_caps->can_osd_1080)
+	{
+		if ((res == VIDEO_STD_1080P50) ||
+		    (res == VIDEO_STD_1080P60))
+			return true;
+#if HAVE_CST_HARDWARE
+		if ((res == VIDEO_STD_1080P2397) ||
+		    (res == VIDEO_STD_1080P2997))
+			return true;
+#else
+		if ((res == VIDEO_STD_2160P24) ||
+		    (res == VIDEO_STD_2160P25) ||
+		    (res == VIDEO_STD_2160P30) ||
+		    (res == VIDEO_STD_2160P50))
+			return true;
 #endif
-
-#if HAVE_ARM_HARDWARE || HAVE_GENERIC_HARDWARE
-	if ((res == VIDEO_STD_1080P50) ||
-	    (res == VIDEO_STD_1080P60) ||
-	    (res == VIDEO_STD_2160P24) ||
-	    (res == VIDEO_STD_2160P25) ||
-	    (res == VIDEO_STD_2160P30) ||
-	    (res == VIDEO_STD_2160P50))
-		return true;
-#endif
+	}
 
 #if 0
 	/* for testing only */

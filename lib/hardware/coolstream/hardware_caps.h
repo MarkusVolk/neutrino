@@ -70,6 +70,7 @@ typedef struct hw_caps
 	int fb_wait_vsync; /* FBIO_WAITFORVSYNC before framebuffer operations */
 	/* CI and recording */
 	int can_ci_clock;
+	int ci_clock_max; /* MHz the CI slots take */
 	int can_ci_delay;
 	int can_ci_rpr; /* relevant PIDs routing */
 	int can_record_bufsize;
