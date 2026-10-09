@@ -973,7 +973,7 @@ bool CZapit::StartPip(const t_channel_id channel_id, int pip)
 	if (!g_info.hw_caps->can_pip)
 		return false;
 
-#if !HAVE_CST_HARDWARE && !HAVE_GENERIC_HARDWARE
+#if !HAVE_CST_HARDWARE
 	if (CNeutrinoApp::getInstance()->avinput_pip) {
 		StopPip(0);
 	}

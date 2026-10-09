@@ -181,7 +181,7 @@ public:
 	int run(int argc, char **argv);
 
 #if ENABLE_PIP
-#if !HAVE_CST_HARDWARE && !HAVE_GENERIC_HARDWARE
+#if !HAVE_CST_HARDWARE
 	bool avinput_pip;
 	void StartAVInputPiP();
 	void StopAVInputPiP();
