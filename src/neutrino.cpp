@@ -3305,7 +3305,7 @@ TIMER_START();
 			DisplayErrorMessage(g_Locale->getText(LOCALE_ZAPIT_INIT_FAILED));
 	}
 
-#ifndef ASSUME_MDEV
+#if !defined(ASSUME_MDEV) && !defined(ASSUME_UDEV)
 	mkdir("/media/sda1", 0755);
 	mkdir("/media/sdb1", 0755);
 	my_system(3, "mount", "/dev/sda1", "/media/sda1");

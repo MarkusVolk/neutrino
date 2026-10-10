@@ -442,6 +442,18 @@ AC_ARG_ENABLE(mdev,
 	AS_HELP_STRING([--enable-mdev], [use mdev instead of broken neutrino mount hack @<:@default=no@:>@]),
 	AC_DEFINE(ASSUME_MDEV, 1, [use mdev instead of broken neutrino mount hack]))
 
+AC_ARG_ENABLE(udev,
+	AS_HELP_STRING([--enable-udev], [leave mounting and the kernel hotplug helper to udev @<:@default=no@:>@]),
+	[enable_udev="$enableval"],
+	[enable_udev="no"])
+
+if test "$enable_udev" = "yes"; then
+	if test "$enable_mdev" = "yes"; then
+		AC_MSG_ERROR([--enable-udev and --enable-mdev exclude each other])
+	fi
+	AC_DEFINE(ASSUME_UDEV, 1, [leave mounting and the kernel hotplug helper to udev])
+fi
+
 AC_ARG_WITH([network-backend],
 	AS_HELP_STRING([--with-network-backend=NAME], [what configures the wired interfaces: ifupdown or networkd @<:@default=ifupdown@:>@]),
 	[network_backend="$withval"],

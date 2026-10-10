@@ -1104,7 +1104,7 @@ int CHDDMenuHandler::formatDevice(std::string dev)
 		goto _return;
 	}
 
-#ifndef ASSUME_MDEV
+#if !defined(ASSUME_MDEV) && !defined(ASSUME_UDEV)
 	f = fopen("/proc/sys/kernel/hotplug", "w");
 	if(f) {
 		fprintf(f, "none\n");
@@ -1261,7 +1261,7 @@ _remount:
 	progress->hide();
 	delete progress;
 
-#ifndef ASSUME_MDEV
+#if !defined(ASSUME_MDEV) && !defined(ASSUME_UDEV)
 	f = fopen("/proc/sys/kernel/hotplug", "w");
 	if(f) {
 		fprintf(f, "/sbin/hotplug\n");
