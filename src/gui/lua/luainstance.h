@@ -25,6 +25,9 @@ extern "C" {
 #include <lauxlib.h>
 #include <lualib.h>
 }
+#ifndef lua_assert
+#define lua_assert(c) ((void)0)
+#endif
 #include <driver/fb_window.h>
 #include <vector>
 
