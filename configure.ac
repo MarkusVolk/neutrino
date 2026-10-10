@@ -451,8 +451,10 @@ if test "$enable_udev" = "yes"; then
 	if test "$enable_mdev" = "yes"; then
 		AC_MSG_ERROR([--enable-udev and --enable-mdev exclude each other])
 	fi
+	PKG_CHECK_MODULES([UDEV], [libudev])
 	AC_DEFINE(ASSUME_UDEV, 1, [leave mounting and the kernel hotplug helper to udev])
 fi
+AM_CONDITIONAL(ENABLE_UDEV, test "$enable_udev" = "yes")
 
 AC_ARG_WITH([network-backend],
 	AS_HELP_STRING([--with-network-backend=NAME], [what configures the wired interfaces: ifupdown or networkd @<:@default=ifupdown@:>@]),

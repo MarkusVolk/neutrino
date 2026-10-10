@@ -150,6 +150,10 @@ if ENABLE_LIBSECRET
 neutrino_LDADD += @LIBSECRET_LIBS@
 endif
 
+if ENABLE_UDEV
+neutrino_LDADD += @UDEV_LIBS@
+endif
+
 # LCD display
 if ENABLE_LCD
 neutrino_LDADD += $(top_builddir)/lib/liblcddisplay/liblcddisplay.a

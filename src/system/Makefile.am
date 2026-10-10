@@ -27,6 +27,10 @@ if ENABLE_LIBSECRET
 AM_CPPFLAGS += @LIBSECRET_CFLAGS@
 endif
 
+if ENABLE_UDEV
+AM_CPPFLAGS += @UDEV_CFLAGS@
+endif
+
 noinst_LIBRARIES = libneutrino_system.a
 
 libneutrino_system_a_SOURCES = \
@@ -49,6 +53,7 @@ libneutrino_system_a_SOURCES = \
 	stacktrace.cpp \
 	supportinfo.cpp \
 	sysload.cpp \
+	udev_hotplug.cpp \
 	setting_helpers.cpp \
 	wlan_client.cpp
 #	safe_system.c

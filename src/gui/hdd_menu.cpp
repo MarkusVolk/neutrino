@@ -518,6 +518,14 @@ int CHDDMenuHandler::handleMsg(const neutrino_msg_t msg, neutrino_msg_data_t dat
 				if (!mounted)
 					usleep(200000);
 			}
+#ifdef ASSUME_UDEV
+			/* udev itself mounts nothing; without an automounter Neutrino does it */
+			if (!mounted && dev.substr(0, 2) != "sr") {
+				bool old_lock = lock_refresh;
+				mounted = mount_dev(dev);
+				lock_refresh = old_lock;
+			}
+#endif
 		} else {
 			mounted = is_mounted(dev.c_str());
 		}

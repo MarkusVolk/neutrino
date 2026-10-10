@@ -137,6 +137,7 @@
 #include <system/fsmounter.h>
 #include <system/hddstat.h>
 #include <system/secrets.h>
+#include <system/udev_hotplug.h>
 #include <system/setting_helpers.h>
 #include <system/settings.h>
 #include <system/helpers.h>
@@ -3329,6 +3330,7 @@ TIMER_START();
 	my_system(3, "mount", "/dev/sda1", "/media/sda1");
 	my_system(3, "mount", "/dev/sdb1", "/media/sdb1");
 #endif
+	udev_hotplug::start();
 
 	CFSMounter::automount();
 	g_Plugins = new CPlugins;
