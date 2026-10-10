@@ -22,7 +22,7 @@
 #include <driver/display.h>
 #include <driver/fontrenderer.h>
 #include <driver/rcinput.h>
-#ifdef ENABLE_TERMINAL
+#ifdef ENABLE_XKBCOMMON
 #include <driver/abstime.h>
 #include <driver/textkeyboard.h>
 #include <xkbcommon/xkbcommon-keysyms.h>
@@ -833,7 +833,7 @@ int CCTextInputDialog::exec(CMenuTarget *parent, const std::string & /*actionKey
 	uint64_t timeoutEnd =
 		CRCInput::calcTimeoutEnd(g_settings.timing[SNeutrinoSettings::TIMING_MENU]);
 
-#ifdef ENABLE_TERMINAL
+#ifdef ENABLE_XKBCOMMON
 	/* a keyboard types into the field, as it does on the on-screen keyboard of CKeyboardInput */
 	CTextKeyboard keyboard;
 	keyboard.open();
@@ -842,7 +842,7 @@ int CCTextInputDialog::exec(CMenuTarget *parent, const std::string & /*actionKey
 	bool loop = true;
 	while (loop)
 	{
-#ifdef ENABLE_TERMINAL
+#ifdef ENABLE_XKBCOMMON
 		struct text_key k;
 		if (keyboard.read(k))
 		{

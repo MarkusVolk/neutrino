@@ -41,7 +41,7 @@
 
 #include <system/helpers.h>
 #include "keyboard_input.h"
-#ifdef ENABLE_TERMINAL
+#ifdef ENABLE_XKBCOMMON
 #include <driver/abstime.h>
 #include <driver/textkeyboard.h>
 #include <xkbcommon/xkbcommon-keysyms.h>
@@ -545,7 +545,7 @@ void CKeyboardInput::typeChar(const std::string &c)
 	changed = true;
 }
 
-#ifdef ENABLE_TERMINAL
+#ifdef ENABLE_XKBCOMMON
 static std::string utf8(uint32_t c)
 {
 	std::string s;
@@ -577,7 +577,7 @@ static std::string utf8(uint32_t c)
  * Escape leaves as the remote control's keys do; RC_nokey when it is done */
 neutrino_msg_t CKeyboardInput::typedKey(const struct text_key &k)
 {
-#ifdef ENABLE_TERMINAL
+#ifdef ENABLE_XKBCOMMON
 	switch (k.keysym)
 	{
 		case XKB_KEY_Return:
@@ -680,7 +680,7 @@ int CKeyboardInput::exec(CMenuTarget* parent, const std::string &)
 
 	uint64_t timeoutEnd = CRCInput::calcTimeoutEnd(g_settings.timing[SNeutrinoSettings::TIMING_MENU]);
 
-#ifdef ENABLE_TERMINAL
+#ifdef ENABLE_XKBCOMMON
 	CTextKeyboard keyboard;
 	keyboard.open();
 #endif
@@ -696,7 +696,7 @@ int CKeyboardInput::exec(CMenuTarget* parent, const std::string &)
 			cGLCD::lockChannel(inputString->c_str(), "", 0);
 #endif
 		}
-#ifdef ENABLE_TERMINAL
+#ifdef ENABLE_XKBCOMMON
 		struct text_key k;
 		if (keyboard.read(k))
 		{
@@ -777,12 +777,12 @@ int CKeyboardInput::exec(CMenuTarget* parent, const std::string &)
 		}
 		else if (CNeutrinoApp::getInstance()->backKey(msg) || (msg == CRCInput::RC_timeout))
 		{
-#ifdef ENABLE_TERMINAL
+#ifdef ENABLE_XKBCOMMON
 			keyboard.close();
 #endif
 			if ((inputString->getValue() != oldval) &&
 					(ShowMsg(title, LOCALE_MESSAGEBOX_DISCARD, CMsgBox::mbrYes, CMsgBox::mbYes | CMsgBox::mbCancel) == CMsgBox::mbrCancel)) {
-#ifdef ENABLE_TERMINAL
+#ifdef ENABLE_XKBCOMMON
 				keyboard.open();
 #endif
 				timeoutEnd = CRCInput::calcTimeoutEnd(g_settings.timing[SNeutrinoSettings::TIMING_MENU]);

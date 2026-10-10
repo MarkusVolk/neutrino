@@ -42,6 +42,6 @@ libneutrino_gui_widget_a_SOURCES = \
 libneutrino_gui_widget2_a_SOURCES = \
 	progresswindow.cpp
 
-if ENABLE_TERMINAL
+if ENABLE_XKBCOMMON
 AM_CPPFLAGS += @XKBCOMMON_CFLAGS@
 endif

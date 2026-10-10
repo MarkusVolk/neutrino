@@ -134,8 +134,12 @@ neutrino_LDADD = \
 	-lrt -lpthread \
 	-lz
 
+if ENABLE_XKBCOMMON
+neutrino_LDADD += @XKBCOMMON_LIBS@
+endif
+
 if ENABLE_TERMINAL
-neutrino_LDADD += @TSM_LIBS@ @XKBCOMMON_LIBS@
+neutrino_LDADD += @TSM_LIBS@
 endif
 
 if ENABLE_XMLTV_XZ

@@ -519,14 +519,27 @@ if test "$enable_iwd" = "yes" -o "$enable_bluetooth" = "yes" -o "$enable_mpris" 
 fi
 AM_CONDITIONAL(USE_DBUS, test "$enable_iwd" = "yes" -o "$enable_bluetooth" = "yes" -o "$enable_mpris" = "yes" -o "$enable_tray" = "yes")
 
+AC_ARG_ENABLE(xkbcommon,
+	AS_HELP_STRING([--enable-xkbcommon], [type text with a keyboard in its layout through libxkbcommon @<:@default=no@:>@]),
+	[enable_xkbcommon="$enableval"],
+	[enable_xkbcommon="no"])
+
+if test "$enable_xkbcommon" = "yes"; then
+	PKG_CHECK_MODULES([XKBCOMMON], [xkbcommon])
+	AC_DEFINE(ENABLE_XKBCOMMON, 1, [type text with a keyboard in its layout through libxkbcommon])
+fi
+AM_CONDITIONAL(ENABLE_XKBCOMMON, test "$enable_xkbcommon" = "yes")
+
 AC_ARG_ENABLE(terminal,
 	AS_HELP_STRING([--enable-terminal], [run plugins with a text user interface in a terminal on the OSD @<:@default=no@:>@]),
 	[enable_terminal="$enableval"],
 	[enable_terminal="no"])
 
+if test "$enable_terminal" = "yes" -a "$enable_xkbcommon" != "yes"; then
+	AC_MSG_ERROR([--enable-terminal needs --enable-xkbcommon])
+fi
 if test "$enable_terminal" = "yes"; then
 	PKG_CHECK_MODULES([TSM], [libtsm])
-	PKG_CHECK_MODULES([XKBCOMMON], [xkbcommon])
 	AC_DEFINE(ENABLE_TERMINAL, 1, [run plugins with a text user interface in a terminal on the OSD])
 fi
 AM_CONDITIONAL(ENABLE_TERMINAL, test "$enable_terminal" = "yes")

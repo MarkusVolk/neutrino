@@ -51,6 +51,6 @@ libneutrino_gui_components_a_SOURCES = \
 	cc_timer.cpp\
 	cc_types.cpp
 
-if ENABLE_TERMINAL
+if ENABLE_XKBCOMMON
 AM_CPPFLAGS += @XKBCOMMON_CFLAGS@
 endif
