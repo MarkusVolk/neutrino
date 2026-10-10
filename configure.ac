@@ -572,6 +572,17 @@ fi
 AM_CONDITIONAL(ENABLE_ASSISTANT, test "$enable_assistant" = "yes")
 AM_CONDITIONAL(ENABLE_ASSISTANT_VOICE, test "$enable_assistant_voice" = "yes")
 
+AC_ARG_ENABLE(libsecret,
+	AS_HELP_STRING([--enable-libsecret], [keep API keys in the Secret Service of the desktop session through libsecret @<:@default=no@:>@]),
+	[enable_libsecret="$enableval"],
+	[enable_libsecret="no"])
+
+if test "$enable_libsecret" = "yes"; then
+	PKG_CHECK_MODULES([LIBSECRET], [libsecret-1])
+	AC_DEFINE(ENABLE_LIBSECRET, 1, [keep API keys in the Secret Service of the desktop session])
+fi
+AM_CONDITIONAL(ENABLE_LIBSECRET, test "$enable_libsecret" = "yes")
+
 AC_ARG_ENABLE(freesatepg,
 	AS_HELP_STRING([--enable-freesatepg], [enable Freesat EPG code @<:@default=no@:>@]),
 	AC_DEFINE(ENABLE_FREESATEPG, 1, [enable Freesat EPG code]))

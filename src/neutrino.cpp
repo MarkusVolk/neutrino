@@ -136,6 +136,7 @@
 #include <system/debug.h>
 #include <system/fsmounter.h>
 #include <system/hddstat.h>
+#include <system/secrets.h>
 #include <system/setting_helpers.h>
 #include <system/settings.h>
 #include <system/helpers.h>
@@ -386,6 +387,23 @@ static void clearUsermenuConfig()
 /**************************************************************************************
 *          CNeutrinoApp -  loadSetup, load the application-settings                   *
 **************************************************************************************/
+
+#ifdef ENABLE_ASSISTANT
+/* API keys and tokens live in the secret store, not in neutrino.conf */
+static void loadSecret(CConfigFile &config, const std::string &key, std::string &field)
+{
+	config.deleteKey(key);
+	setSettingsText(field, secrets::load(key));
+}
+
+static void saveSecret(CConfigFile &config, const std::string &key, const std::string &value)
+{
+	if (secrets::store(key, value))
+		config.deleteKey(key);
+	else
+		config.setString(key, value);
+}
+#endif
 
 std::string font_file_monospace = "";
 
@@ -1082,21 +1100,21 @@ int CNeutrinoApp::loadSetup(const char *fname)
 #ifdef ENABLE_ASSISTANT
 	g_settings.assistant_enabled = configfile.getInt32("assistant_enabled", 0);
 	g_settings.assistant_backend = configfile.getInt32("assistant_backend", 0);
-	setSettingsText(g_settings.assistant_claude_key, configfile.getString("assistant_claude_key", ""));
+	loadSecret(configfile, "assistant_claude_key", g_settings.assistant_claude_key);
 	setSettingsText(g_settings.assistant_claude_model, configfile.getString("assistant_claude_model", "claude-opus-5-5"));
 	g_settings.assistant_claude_effort = configfile.getInt32("assistant_claude_effort", 1);
 	setSettingsText(g_settings.assistant_openai_url, configfile.getString("assistant_openai_url", ""));
-	setSettingsText(g_settings.assistant_openai_key, configfile.getString("assistant_openai_key", ""));
+	loadSecret(configfile, "assistant_openai_key", g_settings.assistant_openai_key);
 	setSettingsText(g_settings.assistant_openai_model, configfile.getString("assistant_openai_model", ""));
 	for (int i = 0; i < ASSISTANT_MCP_SERVERS; i++)
 	{
 		std::string n = to_string(i);
 		setSettingsText(g_settings.assistant_mcp_name[i], configfile.getString("assistant_mcp_name_" + n, ""));
 		setSettingsText(g_settings.assistant_mcp_url[i], configfile.getString("assistant_mcp_url_" + n, ""));
-		setSettingsText(g_settings.assistant_mcp_token[i], configfile.getString("assistant_mcp_token_" + n, ""));
+		loadSecret(configfile, "assistant_mcp_token_" + n, g_settings.assistant_mcp_token[i]);
 	}
 	setSettingsText(g_settings.assistant_stt_url, configfile.getString("assistant_stt_url", ""));
-	setSettingsText(g_settings.assistant_stt_key, configfile.getString("assistant_stt_key", ""));
+	loadSecret(configfile, "assistant_stt_key", g_settings.assistant_stt_key);
 	setSettingsText(g_settings.assistant_stt_model, configfile.getString("assistant_stt_model", "whisper-1"));
 	setSettingsText(g_settings.assistant_stt_language, configfile.getString("assistant_stt_language", ""));
 	setSettingsText(g_settings.assistant_stt_device, configfile.getString("assistant_stt_device", "default"));
@@ -2045,21 +2063,21 @@ void CNeutrinoApp::saveSetup(const char *fname)
 #ifdef ENABLE_ASSISTANT
 	configfile.setInt32("assistant_enabled", g_settings.assistant_enabled);
 	configfile.setInt32("assistant_backend", g_settings.assistant_backend);
-	configfile.setString("assistant_claude_key", g_settings.assistant_claude_key);
+	saveSecret(configfile, "assistant_claude_key", g_settings.assistant_claude_key);
 	configfile.setString("assistant_claude_model", g_settings.assistant_claude_model);
 	configfile.setInt32("assistant_claude_effort", g_settings.assistant_claude_effort);
 	configfile.setString("assistant_openai_url", g_settings.assistant_openai_url);
-	configfile.setString("assistant_openai_key", g_settings.assistant_openai_key);
+	saveSecret(configfile, "assistant_openai_key", g_settings.assistant_openai_key);
 	configfile.setString("assistant_openai_model", g_settings.assistant_openai_model);
 	for (int i = 0; i < ASSISTANT_MCP_SERVERS; i++)
 	{
 		std::string n = to_string(i);
 		configfile.setString("assistant_mcp_name_" + n, g_settings.assistant_mcp_name[i]);
 		configfile.setString("assistant_mcp_url_" + n, g_settings.assistant_mcp_url[i]);
-		configfile.setString("assistant_mcp_token_" + n, g_settings.assistant_mcp_token[i]);
+		saveSecret(configfile, "assistant_mcp_token_" + n, g_settings.assistant_mcp_token[i]);
 	}
 	configfile.setString("assistant_stt_url", g_settings.assistant_stt_url);
-	configfile.setString("assistant_stt_key", g_settings.assistant_stt_key);
+	saveSecret(configfile, "assistant_stt_key", g_settings.assistant_stt_key);
 	configfile.setString("assistant_stt_model", g_settings.assistant_stt_model);
 	configfile.setString("assistant_stt_language", g_settings.assistant_stt_language);
 	configfile.setString("assistant_stt_device", g_settings.assistant_stt_device);

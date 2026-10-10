@@ -146,6 +146,10 @@ if ENABLE_ASSISTANT_VOICE
 neutrino_LDADD += @ALSA_LIBS@
 endif
 
+if ENABLE_LIBSECRET
+neutrino_LDADD += @LIBSECRET_LIBS@
+endif
+
 # LCD display
 if ENABLE_LCD
 neutrino_LDADD += $(top_builddir)/lib/liblcddisplay/liblcddisplay.a

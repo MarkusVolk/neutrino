@@ -23,6 +23,10 @@ AM_CPPFLAGS = \
 	@LUA_CFLAGS@ \
 	@HWLIB_CFLAGS@
 
+if ENABLE_LIBSECRET
+AM_CPPFLAGS += @LIBSECRET_CFLAGS@
+endif
+
 noinst_LIBRARIES = libneutrino_system.a
 
 libneutrino_system_a_SOURCES = \
@@ -40,6 +44,7 @@ libneutrino_system_a_SOURCES = \
 	mdb-tools.cpp \
 	ping.cpp \
 	proc_tools.cpp \
+	secrets.cpp \
 	settings.cpp \
 	stacktrace.cpp \
 	supportinfo.cpp \
