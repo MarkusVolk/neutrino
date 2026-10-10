@@ -41,6 +41,14 @@ AS_CASE([" $CPPFLAGS "],
 	[*" -D_FILE_OFFSET_BITS=64 "*], [],
 	[CPPFLAGS="$CPPFLAGS -D_FILE_OFFSET_BITS=64"])
 
+dnl The code reads one type through pointers to another in many places.
+AS_CASE([" $CFLAGS "],
+	[*" -fno-strict-aliasing "*], [],
+	[CFLAGS="$CFLAGS -fno-strict-aliasing"])
+AS_CASE([" $CXXFLAGS "],
+	[*" -fno-strict-aliasing "*], [],
+	[CXXFLAGS="$CXXFLAGS -fno-strict-aliasing"])
+
 # Set default for ARFLAGS, since autoconf does not have a macro for it.
 # This allows people to set it when running configure or make
 test -n "$ARFLAGS" || ARFLAGS="cr"
