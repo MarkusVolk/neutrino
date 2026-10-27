@@ -334,9 +334,12 @@ std::string CyhookHandler::BuildHeader(bool cache) {
 		// content-len, last-modified
 		if (!ETag.empty() && (httpStatus == HTTP_OK || httpStatus == HTTP_NOT_MODIFIED || httpStatus == HTTP_PARTIAL_CONTENT))
 			result += "ETag: " + ETag + "\r\n";
-		if (httpStatus == HTTP_NOT_MODIFIED || httpStatus == HTTP_NOT_FOUND || httpStatus == HTTP_REQUEST_RANGE_NOT_SATISFIABLE)
+		if (httpStatus == HTTP_NOT_MODIFIED || httpStatus == HTTP_NOT_FOUND || httpStatus == HTTP_REQUEST_RANGE_NOT_SATISFIABLE) {
 			result += "Content-Length: 0\r\n";
-		else if (GetContentLength() > 0) {
+			// a refused range says how long the file is, for a range that fits
+			if (httpStatus == HTTP_REQUEST_RANGE_NOT_SATISFIABLE)
+				result += string_printf("Content-Range: bytes */%lld\r\n", (long long) ContentLength);
+		} else if (GetContentLength() > 0) {
 			time_t mod_time = time(NULL);
 			if (LastModified != (time_t) - 1)
 				mod_time = LastModified;
