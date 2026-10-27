@@ -319,7 +319,8 @@ std::string CyhookHandler::BuildHeader(bool cache) {
 			result += "X-Frame-Options: DENY\r\n";
 		}
 		// actual date
-		strftime(timeStr, sizeof(timeStr), RFC1123FMT, gmtime(&timer));
+		struct tm now_tm;
+		strftime(timeStr, sizeof(timeStr), RFC1123FMT, gmtime_r(&timer, &now_tm));
 		result += string_printf("Date: %s\r\n", timeStr);
 		// connection type
 #ifdef Y_CONFIG_FEATURE_KEEP_ALIVE
@@ -346,7 +347,8 @@ std::string CyhookHandler::BuildHeader(bool cache) {
 
 			/* a file with an entity tag is recognised by its content; the
 			 * date says nothing on images whose files all carry one time */
-			strftime(timeStr, sizeof(timeStr), RFC1123FMT, gmtime(&mod_time));
+			struct tm mod_tm;
+			strftime(timeStr, sizeof(timeStr), RFC1123FMT, gmtime_r(&mod_time, &mod_tm));
 			if (ETag.empty())
 				result += string_printf("Last-Modified: %s\r\n", timeStr);
 			if (status == HANDLED_SENDFILE && !cached) {
