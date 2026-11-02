@@ -8,7 +8,14 @@ rm -rf "$ROOT/.ofgwrite"
 BAKF="$ROOT/.neutrino-restore-$SUB.tar.gz"
 if [ -e "$BAKF" ]; then
 	echo "Restore settings from $BAKF"
-	tar -xzf "$BAKF" -C / && rm -f "$BAKF"
+	if tar -xzf "$BAKF" -C /; then
+		rm -f "$BAKF"
+		# udev brought the interfaces up already, with the image's own
+		# settings; the start of the networking takes them up again
+		for i in $(cut -d= -f1 /var/run/ifstate 2>/dev/null); do
+			[ "$i" = lo ] || ifdown -f "$i"
+		done
+	fi
 	sync
 fi
 slot_done
