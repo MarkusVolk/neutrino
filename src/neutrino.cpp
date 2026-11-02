@@ -598,7 +598,9 @@ int CNeutrinoApp::loadSetup(const char *fname)
 		g_settings.enabled_auto_modes[i] = configfile.getInt32(cfg_key, 1);
 	}
 
-	g_settings.zappingmode = configfile.getInt32("zappingmode", g_info.hw_caps->standby_zappingmode_mute ? 2 : 0);
+	/* black or held, both until the tuner locks; 2 and 3 were the lock
+	 * variants beside 0 and 1 */
+	g_settings.zappingmode = configfile.getInt32("zappingmode", 0) & 1;
 	g_settings.hdmi_colorimetry = configfile.getInt32("hdmi_colorimetry", 0);
 
 	g_settings.cpufreq = g_info.hw_caps->can_cpufreq ? configfile.getInt32("cpufreq", 0) : 0;
@@ -5650,7 +5652,7 @@ void CNeutrinoApp::standbyMode(bool bOnOff, bool fromDeepStandby)
 #if !HAVE_CST_HARDWARE
 		// ensure a blank screen in standby mode
 		if (g_info.hw_caps->standby_zappingmode_mute)
-			videoDecoder->SetControl(VIDEO_CONTROL_ZAPPING_MODE, 2); // force mutetilllock
+			videoDecoder->SetControl(VIDEO_CONTROL_ZAPPING_MODE, 0); // force black
 #endif
 
 #ifdef ENABLE_GRAPHLCD

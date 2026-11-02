@@ -3104,9 +3104,7 @@ videomenu.videoformat_43 4:3
 videomenu.videomode Digital video mode
 videomenu.zappingmode Zapmodus
 videomenu.zappingmode_hold Beeld vasthouden
-videomenu.zappingmode_holdtilllock Beeld vasthouden tot vergrendeling
 videomenu.zappingmode_mute Zwart beeld
-videomenu.zappingmode_mutetilllock Zwart beeld tot vergrendeling
 weather.api_key Weer-API-sleutel (OpenWeather)
 weather.api_version Versie weer-API
 weather.direction_e O

@@ -3104,9 +3104,7 @@ videomenu.videoformat_43 4:3
 videomenu.videomode Obrazový režim
 videomenu.zappingmode Režim prepínania
 videomenu.zappingmode_hold Statický obraz
-videomenu.zappingmode_holdtilllock Statický obraz do uzamknutia
 videomenu.zappingmode_mute Čierny obraz
-videomenu.zappingmode_mutetilllock Čierny obraz do uzamknutia
 weather.api_key Počasie API kľúč (OpenWeather)
 weather.api_version Počasie API verzia
 weather.direction_e V
