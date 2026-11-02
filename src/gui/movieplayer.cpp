@@ -3152,6 +3152,9 @@ bool CMoviePlayerGui::PlayFileStart(void)
 				cnt = 200;
 				towait = 20;
 			}
+			/* the held picture plays on at once: there is nothing to wait for */
+			if (timeshift_delay >= 0)
+				cnt = 1;
 			for(i = 0; i < cnt; i++) {
 				playback->GetPosition(position, duration, isWebChannel);
 				startposition = (duration - position);
@@ -3164,8 +3167,11 @@ bool CMoviePlayerGui::PlayFileStart(void)
 			}
 			printf("CMoviePlayerGui::PlayFile: waiting for data: i=%d position %d duration %d (%d), start %d\n", i, position, duration, towait, startposition);
 			if (timeshift_delay >= 0) {
-				/* go on from where the live picture was held */
-				startposition = timeshift_opened_there ? -1 : std::max(0, duration - timeshift_delay);
+				/* go on from where the live picture was held; a recording
+				 * that began with the hold plays from its start already */
+				startposition = duration - timeshift_delay;
+				if (timeshift_opened_there || startposition < 1000)
+					startposition = -1;
 			} else if (timeshift == TSHIFT_MODE_REWIND) {
 				startposition = duration;
 			} else {
