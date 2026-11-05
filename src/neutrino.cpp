@@ -405,7 +405,10 @@ static void clearUsermenuConfig()
    neutrino.conf; one still found there moves over */
 static void loadSecret(CConfigFile &config, const std::string &key, std::string &field)
 {
+	/* that the key is not in the file is how it should be, not a new option */
+	bool unknown = config.getUnknownKeyQueryedFlag();
 	std::string old = config.getString(key, "");
+	config.setUnknownKeyQueryedFlag(unknown);
 	config.deleteKey(key);
 	if (!old.empty() && secrets::store(key, old))
 		setSettingsText(field, old);
