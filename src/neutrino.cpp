@@ -3396,14 +3396,6 @@ TIMER_START();
 		startwizard.exec(NULL, "");
 	}
 
-	// clean up startlogo
-	if (startlogo)
-	{
-		startlogo = false;
-		sleep(3);
-		frameBuffer->stopFrame();
-	}
-
 	if(loadSettingsErg)
 	{
 		hintBox->hide();
@@ -3416,6 +3408,13 @@ TIMER_START();
 
 	InitZapper();
 	zapper_ready = true;
+
+	/* the start logo stays until the channel is on its way */
+	if (startlogo)
+	{
+		startlogo = false;
+		frameBuffer->stopFrame();
+	}
 	for (size_t i = 0; i < early_timer_msgs.size(); i++)
 		if (!g_RCInput->postMsg(early_timer_msgs[i].first, early_timer_msgs[i].second, false))
 			delete[] (unsigned char*) early_timer_msgs[i].second;
