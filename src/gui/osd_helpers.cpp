@@ -59,6 +59,7 @@ static int videoSystemHeight(int vs)
 	case VIDEO_STD_2160P25:
 	case VIDEO_STD_2160P30:
 	case VIDEO_STD_2160P50:
+	case VIDEO_STD_2160P60:
 		return 2160;
 	default:
 		return 576;
@@ -152,7 +153,8 @@ int COsdHelpers::isVideoSystem1080(int res)
 		if ((res == VIDEO_STD_2160P24) ||
 		    (res == VIDEO_STD_2160P25) ||
 		    (res == VIDEO_STD_2160P30) ||
-		    (res == VIDEO_STD_2160P50))
+		    (res == VIDEO_STD_2160P50) ||
+		    (res == VIDEO_STD_2160P60))
 			return true;
 #endif
 	}

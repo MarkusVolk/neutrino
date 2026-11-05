@@ -48,7 +48,7 @@
 #include <string>
 #include <list>
 
-#define VIDEOMENU_VIDEOMODE_OPTION_COUNT 20
+#define VIDEOMENU_VIDEOMODE_OPTION_COUNT 21
 
 struct SNeutrinoTheme
 {
