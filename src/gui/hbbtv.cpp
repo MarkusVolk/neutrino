@@ -325,14 +325,16 @@ class CHbbtvControl
 		}
 };
 
-static pid_t spawn(const std::string &url, const std::string &channel, int control, int display, int start_key)
+static pid_t spawn(const std::string &url, const std::string &channel, const std::string &apps, int control, int display, int start_key)
 {
 	/* built before the fork, the child may not allocate */
 	std::vector<std::string> env;
 	for (char **e = environ; *e; e++)
 		if (strncmp(*e, "NEUTRINO_HBBTV_FD=", 18) && strncmp(*e, "NEUTRINO_HBBTV_START_KEY=", 25) &&
-		    strncmp(*e, "NEUTRINO_HBBTV_DISPLAY=", 23))
+		    strncmp(*e, "NEUTRINO_HBBTV_DISPLAY=", 23) && strncmp(*e, "NEUTRINO_HBBTV_APPS=", 20))
 			env.push_back(*e);
+	if (!apps.empty())
+		env.push_back("NEUTRINO_HBBTV_APPS=" + apps);
 	env.push_back("NEUTRINO_HBBTV_FD=" + to_string(CONTROL_FD));
 	if (display >= 0)
 		env.push_back("NEUTRINO_HBBTV_DISPLAY=" + to_string(DISPLAY_FD));
@@ -443,7 +445,15 @@ void CHbbtv::run(const CAitApp &ait_app, t_channel_id id, const std::string &cha
 		::close(display[1]);
 		display[0] = display[1] = -1;
 	}
-	pid_t pid = spawn(url, channel, control[1], display[1], start_key);
+	/* what else the channel signals: an application may start another
+	   by its number, dvb://current.ait/<organisation>.<application> */
+	std::string others;
+	std::vector<CAitApp> apps;
+	if (CZapit::getInstance()->GetAitApps(id, apps))
+		for (size_t i = 0; i < apps.size(); i++)
+			if (!apps[i].url.empty() && apps[i].url.find(' ') == std::string::npos)
+				others += (others.empty() ? "" : " ") + to_string(apps[i].org_id) + "." + to_string(apps[i].app_id) + "=" + apps[i].url;
+	pid_t pid = spawn(url, channel, others, control[1], display[1], start_key);
 	if (control[1] >= 0)
 		::close(control[1]);
 	if (display[1] >= 0)

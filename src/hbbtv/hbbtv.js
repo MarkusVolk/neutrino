@@ -40,6 +40,21 @@
 			bridge.postMessage({ cmd: 'media', line: line });
 	}
 
+	/* dvb://current.ait/<organisation>.<application>, both in hex, is an
+	 * application the channel signals; what follows goes to its address */
+	function applicationUrl(uri) {
+		var m = /^dvb:\/\/current\.ait\/([0-9a-f]+)\.([0-9a-f]+)([?#].*)?$/i.exec(uri);
+		if (!m)
+			return new URL(uri, document.baseURI).href;
+		var url = (window.__neutrinoApps || {})[parseInt(m[1], 16) + '.' + parseInt(m[2], 16)];
+		var rest = m[3] || '';
+		if (!url)
+			return null;
+		if (rest.charAt(0) == '?' && url.indexOf('?') >= 0)
+			rest = '&' + rest.substr(1);
+		return url + rest;
+	}
+
 	var channel = window.__neutrinoChannel || {
 		ccid: 'ccid:0', name: '', onid: 0, tsid: 0, sid: 0,
 		channelType: 0, idType: 15, dsd: '', majorChannel: 0
@@ -84,8 +99,11 @@
 		/* an application hands over to another with createApplication() and then
 		 * calls destroyApplication(); only one without a successor ends HbbTV */
 		createApplication: function (uri) {
+			var url = applicationUrl(uri);
+			if (!url)
+				return null;
 			successor = true;
-			window.location.href = new URL(uri, document.baseURI).href;
+			window.location.href = url;
 			return application;
 		},
 		destroyApplication: function () {

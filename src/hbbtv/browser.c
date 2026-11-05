@@ -366,10 +366,41 @@ static char *channel_script(const char *arg)
 	return script;
 }
 
+/* NEUTRINO_HBBTV_APPS: "<organisation>.<application>=<address>" of each
+ * application the channel signals, separated by blanks */
+static char *apps_script(const char *apps)
+{
+	GString *script = g_string_new("window.__neutrinoApps={");
+	char **list = g_strsplit(apps, " ", -1);
+
+	for (char **app = list; *app; app++) {
+		char *url = strchr(*app, '=');
+
+		if (!url)
+			continue;
+		*url++ = 0;
+		char *quoted = g_strescape(url, NULL);
+		g_string_append_printf(script, "'%s':'%s',", *app, quoted);
+		g_free(quoted);
+	}
+	g_strfreev(list);
+	g_string_append(script, "};");
+	return g_string_free(script, FALSE);
+}
+
 static void add_scripts(WebKitUserContentManager *manager, const char *channel)
 {
 	char *source = NULL;
+	const char *apps = g_getenv("NEUTRINO_HBBTV_APPS");
 
+	if (apps) {
+		char *script = apps_script(apps);
+		WebKitUserScript *us = webkit_user_script_new(script, WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES,
+			WEBKIT_USER_SCRIPT_INJECT_AT_DOCUMENT_START, NULL, NULL);
+		webkit_user_content_manager_add_script(manager, us);
+		webkit_user_script_unref(us);
+		g_free(script);
+	}
 	if (channel) {
 		char *script = channel_script(channel);
 		WebKitUserScript *us = webkit_user_script_new(script, WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES,
