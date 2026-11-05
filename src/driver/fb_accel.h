@@ -184,6 +184,7 @@ class CFbAccelGLFB
 		fb_pixel_t * getBackBufferPointer() const;
 		void osdSizeFor(int out_w, int out_h, int &w, int &h);
 		bool getOutputSize(int &w, int &h, unsigned &generation);
+		bool setSource(int fd);
 };
 
 class CFbAccelARM

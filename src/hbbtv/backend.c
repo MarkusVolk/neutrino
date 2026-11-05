@@ -4,6 +4,10 @@
 	Broadcom V3D driver (HBBTV_NXPL) into a Nexus graphics window above the
 	video. There is no compositor in between.
 
+	Where the display is Neutrino's own GL window (HBBTV_GBM), the pages
+	are rendered into GBM buffers that Neutrino gets as dmabufs and shows
+	in place of its OSD; libstb-hal's glfb.cpp has the messages.
+
 	License: GPL
 
 	This program is free software; you can redistribute it and/or
@@ -23,6 +27,14 @@
 #include <EGL/egl.h>
 #include <fcntl.h>
 #include <glib.h>
+#ifdef HBBTV_GBM
+#include <errno.h>
+#include <gbm.h>
+#include <glib-unix.h>
+#include <poll.h>
+#include <stdio.h>
+#include <string.h>
+#endif
 #include <linux/fb.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -68,7 +80,7 @@ struct fbdev_window {
 };
 #endif
 
-#ifndef HBBTV_NXPL
+#if !defined(HBBTV_NXPL) && !defined(HBBTV_GBM)
 static void fb_size(uint32_t *width, uint32_t *height)
 {
 	struct fb_var_screeninfo var;
@@ -153,7 +165,7 @@ static void view_initialize(void *data)
 	struct view *view = data;
 	uint32_t width = 1280, height = 720;
 
-#ifndef HBBTV_NXPL
+#if !defined(HBBTV_NXPL) && !defined(HBBTV_GBM)
 	fb_size(&width, &height);
 #endif
 	float scale = height / 720.0f;
@@ -161,10 +173,17 @@ static void view_initialize(void *data)
 	wpe_view_backend_dispatch_set_size(view->backend, width / scale, height / scale);
 }
 
+/* with GBM the renderer gets the socket to Neutrino's display */
 static int view_get_renderer_host_fd(void *data)
 {
 	struct view *view = data;
 
+#ifdef HBBTV_GBM
+	const char *display = g_getenv("NEUTRINO_HBBTV_DISPLAY");
+
+	if (display)
+		return dup(atoi(display));
+#endif
 	return dup(view->fds[1]);
 }
 
@@ -181,6 +200,60 @@ static const struct wpe_view_backend_interface view_interface = {
 static NXPL_PlatformHandle nxpl;
 #endif
 
+#ifdef HBBTV_GBM
+/* the GPU by its render node, which needs no rights on the display */
+struct egl {
+	int fd;
+	struct gbm_device *gbm;
+};
+
+static void *egl_create(int host_fd)
+{
+	struct egl *egl = g_new0(struct egl, 1);
+
+	if (host_fd >= 0)
+		close(host_fd);
+	egl->fd = -1;
+	for (int i = 128; i < 136 && !egl->gbm; i++) {
+		char path[32];
+
+		snprintf(path, sizeof(path), "/dev/dri/renderD%d", i);
+		egl->fd = open(path, O_RDWR | O_CLOEXEC);
+		if (egl->fd < 0)
+			continue;
+		egl->gbm = gbm_create_device(egl->fd);
+		if (!egl->gbm)
+			close(egl->fd);
+	}
+	if (!egl->gbm)
+		g_warning("no GPU to render with");
+	return egl;
+}
+
+static void egl_destroy(void *data)
+{
+	struct egl *egl = data;
+
+	if (egl->gbm) {
+		gbm_device_destroy(egl->gbm);
+		close(egl->fd);
+	}
+	g_free(egl);
+}
+
+static EGLNativeDisplayType egl_get_native_display(void *data)
+{
+	struct egl *egl = data;
+
+	return (EGLNativeDisplayType)egl->gbm;
+}
+
+static uint32_t egl_get_platform(void *data)
+{
+	(void)data;
+	return 0x31D7; /* EGL_PLATFORM_GBM_KHR */
+}
+#else
 static void *egl_create(int host_fd)
 {
 	if (host_fd >= 0)
@@ -211,6 +284,7 @@ static uint32_t egl_get_platform(void *data)
 	(void)data;
 	return 0;
 }
+#endif
 
 static const struct wpe_renderer_backend_egl_interface egl_interface = {
 	.create = egl_create,
@@ -219,12 +293,18 @@ static const struct wpe_renderer_backend_egl_interface egl_interface = {
 	.get_platform = egl_get_platform,
 };
 
-/* web process: the window on the framebuffer */
+/* web process: the window on the framebuffer, or the buffers for Neutrino */
 
 struct target {
 	struct wpe_renderer_backend_egl_target *target;
 #ifdef HBBTV_NXPL
 	void *window;
+#elif defined(HBBTV_GBM)
+	struct gbm_surface *surface;
+	int display;		/* the socket to Neutrino */
+	struct gbm_bo *sent;	/* the picture Neutrino has not confirmed yet */
+	struct gbm_bo *shown;	/* the one it shows */
+	unsigned buffers;	/* how many it knows */
 #else
 	struct fbdev_window window;
 #endif
@@ -235,8 +315,12 @@ static void *target_create(struct wpe_renderer_backend_egl_target *wpe_target, i
 {
 	struct target *target = g_new0(struct target, 1);
 
+#ifdef HBBTV_GBM
+	target->display = host_fd;
+#else
 	if (host_fd >= 0)
 		close(host_fd);
+#endif
 	target->target = wpe_target;
 	return target;
 }
@@ -249,6 +333,10 @@ static void target_destroy(void *data)
 		g_source_destroy(target->frame_source);
 		g_source_unref(target->frame_source);
 	}
+#ifdef HBBTV_GBM
+	if (target->display >= 0)
+		close(target->display);
+#endif
 	g_free(target);
 }
 
@@ -281,6 +369,97 @@ static void target_resize(void *data, uint32_t width, uint32_t height)
 	(void)width;
 	(void)height;
 }
+#elif defined(HBBTV_GBM)
+static void target_initialize(void *data, void *backend, uint32_t width, uint32_t height)
+{
+	struct target *target = data;
+	struct egl *egl = backend;
+
+	if (egl->gbm)
+		target->surface = gbm_surface_create(egl->gbm, width, height, GBM_FORMAT_ARGB8888, GBM_BO_USE_RENDERING);
+	if (!target->surface)
+		g_warning("no surface of %ux%u to render into", width, height);
+}
+
+static EGLNativeWindowType target_get_native_window(void *data)
+{
+	struct target *target = data;
+
+	return (EGLNativeWindowType)target->surface;
+}
+
+/* the pages are laid out for one size, which Neutrino stretches */
+static void target_resize(void *data, uint32_t width, uint32_t height)
+{
+	(void)data;
+	(void)width;
+	(void)height;
+}
+
+/* what Neutrino knows a buffer by, and its dmabuf */
+struct buffer {
+	unsigned id;
+	int fd;
+};
+
+static void buffer_destroy(struct gbm_bo *bo, void *data)
+{
+	struct buffer *buffer = data;
+
+	(void)bo;
+	if (buffer->fd >= 0)
+		close(buffer->fd);
+	g_free(buffer);
+}
+
+static void display_send(struct target *target, const char *text, int fd)
+{
+	union {
+		char buf[CMSG_SPACE(sizeof(int))];
+		struct cmsghdr align;
+	} control;
+	struct iovec iov = { (void *)text, strlen(text) };
+	struct msghdr msg = { .msg_iov = &iov, .msg_iovlen = 1 };
+
+	if (fd >= 0) {
+		struct cmsghdr *cmsg;
+
+		msg.msg_control = control.buf;
+		msg.msg_controllen = sizeof(control.buf);
+		cmsg = CMSG_FIRSTHDR(&msg);
+		cmsg->cmsg_level = SOL_SOCKET;
+		cmsg->cmsg_type = SCM_RIGHTS;
+		cmsg->cmsg_len = CMSG_LEN(sizeof(int));
+		memcpy(CMSG_DATA(cmsg), &fd, sizeof(int));
+	}
+	if (sendmsg(target->display, &msg, MSG_NOSIGNAL) < 0)
+		g_warning("display: %s", g_strerror(errno));
+}
+
+/* "done <id>": the picture sent last is on the display, the one before it
+ * is free again and the next may be rendered */
+static gboolean display_ready(gint fd, GIOCondition condition, gpointer data)
+{
+	struct target *target = data;
+	char text[32];
+	ssize_t n = recv(fd, text, sizeof(text) - 1, MSG_DONTWAIT);
+
+	if (n <= 0) {
+		if (n < 0 && (errno == EAGAIN || errno == EINTR) && !(condition & G_IO_HUP))
+			return G_SOURCE_CONTINUE;
+		g_source_unref(target->frame_source);
+		target->frame_source = NULL;
+		return G_SOURCE_REMOVE;
+	}
+	if (!target->sent)
+		return G_SOURCE_CONTINUE;
+	if (target->shown)
+		gbm_surface_release_buffer(target->surface, target->shown);
+	target->shown = target->sent;
+	target->sent = NULL;
+	wpe_renderer_backend_egl_target_dispatch_frame_complete(target->target);
+	return G_SOURCE_CONTINUE;
+}
 #else
 static void target_initialize(void *data, void *backend, uint32_t width, uint32_t height)
 {
@@ -312,6 +491,7 @@ static void target_frame_will_render(void *data)
 	(void)data;
 }
 
+#ifndef HBBTV_GBM
 /* the swap has already waited for the display; report the frame from the
  * compositor's own loop so WebKit does not re-enter it from frame_rendered */
 static gboolean frame_complete(gpointer data)
@@ -323,7 +503,48 @@ static gboolean frame_complete(gpointer data)
 	wpe_renderer_backend_egl_target_dispatch_frame_complete(target->target);
 	return G_SOURCE_REMOVE;
 }
+#endif
 
+#ifdef HBBTV_GBM
+/* the picture goes to Neutrino, whose answer completes the frame; the
+ * answers are read in the compositor's own loop */
+static void target_frame_rendered(void *data)
+{
+	struct target *target = data;
+	struct gbm_bo *bo = target->surface ? gbm_surface_lock_front_buffer(target->surface) : NULL;
+	char text[96];
+
+	if (!bo || target->display < 0) {
+		g_warning("nothing to show the page with");
+		return;
+	}
+	if (!target->frame_source) {
+		target->frame_source = g_unix_fd_source_new(target->display, G_IO_IN | G_IO_HUP);
+		g_source_set_callback(target->frame_source, G_SOURCE_FUNC(display_ready), target, NULL);
+		g_source_attach(target->frame_source, g_main_context_get_thread_default());
+	}
+	if (target->sent)
+		gbm_surface_release_buffer(target->surface, target->sent);
+	target->sent = bo;
+
+	struct buffer *buffer = gbm_bo_get_user_data(bo);
+	if (!buffer) {
+		buffer = g_new0(struct buffer, 1);
+		buffer->id = ++target->buffers;
+		buffer->fd = gbm_bo_get_fd(bo);
+		gbm_bo_set_user_data(bo, buffer, buffer_destroy);
+		snprintf(text, sizeof(text), "buffer %u %u %u %u %u %llu", buffer->id, gbm_bo_get_width(bo), gbm_bo_get_height(bo),
+			 gbm_bo_get_stride(bo), gbm_bo_get_format(bo), (unsigned long long)gbm_bo_get_modifier(bo));
+		display_send(target, text, buffer->fd);
+	}
+	/* the swap only queued the rendering; a dmabuf is readable once the
+	 * GPU is done with it, and Neutrino is to get the finished picture */
+	struct pollfd done = { .fd = buffer->fd, .events = POLLIN };
+	poll(&done, 1, 500);
+	snprintf(text, sizeof(text), "frame %u", buffer->id);
+	display_send(target, text, -1);
+}
+#else
 static void target_frame_rendered(void *data)
 {
 	struct target *target = data;
@@ -335,6 +556,7 @@ static void target_frame_rendered(void *data)
 	g_source_set_callback(target->frame_source, frame_complete, target, NULL);
 	g_source_attach(target->frame_source, g_main_context_get_thread_default());
 }
+#endif
 
 static void target_deinitialize(void *data)
 {
@@ -344,6 +566,13 @@ static void target_deinitialize(void *data)
 	if (target->window)
 		NXPL_DestroyNativeWindow(target->window);
 	target->window = NULL;
+#elif defined(HBBTV_GBM)
+	struct target *target = data;
+
+	if (target->surface)
+		gbm_surface_destroy(target->surface);
+	target->surface = NULL;
+	target->sent = target->shown = NULL;
 #else
 	(void)data;
 #endif

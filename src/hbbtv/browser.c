@@ -436,6 +436,10 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	setenv("WPE_BACKEND_LIBRARY", BACKEND_LIBRARY, 0);
+	/* on Neutrino's own display the GPU is the free driver's, which the
+	 * painting with it overtaxes; it only puts the painted layers together */
+	if (g_getenv("NEUTRINO_HBBTV_DISPLAY"))
+		setenv("WEBKIT_SKIA_ENABLE_CPU_RENDERING", "1", 0);
 	debug = g_getenv("NEUTRINO_HBBTV_DEBUG") != NULL;
 	if (g_getenv("NEUTRINO_HBBTV_START_KEY"))
 		start_key = atoi(g_getenv("NEUTRINO_HBBTV_START_KEY"));

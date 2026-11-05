@@ -3,11 +3,16 @@
 hbbtv_dir = get_option('prefix') / get_option('libdir') / 'neutrino-hbbtv'
 hbbtv_backend = 'WPEBackend-neutrino'
 
-# the Broadcom V3D driver renders into a Nexus window, the others into the framebuffer
+# the Broadcom V3D driver renders into a Nexus window and the Mali fbdev
+# driver into the framebuffer; where Neutrino draws with GL itself, the
+# browser renders into GBM buffers and hands them to it
 hbbtv_nxpl = dependency('nxpl', required : false)
 hbbtv_backend_deps = [dependency('glib-2.0'), dependency('wpe-1.0'), dependency('egl')]
 hbbtv_backend_args = ['-DEGL_NO_X11=1']
-if hbbtv_nxpl.found()
+if boxtype == 'generic'
+	hbbtv_backend_deps += dependency('gbm')
+	hbbtv_backend_args += '-DHBBTV_GBM'
+elif hbbtv_nxpl.found()
 	hbbtv_backend_deps += hbbtv_nxpl
 	hbbtv_backend_args += '-DHBBTV_NXPL'
 endif

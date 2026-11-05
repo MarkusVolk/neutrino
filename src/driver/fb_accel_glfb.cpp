@@ -235,3 +235,8 @@ bool CFbAccelGLFB::getOutputSize(int &w, int &h, unsigned &generation)
 	glfb->getOutputSize(w, h, generation);
 	return w > 0 && h > 0;
 }
+
+bool CFbAccelGLFB::setSource(int fd)
+{
+	return glfb && glfb->setSource(fd);
+}

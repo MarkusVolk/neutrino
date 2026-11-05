@@ -66,6 +66,7 @@ extern cVideo *videoDecoder;
 extern char **environ;
 
 #define CONTROL_FD 3
+#define DISPLAY_FD 4
 
 static std::string browser()
 {
@@ -195,6 +196,7 @@ class CHbbtvControl
 		void window(const std::string &args)
 		{
 			int x, y, w, h;
+			printf("[hbbtv] window %s\n", args.c_str());
 			if (args == "full" || sscanf(args.c_str(), "%d %d %d %d", &x, &y, &w, &h) != 4)
 				videoDecoder->Pig(-1, -1, -1, -1);
 			else
@@ -323,14 +325,17 @@ class CHbbtvControl
 		}
 };
 
-static pid_t spawn(const std::string &url, const std::string &channel, int control, int start_key)
+static pid_t spawn(const std::string &url, const std::string &channel, int control, int display, int start_key)
 {
 	/* built before the fork, the child may not allocate */
 	std::vector<std::string> env;
 	for (char **e = environ; *e; e++)
-		if (strncmp(*e, "NEUTRINO_HBBTV_FD=", 18) && strncmp(*e, "NEUTRINO_HBBTV_START_KEY=", 25))
+		if (strncmp(*e, "NEUTRINO_HBBTV_FD=", 18) && strncmp(*e, "NEUTRINO_HBBTV_START_KEY=", 25) &&
+		    strncmp(*e, "NEUTRINO_HBBTV_DISPLAY=", 23))
 			env.push_back(*e);
 	env.push_back("NEUTRINO_HBBTV_FD=" + to_string(CONTROL_FD));
+	if (display >= 0)
+		env.push_back("NEUTRINO_HBBTV_DISPLAY=" + to_string(DISPLAY_FD));
 	if (start_key)
 		env.push_back("NEUTRINO_HBBTV_START_KEY=" + to_string(start_key));
 	std::vector<char *> envp;
@@ -363,11 +368,14 @@ static pid_t spawn(const std::string &url, const std::string &channel, int contr
 			(void)!write(oom, "1000", 4);
 			::close(oom);
 		}
-		if (control != CONTROL_FD)
-			dup2(control, CONTROL_FD);
-		else
-			fcntl(CONTROL_FD, F_SETFD, 0);
-		close_range(CONTROL_FD + 1, ~0U, 0);
+		/* out of the way first, either may sit on the other's number */
+		control = fcntl(control, F_DUPFD, 10);
+		if (display >= 0)
+			display = fcntl(display, F_DUPFD, 10);
+		dup2(control, CONTROL_FD);
+		if (display >= 0)
+			dup2(display, DISPLAY_FD);
+		close_range((display >= 0 ? DISPLAY_FD : CONTROL_FD) + 1, ~0U, 0);
 		execve(argv[0], (char * const *)argv, envp.data());
 		_exit(127);
 	}
@@ -426,9 +434,20 @@ void CHbbtv::run(const CAitApp &ait_app, t_channel_id id, const std::string &cha
 	int control[2];
 	if (socketpair(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0, control) < 0)
 		control[0] = control[1] = -1;
-	pid_t pid = spawn(url, channel, control[1], start_key);
+	/* a display that is Neutrino's own stays with it: the browser sends
+	   its pictures, and they are shown in place of the OSD */
+	int display[2] = { -1, -1 };
+	if (socketpair(AF_UNIX, SOCK_SEQPACKET | SOCK_CLOEXEC, 0, display) == 0 && !fb->setSource(display[0]))
+	{
+		::close(display[0]);
+		::close(display[1]);
+		display[0] = display[1] = -1;
+	}
+	pid_t pid = spawn(url, channel, control[1], display[1], start_key);
 	if (control[1] >= 0)
 		::close(control[1]);
+	if (display[1] >= 0)
+		::close(display[1]);
 	fcntl(control[0], F_SETFL, fcntl(control[0], F_GETFL) | O_NONBLOCK);
 	CHbbtvControl link(control[0]);
 	shown = true;
@@ -495,6 +514,8 @@ void CHbbtv::run(const CAitApp &ait_app, t_channel_id id, const std::string &cha
 	link.stop();
 	if (control[0] >= 0)
 		::close(control[0]);
+	if (display[0] >= 0)
+		fb->setSource(-1);
 	/* the application may have scaled the live picture */
 	videoDecoder->Pig(-1, -1, -1, -1);
 

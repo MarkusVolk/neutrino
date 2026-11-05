@@ -367,6 +367,10 @@ class CFrameBuffer : public sigc::trackable
 		/* the area the OSD is shown in, where the framebuffer knows it (a
 		   window); generation goes up whenever it changes */
 		virtual bool getOutputSize(int &, int &, unsigned &) { return false; };
+		/* shows what another program sends over the socket in place of
+		 * the OSD until the same with -1; false where the display is not
+		 * Neutrino's own to draw on, the socket is then left alone */
+		virtual bool setSource(int) { return false; };
 
 		enum
 			{
