@@ -49,6 +49,7 @@
 #include "lua_configfile.h"
 #include "lua_curl.h"
 #include "lua_filehelpers.h"
+#include "lua_browser.h"
 #include "lua_hint.h"
 #include "lua_hintbox.h"
 #include "lua_hourglass.h"
@@ -872,6 +873,7 @@ void LuaInstRegisterFunctions(lua_State *L, bool fromThreads/*=false*/)
 	if (fromThreads)
 		lua_settop(L, top);
 // ------------------------------------------
+	CLuaInstBrowser::getInstance()->BrowserRegister(L);
 	CLuaInstCCPicture::getInstance()->CCPictureRegister(L);
 	CLuaInstCCHeader::getInstance()->CCHeaderRegister(L);
 	CLuaInstCCSignalbox::getInstance()->CCSignalBoxRegister(L);
