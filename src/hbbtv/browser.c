@@ -160,6 +160,8 @@ static size_t key_of_device(unsigned code)
 	return G_N_ELEMENTS(keymap);
 }
 
+static void control_send(const char *line);
+
 static gboolean input_cb(GIOChannel *channel, GIOCondition cond, gpointer data)
 {
 	struct input_event ev;
@@ -172,6 +174,16 @@ static gboolean input_cb(GIOChannel *channel, GIOCondition cond, gpointer data)
 		if (ev.type != EV_KEY)
 			continue;
 		unsigned code = ev.code;
+		if (code == KEY_VOLUMEUP || code == KEY_VOLUMEDOWN) {
+			if (ev.value)
+				control_send(code == KEY_VOLUMEUP ? "volume up" : "volume down");
+			continue;
+		}
+		if (code == KEY_MUTE) {
+			if (ev.value == 1)
+				control_send("volume mute");
+			continue;
+		}
 		if (code == KEY_EXIT && page_mode) {
 			/* held, it leaves whatever the page does */
 			if (ev.value == 2)

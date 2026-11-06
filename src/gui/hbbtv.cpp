@@ -48,7 +48,12 @@
 #include <sys/wait.h>
 #include <vector>
 
+#include <algorithm>
+
 #include <global.h>
+#include <gui/audiomute.h>
+#include <gui/widget/menue.h>
+#include <driver/volume.h>
 #include <neutrino.h>
 #include <driver/abstime.h>
 #include <driver/framebuffer.h>
@@ -342,6 +347,18 @@ class CHbbtvControl
 			skip_last = position;
 		}
 
+		/* the display is the browser's, so no volume bar */
+		void volume(const std::string &what)
+		{
+			if (what == "mute")
+			{
+				CAudioMute::getInstance()->AudioMute(!CNeutrinoApp::getInstance()->isMuted(), true);
+				return;
+			}
+			int vol = g_settings.current_volume + (what == "up" ? 1 : -1) * g_settings.current_volume_step;
+			CVolume::getInstance()->setVolumeExt(std::min(100, std::max(0, vol)));
+		}
+
 		void command(const std::string &line)
 		{
 			std::string cmd = line.substr(0, line.find(' '));
@@ -368,6 +385,8 @@ class CHbbtvControl
 			}
 			else if (cmd == "prepare")
 				start_resolver("prepare", "", false);
+			else if (cmd == "volume")
+				volume(args);
 			else if (cmd == "window")
 				window(args);
 			else if (cmd == "stop")
