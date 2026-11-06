@@ -50,7 +50,7 @@ static GString *control_in;
 /* keyCode values of the HbbTV key set (OIPF DAE, KeyEvent VK_*); keys that
  * a keyboard has as well go in as real key events (sym), the others are
  * made up in the page */
-static const struct {
+static struct {
 	unsigned short key;
 	int code;
 	uint32_t sym;
@@ -68,6 +68,24 @@ static const struct {
 	{ KEY_8, 56, WPE_KEY_8 }, { KEY_9, 57, WPE_KEY_9 },
 	{ KEY_INFO, 457, 0 }, { KEY_TEXT, 459, 0 },
 };
+
+static gboolean page_mode;
+
+/* an ordinary page wants real key events: exit is its back key, there are
+ * remote controls with no other, and the page has its own way to end */
+static void use_page_keys(void)
+{
+	page_mode = TRUE;
+	for (size_t i = 0; i < G_N_ELEMENTS(keymap); i++) {
+		if (keymap[i].key == KEY_BACK || keymap[i].key == KEY_BACKSPACE) {
+			keymap[i].code = 27;
+			keymap[i].sym = WPE_KEY_Escape;
+		} else if (keymap[i].key == KEY_PLAY || keymap[i].key == KEY_PAUSE || keymap[i].key == KEY_PLAYPAUSE) {
+			keymap[i].code = 179;
+			keymap[i].sym = WPE_KEY_AudioPlay;
+		}
+	}
+}
 
 static struct wpe_view_backend *wpe_backend;
 
@@ -151,14 +169,23 @@ static gboolean input_cb(GIOChannel *channel, GIOCondition cond, gpointer data)
 	if (cond & (G_IO_HUP | G_IO_ERR))
 		return G_SOURCE_REMOVE;
 	while (read(fd, &ev, sizeof(ev)) == sizeof(ev)) {
-		if (ev.type != EV_KEY || ev.value == 2)
+		if (ev.type != EV_KEY)
 			continue;
-		if (ev.code == KEY_EXIT || ev.code == KEY_HOME || ev.code == KEY_POWER) {
+		unsigned code = ev.code;
+		if (code == KEY_EXIT && page_mode) {
+			/* held, it leaves whatever the page does */
+			if (ev.value == 2)
+				g_main_loop_quit(loop);
+			code = KEY_BACK;
+		}
+		if (ev.value == 2)
+			continue;
+		if (code == KEY_EXIT || code == KEY_HOME || code == KEY_POWER) {
 			if (ev.value)
 				g_main_loop_quit(loop);
 			continue;
 		}
-		size_t i = key_of_device(ev.code);
+		size_t i = key_of_device(code);
 		if (i == G_N_ELEMENTS(keymap))
 			continue;
 		if (debug)
@@ -418,6 +445,14 @@ static void add_scripts(WebKitUserContentManager *manager, const char *channel)
 	webkit_user_content_manager_add_script(manager, us);
 	webkit_user_script_unref(us);
 	g_free(source);
+	const char *page = g_getenv("NEUTRINO_HBBTV_PAGE");
+	if (page && *page && g_file_get_contents(page, &source, NULL, NULL)) {
+		us = webkit_user_script_new(source, WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES,
+			WEBKIT_USER_SCRIPT_INJECT_AT_DOCUMENT_START, NULL, NULL);
+		webkit_user_content_manager_add_script(manager, us);
+		webkit_user_script_unref(us);
+		g_free(source);
+	}
 }
 
 static void load_changed(WebKitWebView *v, WebKitLoadEvent event, gpointer data)
@@ -462,6 +497,8 @@ static void limit_memory(WebKitWebContext **context)
 
 int main(int argc, char **argv)
 {
+	if (g_getenv("NEUTRINO_HBBTV_PAGE"))
+		use_page_keys();
 	if (argc < 2) {
 		fprintf(stderr, "usage: %s <url> [onid.tsid.sid[:name]]\n", argv[0]);
 		return 1;

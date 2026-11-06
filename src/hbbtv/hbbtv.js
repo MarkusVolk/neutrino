@@ -35,10 +35,17 @@
 
 	var bridge = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.neutrino;
 
-	function send(line) {
+	function post(line) {
 		if (bridge)
 			bridge.postMessage({ cmd: 'media', line: line });
 	}
+
+	/* a page's own script may take over what would go to the player */
+	function send(line) {
+		if (!window.__neutrinoPage || !window.__neutrinoPage.command(line, post))
+			post(line);
+	}
+	window.__neutrinoCurrent = function () { return current; };
 
 	/* dvb://current.ait/<organisation>.<application>, both in hex, is an
 	 * application the channel signals; what follows goes to its address */

@@ -13,7 +13,8 @@
 	such as "play <url>", "pause", "resume", "seek <ms>", "stop" and
 	"window <x> <y> <w> <h>" (in the application's 1280x720) or "window full"
 	over a socket on its fd 3, and gets "position <ms> <ms> playing|paused",
-	"ended" and "error" back.
+	"ended" and "error" back. A page's script may ask for "resolve <arg>" and
+	"prepare" instead, see CHbbtvPage.
 
 	License: GPL
 
@@ -131,6 +132,29 @@ bool CHbbtv::startAutostart()
 	return false;
 }
 
+bool CHbbtv::startPage(const CHbbtvPage &page)
+{
+	CNeutrinoApp *app = CNeutrinoApp::getInstance();
+	if (!available() || shown || app->getMode() != NeutrinoModes::mode_tv)
+		return false;
+	t_channel_id id;
+	std::string channel;
+	{
+		CServiceManager::ChannelGuard guard;
+		CZapitChannel *ch = CZapit::getInstance()->GetCurrentChannel();
+		if (!ch)
+			return false;
+		id = ch->getChannelID();
+		channel = to_string(ch->getOriginalNetworkId()) + "." + to_string(ch->getTransportStreamId()) + "." +
+			  to_string(ch->getServiceId()) + ":" + ch->getName();
+	}
+	CAitApp ait_app;
+	ait_app.url = page.url;
+	ait_app.name = page.name;
+	run(ait_app, id, channel, 0, &page);
+	return true;
+}
+
 bool CHbbtv::start(const std::string &url)
 {
 	t_channel_id id;
@@ -161,6 +185,16 @@ class CHbbtvControl
 		std::string input;
 		std::string screen_text;
 		bool screen_new;
+		bool loaded;
+		/* an ordinary page has no TV underneath: the player stays taken */
+		bool keep;
+		std::string resolver;
+		pid_t resolving;
+		int resolving_fd;
+		bool resolve_plays;
+		std::string resolved;
+		std::vector<std::pair<int, int> > skip_ranges;
+		int skip_last;
 
 		void send(const std::string &line)
 		{
@@ -169,20 +203,26 @@ class CHbbtvControl
 				printf("[hbbtv] control: %m\n");
 		}
 
-		void play(const std::string &url)
+		void claim()
 		{
-			cPlayback *playback = CMoviePlayerGui::getPlayback();
-			if (active)
+			if (loaded)
 				close();
-			else
+			else if (!active)
 			{
 				CRecordManager::getInstance()->StopAutoRecord();
 				g_Zapit->lockPlayBack();
 				active = true;
 			}
+		}
+
+		void play(const std::string &url, const std::string &audio = "")
+		{
+			cPlayback *playback = CMoviePlayerGui::getPlayback();
+			claim();
 			printf("[hbbtv] play %s\n", url.c_str());
 			playback->Open(PLAYMODE_FILE);
-			if (!playback->Start(url))
+			loaded = true;
+			if (!playback->Start(url, "", audio))
 			{
 				send("error");
 				stop();
@@ -201,6 +241,105 @@ class CHbbtvControl
 				videoDecoder->Pig(-1, -1, -1, -1);
 			else
 				videoDecoder->Pig(x, y, w, h, 1280, 720);
+		}
+
+		void cancel_resolver()
+		{
+			if (resolving <= 0)
+				return;
+			kill(resolving, SIGKILL);
+			waitpid(resolving, NULL, 0);
+			::close(resolving_fd);
+			resolving = 0;
+			resolving_fd = -1;
+		}
+
+		/* the page's resolver runs beside the main loop: it takes seconds,
+		 * and a page gives up on a video that does not start */
+		void start_resolver(const std::string &action, const std::string &arg, bool plays)
+		{
+			int p[2];
+			cancel_resolver();
+			if (resolver.empty() || pipe2(p, O_CLOEXEC) < 0)
+				return;
+			resolve_plays = plays;
+			resolved.clear();
+			std::string cmd = resolver + " \"$0\" \"$1\"";
+			resolving = fork();
+			if (resolving == 0)
+			{
+				dup2(p[1], 1);
+				execl("/bin/sh", "sh", "-c", cmd.c_str(), action.c_str(), arg.c_str(), (char *)NULL);
+				_exit(127);
+			}
+			::close(p[1]);
+			if (resolving < 0)
+			{
+				::close(p[0]);
+				resolving = 0;
+				return;
+			}
+			fcntl(p[0], F_SETFL, O_NONBLOCK);
+			resolving_fd = p[0];
+		}
+
+		void collect_resolver()
+		{
+			if (resolving <= 0)
+				return;
+			char buf[4096];
+			ssize_t n;
+			while ((n = ::read(resolving_fd, buf, sizeof(buf))) > 0)
+				resolved.append(buf, n);
+			if (n != 0)
+				return;
+			waitpid(resolving, NULL, 0);
+			::close(resolving_fd);
+			resolving = 0;
+			resolving_fd = -1;
+			if (!resolve_plays)
+				return;
+			std::vector<std::string> urls;
+			skip_ranges.clear();
+			skip_last = -1;
+			size_t begin = 0, end;
+			while ((end = resolved.find('\n', begin)) != std::string::npos)
+			{
+				std::string entry = resolved.substr(begin, end - begin);
+				begin = end + 1;
+				double from, to;
+				if (!entry.compare(0, 4, "http"))
+					urls.push_back(entry);
+				else if (entry.find_first_not_of("0123456789") == std::string::npos)
+					send("height " + entry);
+				else if (sscanf(entry.c_str(), "%lf %lf", &from, &to) == 2 && to > from)
+					skip_ranges.push_back(std::make_pair((int)(from * 1000), (int)(to * 1000)));
+			}
+			if (urls.empty())
+			{
+				printf("[hbbtv] no stream\n");
+				send("error");
+				stop();
+				return;
+			}
+			play(urls[0], urls.size() > 1 ? urls[1] : "");
+		}
+
+		/* as in the movie player: playing into a part jumps over it, a jump
+		 * into its middle leaves it be */
+		void skip(int &position)
+		{
+			for (size_t i = 0; i < skip_ranges.size(); i++)
+			{
+				if (skip_last < skip_ranges[i].first && position >= skip_ranges[i].first && position < skip_ranges[i].second)
+				{
+					printf("[hbbtv] skipping %d..%d ms\n", skip_ranges[i].first, skip_ranges[i].second);
+					CMoviePlayerGui::getPlayback()->SetPosition(skip_ranges[i].second, true);
+					position = skip_ranges[i].second;
+					break;
+				}
+			}
+			skip_last = position;
 		}
 
 		void command(const std::string &line)
@@ -222,9 +361,18 @@ class CHbbtvControl
 			}
 			else if (cmd == "play" && !args.empty())
 				play(args);
+			else if (cmd == "resolve" && !args.empty() && !resolver.empty())
+			{
+				claim();
+				start_resolver("resolve", args, true);
+			}
+			else if (cmd == "prepare")
+				start_resolver("prepare", "", false);
 			else if (cmd == "window")
 				window(args);
-			else if (!active)
+			else if (cmd == "stop")
+				stop();
+			else if (!active || !loaded)
 				return;
 			else if (cmd == "pause" || cmd == "resume")
 			{
@@ -237,8 +385,6 @@ class CHbbtvControl
 				playback->SetPosition(atoi(args.c_str()), true);
 				next_report = 0;
 			}
-			else if (cmd == "stop")
-				stop();
 		}
 
 		/* a paused player still has data on its way to the decoder, which
@@ -250,11 +396,21 @@ class CHbbtvControl
 				playback->SetSpeed(1);
 			playback->Close();
 			paused = false;
+			loaded = false;
 		}
 
 	public:
-		CHbbtvControl(int control) : fd(control), active(false), paused(false), next_report(0), screen_new(false) {}
-		~CHbbtvControl() { stop(); }
+		CHbbtvControl(int control, const CHbbtvPage *page) : fd(control), active(false), paused(false), next_report(0), screen_new(false),
+			loaded(false), keep(page != NULL), resolver(page ? page->resolver : ""), resolving(0), resolving_fd(-1), resolve_plays(false), skip_last(-1)
+		{
+			if (keep)
+				claim();
+		}
+		~CHbbtvControl()
+		{
+			keep = false;
+			stop();
+		}
 
 		void key(neutrino_msg_t msg)
 		{
@@ -279,10 +435,14 @@ class CHbbtvControl
 
 		void stop()
 		{
+			cancel_resolver();
 			if (!active)
 				return;
-			close();
+			if (loaded)
+				close();
 			videoDecoder->Pig(-1, -1, -1, -1);
+			if (keep)
+				return;
 			g_Zapit->unlockPlayBack();
 			active = false;
 			printf("[hbbtv] video stopped, live TV again\n");
@@ -310,10 +470,16 @@ class CHbbtvControl
 		/* position twice a second while a video plays */
 		void report()
 		{
+			collect_resolver();
 			int64_t now = time_monotonic_ms();
-			if (!active || now < next_report)
+			if ((!loaded && !(resolving > 0 && resolve_plays)) || now < next_report)
 				return;
 			next_report = now + 500;
+			if (!loaded)
+			{
+				send("position 0 0 playing");
+				return;
+			}
 			int position = 0, duration = 0;
 			if (!CMoviePlayerGui::getPlayback()->GetPosition(position, duration))
 			{
@@ -321,18 +487,24 @@ class CHbbtvControl
 				stop();
 				return;
 			}
+			skip(position);
 			send("position " + to_string(position) + " " + to_string(duration) + (paused ? " paused" : " playing"));
 		}
 };
 
-static pid_t spawn(const std::string &url, const std::string &channel, const std::string &apps, int control, int display, int start_key)
+static pid_t spawn(const std::string &url, const std::string &channel, const std::string &apps, const CHbbtvPage *page, int control, int display, int start_key)
 {
 	/* built before the fork, the child may not allocate */
 	std::vector<std::string> env;
 	for (char **e = environ; *e; e++)
 		if (strncmp(*e, "NEUTRINO_HBBTV_FD=", 18) && strncmp(*e, "NEUTRINO_HBBTV_START_KEY=", 25) &&
-		    strncmp(*e, "NEUTRINO_HBBTV_DISPLAY=", 23) && strncmp(*e, "NEUTRINO_HBBTV_APPS=", 20))
+		    strncmp(*e, "NEUTRINO_HBBTV_DISPLAY=", 23) && strncmp(*e, "NEUTRINO_HBBTV_APPS=", 20) &&
+		    strncmp(*e, "NEUTRINO_HBBTV_PAGE=", 20))
 			env.push_back(*e);
+	if (page)
+		env.push_back("NEUTRINO_HBBTV_PAGE=" + page->script);
+	if (page && !page->data.empty())
+		env.push_back("XDG_DATA_HOME=" + page->data);
 	if (!apps.empty())
 		env.push_back("NEUTRINO_HBBTV_APPS=" + apps);
 	env.push_back("NEUTRINO_HBBTV_FD=" + to_string(CONTROL_FD));
@@ -415,7 +587,7 @@ static void stop_browser(pid_t pid)
 	waitpid(pid, NULL, 0);
 }
 
-void CHbbtv::run(const CAitApp &ait_app, t_channel_id id, const std::string &channel, int start_key)
+void CHbbtv::run(const CAitApp &ait_app, t_channel_id id, const std::string &channel, int start_key, const CHbbtvPage *page)
 {
 	CFrameBuffer *fb = CFrameBuffer::getInstance();
 	CNeutrinoApp *app = CNeutrinoApp::getInstance();
@@ -453,13 +625,13 @@ void CHbbtv::run(const CAitApp &ait_app, t_channel_id id, const std::string &cha
 		for (size_t i = 0; i < apps.size(); i++)
 			if (!apps[i].url.empty() && apps[i].url.find(' ') == std::string::npos)
 				others += (others.empty() ? "" : " ") + to_string(apps[i].org_id) + "." + to_string(apps[i].app_id) + "=" + apps[i].url;
-	pid_t pid = spawn(url, channel, others, control[1], display[1], start_key);
+	pid_t pid = spawn(url, channel, others, page, control[1], display[1], start_key);
 	if (control[1] >= 0)
 		::close(control[1]);
 	if (display[1] >= 0)
 		::close(display[1]);
 	fcntl(control[0], F_SETFL, fcntl(control[0], F_GETFL) | O_NONBLOCK);
-	CHbbtvControl link(control[0]);
+	CHbbtvControl link(control[0], page);
 	shown = true;
 	shown_app = ait_app;
 	close_wanted = false;
