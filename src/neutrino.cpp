@@ -5033,6 +5033,13 @@ int CNeutrinoApp::handleMsg(const neutrino_msg_t _msg, neutrino_msg_data_t data)
 			std::string text = (char*)data;
 			std::string::size_type pos;
 
+			int buttons = CMsgBox::mbBack;
+			pos = text.find("&nobutton", 0);
+			if (pos != std::string::npos) {
+				text.erase(pos);
+				buttons = 0;
+			}
+
 			pos = text.find("&timeout=", 0);
 			if (pos != std::string::npos) {
 				std::string tmp = text.substr( pos+9, text.length()+1 );
@@ -5043,7 +5050,7 @@ int CNeutrinoApp::handleMsg(const neutrino_msg_t _msg, neutrino_msg_data_t data)
 			if (msg == NeutrinoMessages::EVT_POPUP)
 				ShowHint(LOCALE_MESSAGEBOX_INFO, text.c_str(), 0, timeout);
 			else if (msg == NeutrinoMessages::EVT_EXTMSG)
-				ShowMsg(LOCALE_MESSAGEBOX_INFO, text, CMsgBox::mbrBack, CMsgBox::mbBack, NEUTRINO_ICON_INFO, 500, timeout);
+				ShowMsg(LOCALE_MESSAGEBOX_INFO, text, CMsgBox::mbrBack, (CMsgBox::button_define_t) buttons, NEUTRINO_ICON_INFO, 500, timeout);
 		}
 		delete[] (unsigned char*) data;
 		return messages_return::handled;

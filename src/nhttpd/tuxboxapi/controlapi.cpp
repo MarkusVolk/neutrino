@@ -873,6 +873,9 @@ void CControlAPI::MessageCGI(CyhookHandler *hh)
 		message += "&timeout=";
 		message += hh->ParamList["timeout"];
 	}
+	/* a message that says what the box does and offers nothing to answer */
+	if (hh->ParamList["nobutton"] == "1")
+		message += "&nobutton";
 
 	if (event != 0)
 	{
