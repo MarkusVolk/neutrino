@@ -502,6 +502,94 @@
 		return setAttribute.call(this, name, value);
 	};
 
+	/* --- dash.js --- */
+
+	/* dash.js needs media source extensions, which this WebKit is built without: pages get this
+	 * stand-in, which hands the manifest to Neutrino through their video element */
+	var dashEvents = {
+		CAN_PLAY: 'canPlay', ERROR: 'error', PLAYBACK_ENDED: 'playbackEnded', PLAYBACK_ERROR: 'playbackError',
+		PLAYBACK_NOT_ALLOWED: 'playbackNotAllowed', PLAYBACK_PAUSED: 'playbackPaused',
+		PLAYBACK_PLAYING: 'playbackPlaying', PLAYBACK_SEEKED: 'playbackSeeked',
+		PLAYBACK_SEEKING: 'playbackSeeking', PLAYBACK_TIME_UPDATED: 'playbackTimeUpdated',
+		PLAYBACK_WAITING: 'playbackWaiting', TEXT_TRACKS_ADDED: 'allTextTracksAdded'
+	};
+	var dashRelay = {
+		canplay: dashEvents.CAN_PLAY, ended: dashEvents.PLAYBACK_ENDED, error: dashEvents.ERROR,
+		pause: dashEvents.PLAYBACK_PAUSED, playing: dashEvents.PLAYBACK_PLAYING,
+		seeked: dashEvents.PLAYBACK_SEEKED, seeking: dashEvents.PLAYBACK_SEEKING,
+		timeupdate: dashEvents.PLAYBACK_TIME_UPDATED, waiting: dashEvents.PLAYBACK_WAITING
+	};
+
+	function dashPlayer() {
+		var video = null, handlers = {}, autoplay = true;
+
+		function emit(type, e) {
+			e.type = type;
+			(handlers[type] || []).slice().forEach(function (h) { h(e); });
+		}
+		function relay(e) {
+			emit(dashRelay[e.type], e.type === 'error' ? { error: { code: 0, message: 'playback failed' } } : {});
+		}
+		function nothing() {}
+
+		var player = {
+			initialize: function (view, url, auto, start) {
+				autoplay = auto !== false;
+				if (view)
+					player.attachView(view);
+				if (url)
+					player.attachSource(url, start);
+			},
+			attachView: function (view) {
+				video = view;
+				video.autoplay = false;
+				for (var t in dashRelay)
+					video.addEventListener(t, relay);
+			},
+			attachSource: function (url, start) {
+				video.src = url || '';
+				if (start)
+					video.currentTime = start;
+				if (url && autoplay)
+					video.play();
+			},
+			destroy: function () {
+				if (!video)
+					return;
+				video.src = '';
+				for (var t in dashRelay)
+					video.removeEventListener(t, relay);
+				video = null;
+			},
+			on: function (type, h) { (handlers[type] = handlers[type] || []).push(h); },
+			off: function (type, h) {
+				var list = handlers[type] || [], i = list.indexOf(h);
+				if (i >= 0)
+					list.splice(i, 1);
+			},
+			play: function () { video.play(); },
+			pause: function () { video.pause(); },
+			seek: function (t) { video.currentTime = t; },
+			time: function () { return video ? video.currentTime : 0; },
+			duration: function () { return video ? video.duration : NaN; },
+			isPaused: function () { return !video || video.paused; },
+			getDVRWindowSize: function () { return Infinity; },
+			getTracksFor: function () { return []; },
+			getCurrentTrackFor: function () { return null; },
+			updateSettings: nothing,
+			attachVttRenderingDiv: nothing,
+			setCurrentTrack: nothing,
+			setTextTrack: nothing
+		};
+		return player;
+	}
+
+	var dashjs = { MediaPlayer: function () { return { create: dashPlayer }; } };
+	dashjs.MediaPlayer.events = dashEvents;
+	dashjs.MediaPlayer.errors = {};
+	/* a page that loads the real library anyway keeps the stand-in */
+	Object.defineProperty(window, 'dashjs', { get: function () { return dashjs; }, set: function () {}, configurable: true });
+
 	/* --- what Neutrino reports back --- */
 
 	window.__neutrinoMedia = function (line) {
