@@ -55,6 +55,7 @@
 #include <gui/widget/menue.h>
 #include <driver/volume.h>
 #include <neutrino.h>
+#include <gui/osd_helpers.h>
 #include <driver/abstime.h>
 #include <driver/framebuffer.h>
 #include <driver/rcinput.h>
@@ -722,6 +723,10 @@ void CHbbtv::run(const CAitApp &ait_app, t_channel_id id, const std::string &cha
 
 	fb->setDisplayHandedOver(false);
 	fb->setMode(xres, yres, 32);
+	/* a reload of the settings meanwhile took the screen area and the fonts
+	   from the browser's size */
+	if (g_settings.screen_width != (int) xres)
+		COsdHelpers::getInstance()->applyOsdSize(true);
 	fb->paintBackground();
 	fb->blit();
 	g_RCInput->restartInput();
