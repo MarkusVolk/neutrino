@@ -419,13 +419,16 @@
 			var s = state(this), src = sourceOf(this);
 			if (!src)
 				return Promise.reject(new DOMException('no source', 'NotSupportedError'));
-			if (this === current && s.started) {
-				if (s.paused)
-					send('resume');
-			} else
+			var resumed = this === current && s.started && s.paused;
+			if (resumed)
+				send('resume');
+			else if (this !== current || !s.started)
 				start(this, src);
 			s.paused = false;
 			fire(this, 'play');
+			/* the first report tells of a start, nothing else ends the wait after a pause */
+			if (resumed && s.readyState === 4)
+				fire(this, 'playing');
 			return Promise.resolve();
 		},
 		pause: function () {
