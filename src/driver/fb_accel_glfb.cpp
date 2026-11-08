@@ -123,8 +123,11 @@ void CFbAccelGLFB::blit2FB(void *fbbuff, uint32_t width, uint32_t height, uint32
 }
 
 #define BLIT_INTERVAL_MIN 40
-/* the whole OSD is looked at this often, for what is drawn without mark() and blit() */
+/* the whole OSD is looked at when nothing has been drawn for this long, and
+ * at the latest after BLIT_INTERVAL_FULL_MAX, for what is drawn without
+ * mark() and blit() */
 #define BLIT_INTERVAL_FULL 2000
+#define BLIT_INTERVAL_FULL_MAX 10000
 void CFbAccelGLFB::run()
 {
 	printf(LOGTAG "run start\n");
@@ -139,8 +142,10 @@ void CFbAccelGLFB::run()
 			wait = std::max<int64_t>(1, BLIT_INTERVAL_MIN - (time_monotonic_ms() - pending_since));
 		blit_cond.wait(&blit_mutex, wait);
 		int64_t now = time_monotonic_ms();
-		const bool full = now - last_full >= BLIT_INTERVAL_FULL;
-		if (!blit_wanted && !blit_pending && !full)
+		const bool idle = !blit_wanted && !blit_pending;
+		const bool full = (idle && now - last_full >= BLIT_INTERVAL_FULL) ||
+				  now - last_full >= BLIT_INTERVAL_FULL_MAX;
+		if (idle && !full)
 			continue;
 		/* the first request opens a window for the rest of the drawing, so
 		 * that what is half drawn does not get on the screen */
