@@ -34,3 +34,4 @@ executable('neutrino-hbbtv', 'browser.c',
 	install : true)
 
 install_data('hbbtv.js', install_dir : datadir / 'neutrino-hbbtv')
+install_subdir('sites', install_dir : datadir / 'neutrino-hbbtv')

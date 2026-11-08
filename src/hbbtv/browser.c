@@ -514,12 +514,13 @@ static gboolean web_process_terminated(WebKitWebView *v, WebKitWebProcessTermina
 	g_main_loop_quit(loop);
 	return TRUE;
 }
-/* the box has no swap: past these the web processes give memory back and
- * are ended in the end, instead of starving Neutrino */
+/* a box has little memory: past these the web processes give memory back
+ * and are ended in the end, instead of starving Neutrino; a web app like
+ * Joyn's takes 350 MB when it starts its player */
 static void limit_memory(WebKitWebContext **context)
 {
 	WebKitMemoryPressureSettings *settings = webkit_memory_pressure_settings_new();
-	webkit_memory_pressure_settings_set_memory_limit(settings, 300);
+	webkit_memory_pressure_settings_set_memory_limit(settings, 400);
 	webkit_memory_pressure_settings_set_kill_threshold(settings, 1.2);
 	*context = g_object_new(WEBKIT_TYPE_WEB_CONTEXT, "memory-pressure-settings", settings, NULL);
 	webkit_memory_pressure_settings_set_memory_limit(settings, 100);
