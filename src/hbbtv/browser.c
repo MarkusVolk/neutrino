@@ -36,6 +36,9 @@
 #ifndef HBBTV_SCRIPT
 #define HBBTV_SCRIPT "/usr/share/neutrino-hbbtv/hbbtv.js"
 #endif
+#ifndef HBBTV_SITES
+#define HBBTV_SITES "/usr/share/neutrino-hbbtv/sites"
+#endif
 
 #define USER_AGENT "Mozilla/5.0 (Linux armv7l) AppleWebKit/605.1.15 (KHTML, like Gecko) " \
 	"HbbTV/1.5.1 (+DRM; Neutrino; Neutrino; 1.0; 1.0;) FVC/5.0"
@@ -427,6 +430,36 @@ static char *apps_script(const char *apps)
 	return g_string_free(script, FALSE);
 }
 
+static void add_script(WebKitUserContentManager *manager, const char *source)
+{
+	WebKitUserScript *us = webkit_user_script_new(source, WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES,
+		WEBKIT_USER_SCRIPT_INJECT_AT_DOCUMENT_START, NULL, NULL);
+	webkit_user_content_manager_add_script(manager, us);
+	webkit_user_script_unref(us);
+}
+
+/* scripts for single services, after hbbtv.js; each looks at the address
+ * itself and does nothing elsewhere */
+static void add_site_scripts(WebKitUserContentManager *manager)
+{
+	struct dirent **names;
+	int n = scandir(HBBTV_SITES, &names, NULL, alphasort);
+	for (int i = 0; i < n; i++) {
+		size_t len = strlen(names[i]->d_name);
+		char *source = NULL;
+		if (len > 3 && !strcmp(names[i]->d_name + len - 3, ".js")) {
+			char *path = g_build_filename(HBBTV_SITES, names[i]->d_name, NULL);
+			if (g_file_get_contents(path, &source, NULL, NULL))
+				add_script(manager, source);
+			g_free(source);
+			g_free(path);
+		}
+		free(names[i]);
+	}
+	if (n >= 0)
+		free(names);
+}
+
 static void add_scripts(WebKitUserContentManager *manager, const char *channel)
 {
 	char *source = NULL;
@@ -434,35 +467,24 @@ static void add_scripts(WebKitUserContentManager *manager, const char *channel)
 
 	if (apps) {
 		char *script = apps_script(apps);
-		WebKitUserScript *us = webkit_user_script_new(script, WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES,
-			WEBKIT_USER_SCRIPT_INJECT_AT_DOCUMENT_START, NULL, NULL);
-		webkit_user_content_manager_add_script(manager, us);
-		webkit_user_script_unref(us);
+		add_script(manager, script);
 		g_free(script);
 	}
 	if (channel) {
 		char *script = channel_script(channel);
-		WebKitUserScript *us = webkit_user_script_new(script, WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES,
-			WEBKIT_USER_SCRIPT_INJECT_AT_DOCUMENT_START, NULL, NULL);
-		webkit_user_content_manager_add_script(manager, us);
-		webkit_user_script_unref(us);
+		add_script(manager, script);
 		g_free(script);
 	}
 	if (!g_file_get_contents(HBBTV_SCRIPT, &source, NULL, NULL)) {
 		fprintf(stderr, "neutrino-hbbtv: %s missing\n", HBBTV_SCRIPT);
 		return;
 	}
-	WebKitUserScript *us = webkit_user_script_new(source, WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES,
-		WEBKIT_USER_SCRIPT_INJECT_AT_DOCUMENT_START, NULL, NULL);
-	webkit_user_content_manager_add_script(manager, us);
-	webkit_user_script_unref(us);
+	add_script(manager, source);
 	g_free(source);
+	add_site_scripts(manager);
 	const char *page = g_getenv("NEUTRINO_HBBTV_PAGE");
 	if (page && *page && g_file_get_contents(page, &source, NULL, NULL)) {
-		us = webkit_user_script_new(source, WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES,
-			WEBKIT_USER_SCRIPT_INJECT_AT_DOCUMENT_START, NULL, NULL);
-		webkit_user_content_manager_add_script(manager, us);
-		webkit_user_script_unref(us);
+		add_script(manager, source);
 		g_free(source);
 	}
 }

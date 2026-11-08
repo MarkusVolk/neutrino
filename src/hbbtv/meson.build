@@ -29,6 +29,7 @@ executable('neutrino-hbbtv', 'browser.c',
 	c_args : [
 		'-DBACKEND_LIBRARY="' + hbbtv_dir / 'lib' + hbbtv_backend + '.so"',
 		'-DHBBTV_SCRIPT="' + datadir / 'neutrino-hbbtv' / 'hbbtv.js"',
+		'-DHBBTV_SITES="' + datadir / 'neutrino-hbbtv' / 'sites"',
 	],
 	install : true)
 
