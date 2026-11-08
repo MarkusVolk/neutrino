@@ -201,6 +201,10 @@ class CHbbtvControl
 		std::string resolved;
 		std::vector<std::pair<int, int> > skip_ranges;
 		int skip_last;
+		/* "drm <license> [<certificate>]": the next play is a manifest
+		 * with Widevine */
+		std::string drm_license;
+		std::string drm_certificate;
 
 		void send(const std::string &line)
 		{
@@ -228,6 +232,22 @@ class CHbbtvControl
 			printf("[hbbtv] play %s\n", url.c_str());
 			playback->Open(PLAYMODE_FILE);
 			loaded = true;
+			if (!drm_license.empty())
+			{
+				std::string license, certificate;
+				license.swap(drm_license);
+				certificate.swap(drm_certificate);
+#if ENABLE_WIDEVINE && HAVE_GENERIC_HARDWARE
+				if (!g_settings.widevine)
+					printf("[hbbtv] Widevine is switched off in the media settings\n");
+				if (!g_settings.widevine || !playback->SetDrm(license, "", certificate))
+#endif
+				{
+					send("error");
+					stop();
+					return;
+				}
+			}
 			if (!playback->Start(url, "", audio))
 			{
 				send("error");
@@ -379,6 +399,12 @@ class CHbbtvControl
 			}
 			else if (cmd == "play" && !args.empty())
 				play(args);
+			else if (cmd == "drm")
+			{
+				size_t sp = args.find(' ');
+				drm_license = args.substr(0, sp);
+				drm_certificate = sp == std::string::npos ? "" : args.substr(sp + 1);
+			}
 			else if (cmd == "resolve" && !args.empty() && !resolver.empty())
 			{
 				claim();
