@@ -1227,6 +1227,7 @@ void CFrameBuffer::paintPixel(const int x, const int y, const fb_pixel_t col)
 	pos += x;
 
 	*pos = col;
+	mark(x, y, x + 1, y + 1);
 }
 
 void CFrameBuffer::paintShortHLineRelInternal(const int& x, const int& dx, const int& y, const fb_pixel_t& col)
@@ -1394,6 +1395,7 @@ void CFrameBuffer::paintBoxFrame(const int x, const int y, const int dx, const i
 				line++;
 		}
 	}
+	mark(x, y, x + dx, y + dy);
 }
 
 void CFrameBuffer::paintLine(int xa, int ya, int xb, int yb, const fb_pixel_t col)
@@ -1704,6 +1706,7 @@ void CFrameBuffer::paintBackgroundBoxRel(int x, int y, int dx, int dy)
 		}
 	}
 	checkFbArea(x, y, dx, dy, false);
+	mark(x, y, x + dx, y + dy);
 }
 
 void CFrameBuffer::paintBackground()
@@ -1722,6 +1725,7 @@ void CFrameBuffer::paintBackground()
 		paintBoxRel(0, 0, xRes, yRes, backgroundColor);
 	}
 	checkFbArea(0, 0, xRes, yRes, false);
+	mark(0, 0, xRes, yRes);
 }
 
 void CFrameBuffer::SaveScreen(int x, int y, int dx, int dy, fb_pixel_t * const memp)
@@ -1980,6 +1984,7 @@ void CFrameBuffer::fbCopyArea(uint32_t width, uint32_t height, uint32_t dst_x, u
 			src_p += swidth;
 		}
 	}
+	mark(dst_x, dst_y, dst_x + w_, dst_y + h_);
 }
 
 /*
@@ -2061,6 +2066,7 @@ void CFrameBuffer::blit2FB(void *fbbuff, uint32_t width, uint32_t height, uint32
 		}
 		d += swidth;
 	}
+	mark(xoff, yoff, xoff + xc - xp, yoff + yc - yp);
 }
 
 void CFrameBuffer::blitBox2FB(const fb_pixel_t* boxBuf, const uint32_t& width, const uint32_t& height, const uint32_t& xoff, const uint32_t& yoff)
@@ -2090,6 +2096,7 @@ void CFrameBuffer::blitBox2FB(const fb_pixel_t* boxBuf, const uint32_t& width, c
 		fbp += swidth;
 		line++;
 	}
+	mark(xoff, yoff, xoff + xc, yoff + yc);
 }
 
 void CFrameBuffer::displayRGB(unsigned char *rgbbuff, int x_size, int y_size, int x_pan, int y_pan, int x_offs, int y_offs, bool clearfb, int transp)
