@@ -1975,6 +1975,9 @@ menu.hint_webradio_setup Kanály WebRadio tu nakonfigurované budú k dispozíci
 menu.hint_webradio_xml_auto Automatické načítanie všetkých existujúcich súborov WebRadio z %s/ a %s/
 menu.hint_webtv_setup Tu nakonfigurované WebTV kanály budú k dispozícii v štandartnom zozname kanálov
 menu.hint_webtv_xml_auto Automatické načítanie všetkých existujúcich XML súborov z %s/ a %s/
+menu.hint_widevine CDM dešifruje chránené streamy. Google ho nepovoľuje v obraze, stiahne sa do prijímača.
+menu.hint_widevine_enabled Prehráva streamy chránené pomocou Widevine. Na to je potrebné CDM, ktoré sa stiahne od Google.
+menu.hint_widevine_google Stiahne najnovšie CDM, ktoré Google ponúka pre tento prijímač
 menu.hint_window_size Zoznam kanálov, EPG-Infp a niektoré iné okná sú zmenšené týmto faktorom
 menu.hint_xmltv_setup Nakonfigurujte súbory XMLTV s údajmi EPG na opis televíznych zoznamov
 menu.hint_youtube_api_key Zadajte vaše YouTube Dev ID. Prázdne zadanie zabranuje podpore YouTube
@@ -3141,6 +3144,18 @@ webtv.no_teletext Webové kanály nemajú teletext.
 webtv.stream_restart_attempts Reštarty streamu po prerušení spojenia
 webtv.xml WebTV súbory
 webtv.xml.auto Automatické načítanie WebTV súborov
+widevine.busy Čakajte prosím ...
+widevine.does_not_load nepoužiteľné:
+widevine.enabled Widevine
+widevine.head Widevine CDM
+widevine.install Inštalovať od Google
+widevine.install_ask Inštalovať teraz Widevine CDM od Google?
+widevine.loads pripravené
+widevine.not_installed Nenainštalované
+widevine.remove Odstrániť
+widevine.remove_ask Odstrániť Widevine CDM?
+widevine.update Aktualizovať od Google
+widevine.update_ask Je nainštalovaná verzia %s, Google ponúka %s. Aktualizovať teraz?
 window_size Veľkosť okna v %
 wizard.initial_settings Najdené základné nastavenia
 wizard.install_settings Chcete inštalovať kanály pre Astru 19.2°E?

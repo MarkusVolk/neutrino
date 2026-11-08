@@ -1997,6 +1997,9 @@ menu.hint_webradio_setup Hier konfigurierte WebRadio-Kanäle finden Sie in der K
 menu.hint_webradio_xml_auto Lädt automatisch alle WebRadio-Dateien aus %s/ und %s/
 menu.hint_webtv_setup Hier konfigurierte WebTV-Kanäle finden Sie in der Kanalverwaltung.
 menu.hint_webtv_xml_auto Lädt automatisch alle WebTV-Dateien aus %s/ und %s/
+menu.hint_widevine Das CDM entschlüsselt geschützte Streams. Google erlaubt es nicht im Image, es wird auf die Box geholt.
+menu.hint_widevine_enabled Spielt mit Widevine geschützte Streams ab. Dafür braucht es das CDM, das von Google geholt wird.
+menu.hint_widevine_google Holt das neueste CDM, das Google für diese Box anbietet
 menu.hint_window_size Kanalliste, EPG-Infos und einige andere Fenster werden mit diesem Faktor skaliert
 menu.hint_xmltv_setup Hier konfigurieren Sie XMLTV-Dateien, die EPG-Daten enthalten
 menu.hint_youtube_api_key Geben Sie den YouTube API Schlüssel ein. Eine leere Eingabe schaltet die YouTube-Unterstützung aus
@@ -3181,6 +3184,18 @@ webtv.no_teletext Web-Kanäle haben keinen Videotext.
 webtv.stream_restart_attempts Stream-Neustarts nach Verbindungsabbruch
 webtv.xml WebTV-Dateien
 webtv.xml.auto WebTV-Dateien automatisch laden
+widevine.busy Bitte warten ...
+widevine.does_not_load nicht nutzbar:
+widevine.enabled Widevine
+widevine.head Widevine-CDM
+widevine.install Von Google installieren
+widevine.install_ask Widevine-CDM jetzt von Google installieren?
+widevine.loads bereit
+widevine.not_installed Nicht installiert
+widevine.remove Entfernen
+widevine.remove_ask Widevine-CDM entfernen?
+widevine.update Von Google aktualisieren
+widevine.update_ask Version %s ist installiert, Google bietet %s. Jetzt aktualisieren?
 window_size Fenstergröße in %
 wizard.initial_settings Grundeinstellungen gefunden
 wizard.install_settings Kanalliste für Astra 19.2°E installieren?

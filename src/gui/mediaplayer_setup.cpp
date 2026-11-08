@@ -48,6 +48,9 @@
 #include <gui/webchannels_setup.h>
 #include <gui/xmltv_setup.h>
 #include <gui/moviebrowser/mb.h>
+#ifdef ENABLE_WIDEVINE
+#include <gui/widevine_setup.h>
+#endif
 
 #include <driver/screen_max.h>
 
@@ -121,6 +124,13 @@ int CMediaPlayerSetup::showMediaPlayerSetup()
 	mf = new CMenuForwarder(LOCALE_MOVIEBROWSER_HEAD, true, NULL, &msetup, "show_menu", CRCInput::convertDigitToKey(shortcut++));
 	mf->setHint(NEUTRINO_ICON_HINT_MB, LOCALE_MENU_HINT_MOVIEBROWSER_SETUP);
 	mediaSetup->addItem(mf);
+
+#ifdef ENABLE_WIDEVINE
+	CWidevineSetup widevine_setup;
+	mf = new CMenuForwarder(LOCALE_WIDEVINE_HEAD, true, NULL, &widevine_setup, NULL, CRCInput::convertDigitToKey(shortcut++));
+	mf->setHint(NEUTRINO_ICON_HINT_MOVIE, LOCALE_MENU_HINT_WIDEVINE);
+	mediaSetup->addItem(mf);
+#endif
 
 	mediaSetup->addItem(GenericMenuSeparator);
 

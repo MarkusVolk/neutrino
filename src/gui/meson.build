@@ -112,6 +112,9 @@ endif
 if enable_lcd4linux
 	libneutrino_gui_sources += 'lcd4l_setup.cpp'
 endif
+if enable_widevine
+	libneutrino_gui_sources += 'widevine_setup.cpp'
+endif
 if enable_graphlcd
 	libneutrino_gui_sources += ['glcdsetup.cpp', 'glcdthemes.cpp']
 endif

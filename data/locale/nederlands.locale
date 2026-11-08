@@ -1975,6 +1975,9 @@ menu.hint_webradio_setup Hier ingestelde WebRadio-zenders zijn beschikbaar in de
 menu.hint_webradio_xml_auto Alle bestaande WebRadio-bestanden automatisch laden uit %s/ en %s/
 menu.hint_webtv_setup Hier geconfigureerde WebTV-zenders zijn in de standaard zenderlijsten zichtbaar.
 menu.hint_webtv_xml_auto Alle bestaande WebTV-bestanden automatisch laden uit %s/ en %s/
+menu.hint_widevine Het CDM ontsleutelt beveiligde streams. Google staat het niet toe in een image, het wordt naar de box gehaald.
+menu.hint_widevine_enabled Speelt met Widevine beveiligde streams af. Daarvoor is het CDM nodig, dat van Google wordt gehaald.
+menu.hint_widevine_google Haalt het nieuwste CDM dat Google voor deze box aanbiedt
 menu.hint_window_size Zenderlijst, EPG-infos en andere venster worden op deze factor geschaald
 menu.hint_xmltv_setup XMLTV-bestanden met EPG-gegevens voor de programmagids instellen
 menu.hint_youtube_api_key Voer uw YouTube API-sleutel in. Leeg laten schakelt YouTube uit
@@ -3141,6 +3144,18 @@ webtv.no_teletext Webkanalen hebben geen teletekst.
 webtv.stream_restart_attempts Herstarts van de stream na verbroken verbinding
 webtv.xml WebTV XML bestand
 webtv.xml.auto WebTV-bestanden automatisch laden
+widevine.busy Even geduld ...
+widevine.does_not_load niet bruikbaar:
+widevine.enabled Widevine
+widevine.head Widevine-CDM
+widevine.install Van Google installeren
+widevine.install_ask Widevine-CDM nu van Google installeren?
+widevine.loads gereed
+widevine.not_installed Niet geïnstalleerd
+widevine.remove Verwijderen
+widevine.remove_ask Widevine-CDM verwijderen?
+widevine.update Van Google bijwerken
+widevine.update_ask Versie %s is geïnstalleerd, Google biedt %s. Nu bijwerken?
 window_size Window size in %
 wizard.initial_settings Initiële instellingen gevonden
 wizard.install_settings Wilt u de kanalen van Astra 1 (19.2º oost) inscannen?

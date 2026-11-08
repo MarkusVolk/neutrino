@@ -215,6 +215,9 @@ enum MN_WIDGET_ID
 	MN_WIDGET_ID_QUADPIP,
 #endif
 
+	// widevine setup
+	MN_WIDGET_ID_WIDEVINESETUP,
+
 	MN_WIDGET_ID_MAX
 };
 

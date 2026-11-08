@@ -17,6 +17,7 @@ stb_hal_dep = dependency('libstb-hal')
 boxtype = stb_hal_dep.get_variable(pkgconfig : 'boxtype', default_value : 'generic')
 boxmodel = stb_hal_dep.get_variable(pkgconfig : 'boxmodel', default_value : 'generic')
 box_defines = stb_hal_dep.get_variable(pkgconfig : 'boxdefines', default_value : 'HAVE_GENERIC_HARDWARE,BOXMODEL_GENERIC').split(',')
+enable_widevine = stb_hal_dep.get_variable(pkgconfig : 'widevine', default_value : 'no') == 'yes'
 
 prefix = get_option('prefix')
 bindir = prefix / get_option('bindir')
@@ -237,6 +238,7 @@ foreach def : [
 	['ENABLE_EXTUPDATE', enable_extupdate],
 	['ENABLE_PKG_MANAGEMENT', enable_pkg_management],
 	['ENABLE_LUA', enable_lua],
+	['ENABLE_WIDEVINE', enable_widevine],
 	['EXIT_CLEANUP', get_option('cleanup')],
 	['ENABLE_PIP', enable_pip],
 	['ENABLE_QUADPIP', enable_quadpip],

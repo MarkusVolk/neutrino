@@ -1315,6 +1315,7 @@ int CNeutrinoApp::loadSetup(const char *fname)
 // 	g_settings.movieplayer_bisection_jump = configfile.getInt32("movieplayer_bisection_jump", 5);
 	g_settings.movieplayer_display_playtime = configfile.getInt32("movieplayer_display_playtime", g_info.hw_caps->display_type == HW_DISPLAY_LED_NUM);
 	g_settings.movieplayer_eof_cnt = configfile.getInt32("movieplayer_eof_cnt", 1);
+	g_settings.widevine = configfile.getInt32("widevine", 0);
 	g_settings.movieplayer_repeat_on = configfile.getInt32("movieplayer_repeat_on", CMoviePlayerGui::REPEAT_OFF);
 #if HAVE_CST_HARDWARE
 	g_settings.movieplayer_select_ac3_atype0 = configfile.getBool("movieplayer_select_ac3_atype0", false);
@@ -2223,6 +2224,7 @@ void CNeutrinoApp::saveSetup(const char *fname)
 // 	configfile.setInt32("movieplayer_bisection_jump", g_settings.movieplayer_bisection_jump);
 	configfile.setInt32("movieplayer_display_playtime", g_settings.movieplayer_display_playtime);
 	configfile.setInt32("movieplayer_eof_cnt", g_settings.movieplayer_eof_cnt);
+	configfile.setInt32("widevine", g_settings.widevine);
 	configfile.setInt32("movieplayer_repeat_on", g_settings.movieplayer_repeat_on);
 #if HAVE_CST_HARDWARE
 	configfile.setBool("movieplayer_select_ac3_atype0", g_settings.movieplayer_select_ac3_atype0);
