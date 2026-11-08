@@ -32,6 +32,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <cstring>
 
 #include <glfb.h>
 extern GLFramebuffer *glfb;
@@ -50,6 +51,8 @@ extern GLFramebuffer *glfb;
 CFbAccelGLFB::CFbAccelGLFB()
 {
 	fb_name = "GL ramebuffer";
+	blit_wanted = false;
+	memset(damage, 0, sizeof(damage));
 }
 
 void CFbAccelGLFB::init(const char *)
@@ -120,31 +123,48 @@ void CFbAccelGLFB::blit2FB(void *fbbuff, uint32_t width, uint32_t height, uint32
 }
 
 #define BLIT_INTERVAL_MIN 40
-#define BLIT_INTERVAL_MAX 250
+/* the whole OSD is looked at this often, for what is drawn without mark() and blit() */
+#define BLIT_INTERVAL_FULL 2000
 void CFbAccelGLFB::run()
 {
 	printf(LOGTAG "run start\n");
-	int64_t last_blit = 0;
+	int64_t last_full = 0, pending_since = 0;
 	blit_pending = false;
 	blit_thread = true;
 	blit_mutex.lock();
 	set_threadname("glfb::autoblit");
 	while (blit_thread) {
-		blit_cond.wait(&blit_mutex, blit_pending ? BLIT_INTERVAL_MIN : BLIT_INTERVAL_MAX);
+		int64_t wait = BLIT_INTERVAL_FULL;
+		if (blit_pending)
+			wait = std::max<int64_t>(1, BLIT_INTERVAL_MIN - (time_monotonic_ms() - pending_since));
+		blit_cond.wait(&blit_mutex, wait);
 		int64_t now = time_monotonic_ms();
-		if (now - last_blit < BLIT_INTERVAL_MIN)
+		const bool full = now - last_full >= BLIT_INTERVAL_FULL;
+		if (!blit_wanted && !blit_pending && !full)
+			continue;
+		/* the first request opens a window for the rest of the drawing, so
+		 * that what is half drawn does not get on the screen */
+		if (blit_wanted && !blit_pending)
 		{
 			blit_pending = true;
-			//printf(LOGTAG "run: skipped, time %" PRId64 "\n", now - last_blit);
+			pending_since = now;
+			continue;
 		}
-		else
-		{
-			blit_pending = false;
-			blit_mutex.unlock();
-			_blit();
-			blit_mutex.lock();
-			last_blit = now;
-		}
+		if (blit_pending && now - pending_since < BLIT_INTERVAL_MIN)
+			continue;
+		/* a blit() without a mark() since the last one did not say where it drew */
+		int rect[4];
+		const bool known = !full && damage[2] > damage[0] && damage[3] > damage[1];
+		memcpy(rect, damage, sizeof(rect));
+		memset(damage, 0, sizeof(damage));
+		blit_wanted = false;
+		blit_pending = false;
+		blit_mutex.unlock();
+		if (glfb)
+			glfb->blit(known ? rect : NULL);
+		blit_mutex.lock();
+		if (!known)
+			last_full = now;
 	}
 	blit_mutex.unlock();
 	printf(LOGTAG "run end\n");
@@ -152,16 +172,37 @@ void CFbAccelGLFB::run()
 
 void CFbAccelGLFB::blit()
 {
-	//printf(LOGTAG "blit\n");
 	blit_mutex.lock();
+	blit_wanted = true;
 	blit_cond.signal();
 	blit_mutex.unlock();
 }
 
-void CFbAccelGLFB::_blit()
+void CFbAccelGLFB::mark(int xs, int ys, int xe, int ye)
 {
-	if (glfb)
-		glfb->blit();
+	if (xe <= xs || ye <= ys)
+		return;
+	OpenThreads::ScopedLock<OpenThreads::Mutex> lock(blit_mutex);
+	if (damage[2] <= damage[0] || damage[3] <= damage[1])
+	{
+		damage[0] = xs;
+		damage[1] = ys;
+		damage[2] = xe;
+		damage[3] = ye;
+	}
+	else
+	{
+		damage[0] = std::min(damage[0], xs);
+		damage[1] = std::min(damage[1], ys);
+		damage[2] = std::max(damage[2], xe);
+		damage[3] = std::max(damage[3], ye);
+	}
+	/* not everything that draws calls blit() afterwards */
+	if (!blit_wanted)
+	{
+		blit_wanted = true;
+		blit_cond.signal();
+	}
 }
 
 /* the size of the OSD; the display's mode is the video system's business */

@@ -168,9 +168,11 @@ class CFbAccelGLFB
 	private:
 		void run(void);
 		void blit(void);
-		void _blit(void);
 		bool blit_thread;
 		bool blit_pending;
+		bool blit_wanted;
+		/* what mark() was told since the last blit; empty when xe <= xs */
+		int damage[4];
 		OpenThreads::Condition blit_cond;
 		OpenThreads::Mutex blit_mutex;
 		fb_pixel_t *backbuffer;
@@ -178,6 +180,7 @@ class CFbAccelGLFB
 	public:
 		CFbAccelGLFB();
 		~CFbAccelGLFB();
+		void mark(int xs, int ys, int xe, int ye);
 		void init(const char * const);
 		int setMode(unsigned int xRes, unsigned int yRes, unsigned int bpp);
 		void blit2FB(void *fbbuff, uint32_t width, uint32_t height, uint32_t xoff, uint32_t yoff, uint32_t xp, uint32_t yp, bool transp);
