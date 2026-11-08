@@ -2368,16 +2368,16 @@ networkmenu.hostname Názov hostiteľa
 networkmenu.hostname_hint1 Vložiť hostiteľa,
 networkmenu.hostname_hint2 pre zmenu potrebný reštart
 networkmenu.httpd Webový server (nhttpd)
-networkmenu.httpd_port Port
-networkmenu.httpd_host Adresa viazania
 networkmenu.httpd_auth Autentifikácia
-networkmenu.httpd_user Používateľ
-networkmenu.httpd_pass Heslo
-networkmenu.httpd_noauth Klienti bez overenia
-networkmenu.httpd_threading Vlákna spojení
+networkmenu.httpd_host Adresa viazania
 networkmenu.httpd_loglevel Úroveň logu
+networkmenu.httpd_noauth Klienti bez overenia
+networkmenu.httpd_pass Heslo
+networkmenu.httpd_port Port
 networkmenu.httpd_port_invalid Neplatný port. Použite 1-65535.
 networkmenu.httpd_save_failed Nepodarilo sa uložiť nhttpd.conf
+networkmenu.httpd_threading Vlákna spojení
+networkmenu.httpd_user Používateľ
 networkmenu.inactive_network Sieť neaktívna!
 networkmenu.ipaddress IP adresa
 networkmenu.managed_by_system Spravované systémom
@@ -3136,8 +3136,8 @@ webradio.xml.auto Automatické načítanie WebRádio súborov
 webtv.dns.blocker_suspected Hostiteľ streamu sa preložil na blokovaciu adresu:\n\nHostiteľ: %s\nAdresa: %s\n\nMôže to znamenať blokovač DNS ako Pi-hole, AdGuard Home alebo\nfilter v routeri.
 webtv.dns.diagnostics Diagnostika DNS
 webtv.dns.failed Vyhľadanie DNS zlyhalo pre:\n%s\n\nSkontrolujte prosím pripojenie na internet, nastavenia DNS alebo router.
-webtv.no_teletext Webové kanály nemajú teletext.
 webtv.head WebTV
+webtv.no_teletext Webové kanály nemajú teletext.
 webtv.stream_restart_attempts Reštarty streamu po prerušení spojenia
 webtv.xml WebTV súbory
 webtv.xml.auto Automatické načítanie WebTV súborov

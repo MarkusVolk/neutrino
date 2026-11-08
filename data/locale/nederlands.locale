@@ -2368,16 +2368,16 @@ networkmenu.hostname Hostnaam
 networkmenu.hostname_hint1 Hostnaam invoeren
 networkmenu.hostname_hint2 Opnieuw opstarten na wijzigingen
 networkmenu.httpd Webserver (nhttpd)
-networkmenu.httpd_port Poort
-networkmenu.httpd_host Bind-adres
 networkmenu.httpd_auth Authenticatie
-networkmenu.httpd_user Gebruikersnaam
-networkmenu.httpd_pass Wachtwoord
-networkmenu.httpd_noauth Geen-auth clients
-networkmenu.httpd_threading Verbindings-threads
+networkmenu.httpd_host Bind-adres
 networkmenu.httpd_loglevel Logniveau
+networkmenu.httpd_noauth Geen-auth clients
+networkmenu.httpd_pass Wachtwoord
+networkmenu.httpd_port Poort
 networkmenu.httpd_port_invalid Ongeldige poort. Gebruik 1-65535.
 networkmenu.httpd_save_failed nhttpd.conf opslaan mislukt
+networkmenu.httpd_threading Verbindings-threads
+networkmenu.httpd_user Gebruikersnaam
 networkmenu.inactive_network Netwerk inactief!
 networkmenu.ipaddress IP adres
 networkmenu.managed_by_system Beheerd door het systeem
@@ -3136,8 +3136,8 @@ webradio.xml.auto WebRadio-bestanden automatisch laden
 webtv.dns.blocker_suspected De streamhost is naar een blokkeeradres omgezet:\n\nHost: %s\nAdres: %s\n\nDit kan wijzen op een DNS-blokkering zoals Pi-hole, AdGuard Home of een\nrouterfilter.
 webtv.dns.diagnostics DNS-diagnose
 webtv.dns.failed DNS-opzoeking mislukt voor:\n%s\n\nControleer de internetverbinding, de DNS-instellingen of de router.
-webtv.no_teletext Webkanalen hebben geen teletekst.
 webtv.head WebTV
+webtv.no_teletext Webkanalen hebben geen teletekst.
 webtv.stream_restart_attempts Herstarts van de stream na verbroken verbinding
 webtv.xml WebTV XML bestand
 webtv.xml.auto WebTV-bestanden automatisch laden
