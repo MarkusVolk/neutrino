@@ -4,7 +4,7 @@
 	The browser draws on the display itself and reads the remote control
 	while it runs. Neutrino keeps live TV, timers and its interfaces going
 	and only stops painting; it takes the display back when the application
-	ends, the channel changes or the box leaves TV mode. Keys of remote
+	ends, the channel changes or the box leaves the mode it started in. Keys of remote
 	clients go to the browser as "key <code>" (codes of the input device);
 	for tv_screen it answers "describe" with "screen <text>", where the text
 	has its newlines and backslashes escaped.
@@ -140,19 +140,21 @@ bool CHbbtv::startAutostart()
 
 bool CHbbtv::startPage(const CHbbtvPage &page)
 {
-	CNeutrinoApp *app = CNeutrinoApp::getInstance();
-	if (!available() || shown || app->getMode() != NeutrinoModes::mode_tv)
+	if (!available() || shown)
 		return false;
-	t_channel_id id;
+	/* a page needs no broadcast application: it starts in any mode, with
+	   the running channel as context when there is one */
+	t_channel_id id = 0;
 	std::string channel;
 	{
 		CServiceManager::ChannelGuard guard;
 		CZapitChannel *ch = CZapit::getInstance()->GetCurrentChannel();
-		if (!ch)
-			return false;
-		id = ch->getChannelID();
-		channel = to_string(ch->getOriginalNetworkId()) + "." + to_string(ch->getTransportStreamId()) + "." +
-			  to_string(ch->getServiceId()) + ":" + ch->getName();
+		if (ch)
+		{
+			id = ch->getChannelID();
+			channel = to_string(ch->getOriginalNetworkId()) + "." + to_string(ch->getTransportStreamId()) + "." +
+				  to_string(ch->getServiceId()) + ":" + ch->getName();
+		}
 	}
 	CAitApp ait_app;
 	ait_app.url = page.url;
@@ -641,6 +643,7 @@ void CHbbtv::run(const CAitApp &ait_app, t_channel_id id, const std::string &cha
 	CFrameBuffer *fb = CFrameBuffer::getInstance();
 	CNeutrinoApp *app = CNeutrinoApp::getInstance();
 	const std::string &url = ait_app.url;
+	const int mode = app->getMode();
 
 	printf("[hbbtv] start %s for %s\n", url.c_str(), channel.c_str());
 	g_InfoViewer->killTitle();
@@ -733,7 +736,7 @@ void CHbbtv::run(const CAitApp &ait_app, t_channel_id id, const std::string &cha
 			continue;
 		}
 		if ((app->handleMsg(msg, data) & messages_return::cancel_all) ||
-		    app->getMode() != NeutrinoModes::mode_tv ||
+		    app->getMode() != mode ||
 		    CZapit::getInstance()->GetCurrentChannelID() != id)
 			break;
 	}
