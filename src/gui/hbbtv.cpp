@@ -514,9 +514,25 @@ class CHbbtvControl
 			{
 				std::string line = input.substr(0, end);
 				input.erase(0, end + 1);
+				/* a seek may restart the stream and take seconds; of the
+				 * seeks that came meanwhile only the last one counts */
+				if (line.compare(0, 5, "seek ") == 0 && seekFollows())
+					continue;
 				command(line);
 			}
 			return true;
+		}
+
+		bool seekFollows() const
+		{
+			size_t pos = 0, end;
+			while ((end = input.find('\n', pos)) != std::string::npos)
+			{
+				if (input.compare(pos, 5, "seek ") == 0)
+					return true;
+				pos = end + 1;
+			}
+			return false;
 		}
 
 		/* position twice a second while a video plays */
