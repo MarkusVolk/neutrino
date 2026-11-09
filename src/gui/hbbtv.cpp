@@ -224,7 +224,7 @@ class CHbbtvControl
 			else if (!active)
 			{
 				CRecordManager::getInstance()->StopAutoRecord();
-				g_Zapit->lockPlayBack();
+				CNeutrinoApp::getInstance()->lockPlayBack();
 				active = true;
 			}
 		}
@@ -485,7 +485,8 @@ class CHbbtvControl
 			return screen_new ? screen_text : "The application does not answer.";
 		}
 
-		void stop()
+		/* restart false: standby or shutdown follows, nothing starts again */
+		void stop(bool restart = true)
 		{
 			cancel_resolver();
 			if (!active)
@@ -495,7 +496,7 @@ class CHbbtvControl
 			videoDecoder->Pig(-1, -1, -1, -1);
 			if (keep)
 				return;
-			g_Zapit->unlockPlayBack();
+			CNeutrinoApp::getInstance()->unlockPlayBack(restart);
 			active = false;
 			printf("[hbbtv] video stopped, live TV again\n");
 		}
@@ -710,6 +711,7 @@ void CHbbtv::run(const CAitApp &ait_app, t_channel_id id, const std::string &cha
 	neutrino_msg_t msg = 0;
 	neutrino_msg_data_t data = 0;
 	bool pending = false;
+	bool power_off = false;
 	neutrino_msg_t repost = 0;
 	CHbbtvView *view = new CHbbtvView("HbbTV " + (ait_app.name.empty() ? url : ait_app.name), [&link] {
 		return link.screen() + "\nKeys go to the application with tv_key; back is its back key, exit "
@@ -751,6 +753,7 @@ void CHbbtv::run(const CAitApp &ait_app, t_channel_id id, const std::string &cha
 		{
 			/* handled once the display is Neutrino's again */
 			pending = true;
+			power_off = true;
 			break;
 		}
 		if (msg == NeutrinoMessages::EVT_START_PLUGIN)
@@ -768,7 +771,7 @@ void CHbbtv::run(const CAitApp &ait_app, t_channel_id id, const std::string &cha
 		stop_browser(pid);
 	shown = false;
 	close_wanted = false;
-	link.stop();
+	link.stop(!power_off);
 	if (control[0] >= 0)
 		::close(control[0]);
 	if (display[0] >= 0)

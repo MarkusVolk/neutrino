@@ -2836,6 +2836,23 @@ bool CMoviePlayerGui::RestartBackground(const std::string &file, const std::stri
 	return started;
 }
 
+/* Stops the web channel for another user of the playback, as the first half
+ * of a restart: the mode stays, and zapit's unlock starts the channel again
+ * through EVT_WEBTV_ZAP_COMPLETE. False when no web channel plays. */
+bool CMoviePlayerGui::SuspendBackground()
+{
+	if (!IsWebtvActive())
+		return false;
+	mutex.lock();
+	webtv_restart_transition = true;
+	mutex.unlock();
+	stopPlayBack();
+	mutex.lock();
+	webtv_restart_transition = false;
+	mutex.unlock();
+	return true;
+}
+
 bool CMoviePlayerGui::RestartLastWebtv(t_channel_id chan)
 {
 	std::string original_url;

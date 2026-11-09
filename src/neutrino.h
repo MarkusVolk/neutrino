@@ -257,7 +257,8 @@ public:
 	void standbyToStandby(void);
 	bool hasPendingRecording(void);
 	void tryDeferredDeepStandby(void);
-	void lockPlayBack(bool blank = true);
+	void lockPlayBack();
+	void unlockPlayBack(bool start = true);
 	void stopPlayBack(bool lock = false);
 	bool adjustToChannelID(const t_channel_id channel_id);
 	//signal/event handler before restart of neutrino gui

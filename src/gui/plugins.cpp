@@ -435,8 +435,7 @@ int CPlugins::startFullscreenPlugin(int number)
 	t_channel_id channel = CZapit::getInstance()->GetCurrentChannelID();
 	g_RCInput->clearRCMsg();
 	g_RCInput->stopInput();
-	CMoviePlayerGui::getInstance().stopPlayBack();
-	g_Zapit->lockPlayBack();
+	CNeutrinoApp::getInstance()->lockPlayBack();
 	frameBuffer->Lock();
 	hal_display_suspend();
 
@@ -446,7 +445,7 @@ int CPlugins::startFullscreenPlugin(int number)
 	frameBuffer->Unlock();
 	frameBuffer->paintBackground();
 	frameBuffer->blit();
-	g_Zapit->unlockPlayBack();
+	CNeutrinoApp::getInstance()->unlockPlayBack();
 	if (channel && CNeutrinoApp::getInstance()->channelList)
 		CNeutrinoApp::getInstance()->channelList->zapTo_ChannelID(channel, true);
 	g_RCInput->restartInput();

@@ -276,12 +276,10 @@ int CLuaInstVideo::zapitStopPlayBack(lua_State *L)
 	int numargs = lua_gettop(L);
 	if (numargs > 1)
 		stop = _luaL_checkbool(L, 2);
-	if (stop) {
-		CMoviePlayerGui::getInstance().stopPlayBack();
-		g_Zapit->stopPlayBack();
-	}
+	if (stop)
+		CNeutrinoApp::getInstance()->lockPlayBack();
 	else
-		g_Zapit->startPlayBack();
+		CNeutrinoApp::getInstance()->unlockPlayBack();
 	return 0;
 }
 

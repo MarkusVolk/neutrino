@@ -4255,12 +4255,51 @@ void CNeutrinoApp::stopPlayBack(bool lock)
 		CZapit::getInstance()->EnablePlayback(false);
 }
 
-void CNeutrinoApp::lockPlayBack(bool blank)
+/* The playback for a user of its own, such as an HbbTV page, a plugin on the
+ * whole display or a Lua script: a web channel stops as for a restart, so the
+ * mode stays, and unlockPlayBack() starts what ran, DVB or web, again. zapit
+ * starts only DVB on its unlock, the web channel is started here. Without
+ * start the playback is only free again, for standby or a shutdown. */
+static bool playback_locked;
+static bool web_channel_locked;
+
+void CNeutrinoApp::lockPlayBack()
 {
-	CMoviePlayerGui::getInstance().stopPlayBack();
+	web_channel_locked = CMoviePlayerGui::getInstance().SuspendBackground();
+	if (!web_channel_locked)
+		CMoviePlayerGui::getInstance().stopPlayBack();
 	g_Zapit->lockPlayBack();
-	if (blank)
-		videoDecoder->setBlank(true);
+	playback_locked = true;
+}
+
+void CNeutrinoApp::unlockPlayBack(bool start)
+{
+	if (!playback_locked)
+	{
+		if (start)
+			g_Zapit->startPlayBack();
+		return;
+	}
+	playback_locked = false;
+	bool web = web_channel_locked;
+	web_channel_locked = false;
+	if (!start)
+	{
+		CZapit::getInstance()->EnablePlayback(true);
+		return;
+	}
+	/* zapped on to a DVB channel meanwhile: the web channel's mode goes too */
+	if (web && !IS_WEBCHAN(CZapit::getInstance()->GetCurrentChannelID()))
+	{
+		CMoviePlayerGui::getInstance(true).restoreNeutrino();
+		return;
+	}
+	g_Zapit->unlockPlayBack();
+	if (!web)
+		return;
+	CZapitChannel *cc = CZapit::getInstance()->GetCurrentChannel();
+	if (cc && !CMoviePlayerGui::getInstance().RestartBackground(cc->getUrl(), cc->getName(), cc->getChannelID(), cc->getScriptName()))
+		printf("[neutrino] unlockPlayBack: the web channel did not start again\n");
 }
 
 bool CNeutrinoApp::listModeKey(const neutrino_msg_t msg)
