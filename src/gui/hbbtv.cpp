@@ -54,6 +54,7 @@
 #include <global.h>
 #include <gui/audiomute.h>
 #include <gui/widget/menue.h>
+#include <gui/widget/msgbox.h>
 #include <driver/volume.h>
 #include <neutrino.h>
 #include <gui/osd_helpers.h>
@@ -209,6 +210,8 @@ class CHbbtvControl
 		 * with Widevine */
 		std::string drm_license;
 		std::string drm_certificate;
+		/* a stream with Widevine came while it is switched off */
+		bool widevine_off;
 
 		void send(const std::string &line)
 		{
@@ -243,7 +246,10 @@ class CHbbtvControl
 				certificate.swap(drm_certificate);
 #if ENABLE_WIDEVINE && HAVE_GENERIC_HARDWARE
 				if (!g_settings.widevine)
+				{
 					printf("[hbbtv] Widevine is switched off in the media settings\n");
+					widevine_off = true;
+				}
 				if (!g_settings.widevine || !playback->SetDrm(license, "", certificate))
 #endif
 				{
@@ -453,7 +459,8 @@ class CHbbtvControl
 
 	public:
 		CHbbtvControl(int control, const CHbbtvPage *page) : fd(control), active(false), paused(false), next_report(0), screen_new(false),
-			loaded(false), keep(page != NULL), resolver(page ? page->resolver : ""), resolving(0), resolving_fd(-1), resolve_plays(false), skip_last(-1)
+			loaded(false), keep(page != NULL), resolver(page ? page->resolver : ""), resolving(0), resolving_fd(-1), resolve_plays(false), skip_last(-1),
+			widevine_off(false)
 		{
 			if (keep)
 				claim();
@@ -462,6 +469,11 @@ class CHbbtvControl
 		{
 			keep = false;
 			stop();
+		}
+
+		bool widevineOff() const
+		{
+			return widevine_off;
 		}
 
 		void key(neutrino_msg_t msg)
@@ -790,6 +802,9 @@ void CHbbtv::run(const CAitApp &ait_app, t_channel_id id, const std::string &cha
 	g_RCInput->restartInput();
 	g_RCInput->clearRCMsg();
 	printf("[hbbtv] end\n");
+	/* the browser had the display meanwhile */
+	if (link.widevineOff() && !power_off)
+		DisplayInfoMessage(g_Locale->getText(LOCALE_WIDEVINE_OFF), LOCALE_WIDEVINE_HEAD);
 
 	if (pending)
 		app->handleMsg(msg, data);

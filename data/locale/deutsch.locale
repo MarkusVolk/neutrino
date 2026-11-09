@@ -3192,6 +3192,7 @@ widevine.install Von Google installieren
 widevine.install_ask Widevine-CDM jetzt von Google installieren?
 widevine.loads bereit
 widevine.not_installed Nicht installiert
+widevine.off Dieser Stream braucht Widevine, das ausgeschaltet ist: Einstellungen, Multimedia, Movieplayer, Widevine-CDM.
 widevine.remove Entfernen
 widevine.remove_ask Widevine-CDM entfernen?
 widevine.update Von Google aktualisieren

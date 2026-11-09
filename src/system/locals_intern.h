@@ -3219,6 +3219,7 @@ const char * locale_real_names[] =
 	"widevine.install_ask",
 	"widevine.loads",
 	"widevine.not_installed",
+	"widevine.off",
 	"widevine.remove",
 	"widevine.remove_ask",
 	"widevine.update",
