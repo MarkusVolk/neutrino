@@ -6916,10 +6916,6 @@ bool CNeutrinoApp::StartPip(const t_channel_id channel_id, int pip)
 	{
 		if (!g_Zapit->zapTo_pip(channel_id, pip))
 		{
-#if BOXMODEL_HISILICON
-			if (pipVideoDecoder[0])
-				pipVideoDecoder[0]->ShowPig(0);
-#endif
 			DisplayErrorMessage(g_Locale->getText(LOCALE_VIDEOMENU_PIP_ERROR));
 		}
 		else
