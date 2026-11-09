@@ -545,12 +545,15 @@ static pid_t spawn(const std::string &url, const std::string &channel, const std
 	for (char **e = environ; *e; e++)
 		if (strncmp(*e, "NEUTRINO_HBBTV_FD=", 18) && strncmp(*e, "NEUTRINO_HBBTV_START_KEY=", 25) &&
 		    strncmp(*e, "NEUTRINO_HBBTV_DISPLAY=", 23) && strncmp(*e, "NEUTRINO_HBBTV_APPS=", 20) &&
-		    strncmp(*e, "NEUTRINO_HBBTV_PAGE=", 20))
+		    strncmp(*e, "NEUTRINO_HBBTV_PAGE=", 20) && strncmp(*e, "NEUTRINO_HBBTV_PAGE_KEYS=", 25) &&
+		    strncmp(*e, "XDG_DATA_HOME=", 14))
 			env.push_back(*e);
 	if (page)
 		env.push_back("NEUTRINO_HBBTV_PAGE=" + page->script);
-	if (page && !page->data.empty())
-		env.push_back("XDG_DATA_HOME=" + page->data);
+	if (page && page->hbbtv)
+		env.push_back("NEUTRINO_HBBTV_PAGE_KEYS=hbbtv");
+	/* cookies, logins and consents outlast an update of the image */
+	env.push_back("XDG_DATA_HOME=" + (page && !page->data.empty() ? page->data : std::string(CONFIGDIR "/hbbtv")));
 	if (!apps.empty())
 		env.push_back("NEUTRINO_HBBTV_APPS=" + apps);
 	env.push_back("NEUTRINO_HBBTV_FD=" + to_string(CONTROL_FD));

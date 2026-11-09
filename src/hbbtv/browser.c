@@ -75,10 +75,14 @@ static struct {
 static gboolean page_mode;
 
 /* an ordinary page wants real key events: exit is its back key, there are
- * remote controls with no other, and the page has its own way to end */
-static void use_page_keys(void)
+ * remote controls with no other, and the page has its own way to end. An
+ * HbbTV application opened from a menu keeps its own keys, exit included
+ * as its back. */
+static void use_page_keys(gboolean hbbtv)
 {
 	page_mode = TRUE;
+	if (hbbtv)
+		return;
 	for (size_t i = 0; i < G_N_ELEMENTS(keymap); i++) {
 		if (keymap[i].key == KEY_BACK || keymap[i].key == KEY_BACKSPACE) {
 			keymap[i].code = 27;
@@ -533,7 +537,7 @@ static void limit_memory(WebKitWebContext **context)
 int main(int argc, char **argv)
 {
 	if (g_getenv("NEUTRINO_HBBTV_PAGE"))
-		use_page_keys();
+		use_page_keys(!g_strcmp0(g_getenv("NEUTRINO_HBBTV_PAGE_KEYS"), "hbbtv"));
 	if (argc < 2) {
 		fprintf(stderr, "usage: %s <url> [onid.tsid.sid[:name]]\n", argv[0]);
 		return 1;

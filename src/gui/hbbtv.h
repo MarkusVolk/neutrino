@@ -30,7 +30,10 @@
  * <arg>" beside the main loop, which prints a video and optionally an audio
  * address, one per line, and parts to skip as "start end" in seconds, for the
  * player; "prepare" runs "<resolver> prepare". data, if set, is a directory
- * for the page's cookies and logins that outlasts an update of the image */
+ * for the page's cookies and logins that outlasts an update of the image;
+ * without it the page shares that of the channels' applications. hbbtv
+ * marks an HbbTV application opened from a menu: its keys stay those of the
+ * red button, only exit pressed short is its back */
 struct CHbbtvPage
 {
 	std::string url;
@@ -38,6 +41,7 @@ struct CHbbtvPage
 	std::string script;
 	std::string resolver;
 	std::string data;
+	bool hbbtv = false;
 };
 
 class CHbbtv

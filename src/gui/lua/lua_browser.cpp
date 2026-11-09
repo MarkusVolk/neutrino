@@ -55,6 +55,7 @@ int CLuaInstBrowser::BrowserOpen(lua_State *L)
 	tableLookup(L, "script", page.script);
 	tableLookup(L, "resolver", page.resolver);
 	tableLookup(L, "data", page.data);
+	tableLookup(L, "hbbtv", page.hbbtv);
 	lua_pushboolean(L, !page.url.empty() && CHbbtv::startPage(page));
 	return 1;
 }

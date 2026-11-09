@@ -83,18 +83,9 @@
 	}, true);
 
 	window.addEventListener('keydown', function (e) {
-		var k = e.keyCode;
-		/* a page's back is Escape, which the app takes for leaving it;
-		 * its own back is the HbbTV one */
-		if (!playing && k == 27) {
-			held[k] = true;
-			e.stopImmediatePropagation();
-			e.preventDefault();
-			setTimeout(backToApp, 0);
-			return;
-		}
 		if (!playing)
 			return;
+		var k = e.keyCode;
 		held[k] = true;
 		e.stopImmediatePropagation();
 		e.preventDefault();
