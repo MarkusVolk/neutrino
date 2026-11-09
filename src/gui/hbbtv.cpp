@@ -14,7 +14,8 @@
 	"window <x> <y> <w> <h>" (in the application's 1280x720) or "window full"
 	over a socket on its fd 3, and gets "position <ms> <ms> playing|paused",
 	"ended" and "error" back. A page's script may ask for "resolve <arg>" and
-	"prepare" instead, see CHbbtvPage.
+	"prepare" instead, see CHbbtvPage. "input" says a key was pressed, for
+	the inactivity timer.
 
 	License: GPL
 
@@ -60,6 +61,7 @@
 #include <driver/framebuffer.h>
 #include <driver/rcinput.h>
 #include <driver/record.h>
+#include <driver/shutdown_count.h>
 #include <gui/hbbtv.h>
 #include <gui/infoviewer.h>
 #include <gui/movieplayer.h>
@@ -416,6 +418,8 @@ class CHbbtvControl
 				start_resolver("prepare", "", false);
 			else if (cmd == "volume")
 				volume(args);
+			else if (cmd == "input")
+				SHTDCNT::getInstance()->resetSleepTimer();
 			else if (cmd == "window")
 				window(args);
 			else if (cmd == "stop")
@@ -720,7 +724,10 @@ void CHbbtv::run(const CAitApp &ait_app, t_channel_id id, const std::string &cha
 				break;
 			}
 			if (!(msg & (CRCInput::RC_Release | CRCInput::RC_Repeat)))
+			{
+				SHTDCNT::getInstance()->resetSleepTimer();
 				link.key(msg);
+			}
 			continue;
 		}
 		if (msg == NeutrinoMessages::STANDBY_ON || msg == NeutrinoMessages::SHUTDOWN ||

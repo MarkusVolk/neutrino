@@ -169,6 +169,19 @@ static size_t key_of_device(unsigned code)
 
 static void control_send(const char *line);
 
+/* Neutrino's inactivity timer sees none of the keys read here: a key press
+ * tells it, once a minute at most, that somebody is there */
+static void report_input(void)
+{
+	static gint64 last;
+	gint64 now = g_get_monotonic_time();
+
+	if (last && now - last < 60 * G_USEC_PER_SEC)
+		return;
+	last = now;
+	control_send("input");
+}
+
 static gboolean input_cb(GIOChannel *channel, GIOCondition cond, gpointer data)
 {
 	struct input_event ev;
@@ -180,6 +193,8 @@ static gboolean input_cb(GIOChannel *channel, GIOCondition cond, gpointer data)
 	while (read(fd, &ev, sizeof(ev)) == sizeof(ev)) {
 		if (ev.type != EV_KEY)
 			continue;
+		if (ev.value == 1)
+			report_input();
 		unsigned code = ev.code;
 		if (code == KEY_VOLUMEUP || code == KEY_VOLUMEDOWN) {
 			if (ev.value)
