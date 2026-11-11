@@ -428,14 +428,9 @@ CFrontend * CStreamManager::FindFrontend(CZapitChannel * channel, CFrontend * &l
 	for (std::set<CFrontend*>::iterator ft = frontends.begin(); ft != frontends.end(); ++ft)
 		CFEManager::getInstance()->lockFrontend(*ft);
 
+	/* the live tuner stays locked: a stream gets it only on the live
+	   transponder and never zaps the picture of the box away */
 	frontend = CFEManager::getInstance()->allocateFE(channel, true);
-
-	if (unlock && frontend == NULL) {
-		unlock = false;
-		if (live_fe)
-			CFEManager::getInstance()->unlockFrontend(live_fe);
-		frontend = CFEManager::getInstance()->allocateFE(channel, true);
-	}
 
 	CFEManager::getInstance()->Unlock();
 
