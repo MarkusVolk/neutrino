@@ -12,6 +12,7 @@
 #include <string>
 #include <fstream>
 #include <map>
+#include <set>
 // system
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -97,9 +98,21 @@ static std::string stream_url(const std::string &base, CZapitChannel *channel)
 	return base + string_printf(PRINTF_CHANNEL_ID_TYPE_NO_LEADING_ZEROS, channel->getChannelID());
 }
 
-static bool stream_bouquet(CZapitBouquet *bouquet)
+/* a playlist lists the favourites and the web lists; with dvb=1, for
+   another box that plays the DVB channels of this one, every visible
+   bouquet but the web lists, and of them only the DVB channels */
+static bool stream_bouquet(CZapitBouquet *bouquet, bool dvb = false)
 {
-	return !bouquet->bHidden && (bouquet->bUser || bouquet->bWebtv || bouquet->bWebradio);
+	if (bouquet->bHidden)
+		return false;
+	if (dvb)
+		return !bouquet->bWebtv && !bouquet->bWebradio;
+	return bouquet->bUser || bouquet->bWebtv || bouquet->bWebradio;
+}
+
+static bool stream_channel(CZapitChannel *channel, bool dvb)
+{
+	return !dvb || !IS_WEBCHAN(channel->getChannelID());
 }
 
 //=============================================================================
@@ -3435,6 +3448,7 @@ void CControlAPI::xmltvepgCGI(CyhookHandler *hh)
 		mode = CZapitClient::MODE_RADIO;
 	else
 		mode = CZapitClient::MODE_ALL;
+	bool dvb = hh->ParamList["dvb"] == "1";
 
 	bool xml_cdata = false;
 	t_channel_id channel_id;
@@ -3451,20 +3465,31 @@ void CControlAPI::xmltvepgCGI(CyhookHandler *hh)
 	std::vector<std::pair<t_channel_id, std::string> > items;
 	{
 	CServiceManager::ChannelGuard guard;
+	/* a channel in several bouquets is listed once */
+	std::set<t_channel_id> listed;
 	for (unsigned int i = 0; i < g_bouquetManager->Bouquets.size(); i++)
 	{
-		g_bouquetManager->Bouquets[i]->getTvChannels(chanlist);
+		CZapitBouquet *bouquet = g_bouquetManager->Bouquets[i];
+		/* without dvb=1 the guide of the favourites, as before */
+		if (dvb ? !stream_bouquet(bouquet, true) : (bouquet->bHidden || !bouquet->bUser))
+			continue;
 
 		for (int m = CZapitClient::MODE_TV; m < CZapitClient::MODE_ALL; m++)
 		{
 			if (mode == CZapitClient::MODE_RADIO || m == CZapitClient::MODE_RADIO)
-				g_bouquetManager->Bouquets[i]->getRadioChannels(chanlist);
+				bouquet->getRadioChannels(chanlist);
 			else
-				g_bouquetManager->Bouquets[i]->getTvChannels(chanlist);
+				bouquet->getTvChannels(chanlist);
 
-			if(!chanlist.empty() && !g_bouquetManager->Bouquets[i]->bHidden && g_bouquetManager->Bouquets[i]->bUser)
-				for(unsigned int j = 0; j < chanlist.size(); j++)
-					items.push_back(std::make_pair(chanlist[j]->getChannelID() & 0xFFFFFFFFFFFFULL, chanlist[j]->getName()));
+			for (unsigned int j = 0; j < chanlist.size(); j++)
+			{
+				t_channel_id id = chanlist[j]->getChannelID() & 0xFFFFFFFFFFFFULL;
+				if (stream_channel(chanlist[j], dvb) && listed.insert(id).second)
+					items.push_back(std::make_pair(id, chanlist[j]->getName()));
+			}
+
+			if (mode != CZapitClient::MODE_ALL)
+				break;
 		}
 	}
 	}
@@ -3527,6 +3552,7 @@ void CControlAPI::xmltvm3uCGI(CyhookHandler *hh)
 		mode = CZapitClient::MODE_RADIO;
 	else
 		mode = CZapitClient::MODE_ALL;
+	bool dvb = hh->ParamList["dvb"] == "1";
 
 	std::string host = "";
 	if (!hh->ParamList["host"].empty())
@@ -3545,6 +3571,8 @@ void CControlAPI::xmltvm3uCGI(CyhookHandler *hh)
 		result += "?mode=tv";
 	else if (mode == CZapitClient::MODE_RADIO)
 		result += "?mode=radio";
+	if (dvb)
+		result += mode == CZapitClient::MODE_ALL ? "?dvb=1" : "&dvb=1";
 
 	result += "\"\n";
 
@@ -3574,9 +3602,11 @@ void CControlAPI::xmltvm3uCGI(CyhookHandler *hh)
 			else
 				g_bouquetManager->Bouquets[i]->getTvChannels(chanlist);
 
-			if (!chanlist.empty() && stream_bouquet(g_bouquetManager->Bouquets[i]))
+			if (!chanlist.empty() && stream_bouquet(g_bouquetManager->Bouquets[i], dvb))
 				for (unsigned int j = 0; j < chanlist.size(); j++)
 				{
+					if (!stream_channel(chanlist[j], dvb))
+						continue;
 					Item item = { *chanlist[j], g_bouquetManager->Bouquets[i]->bName,
 						mode == CZapitClient::MODE_RADIO || m == CZapitClient::MODE_RADIO };
 					items.push_back(item);
@@ -3595,8 +3625,9 @@ void CControlAPI::xmltvm3uCGI(CyhookHandler *hh)
 		std::string chan_id_short = string_printf(PRINTF_CHANNEL_ID_TYPE_NO_LEADING_ZEROS, channel->getChannelID() & 0xFFFFFFFFFFFFULL);
 		result += "#EXTINF:-1 tvg-id=\"" + chan_id_short + "\"";
 		result += " tvg-name=\"" + str_replace(",", ".", chan_name) + "\"";
+		/* the logo files are not below the web root, the API sends them */
 		if (!NeutrinoAPI->getLogoFile(channel->getChannelID()).empty())
-			result += " tvg-logo=\"" + host + NeutrinoAPI->getLogoFile(channel->getChannelID()) + "\"";
+			result += " tvg-logo=\"" + host + "/api/v1/channels/" + string_printf(PRINTF_CHANNEL_ID_TYPE_NO_LEADING_ZEROS, channel->getChannelID()) + "/logo\"";
 		else
 			result += " tvg-logo=\"\"";
 		if (items[n].radio)
