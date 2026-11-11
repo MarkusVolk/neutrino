@@ -88,6 +88,7 @@
 extern CBouquetManager *g_bouquetManager;
 
 #include <string.h>
+#include <set>
 #include <gui/widget/remote_ui.h>
 
 class CTimerListNewNotifier : public CChangeObserver
@@ -515,7 +516,8 @@ int CTimerList::exec(CMenuTarget *parent, const std::string &actionKey)
 
 		if (res == -1)
 		{
-			bool forceAdd = askUserOnTimerConflict(timerlist[selected].announceTime, timerlist[selected].stopTime);
+			bool forceAdd = askUserOnTimerConflict(timerlist[selected].alarmTime + timerlist[selected].rem_pre,
+					timerlist[selected].stopTime - timerlist[selected].rem_post, timerlist[selected].channel_id);
 
 			if (forceAdd)
 			{
@@ -631,7 +633,8 @@ int CTimerList::exec(CMenuTarget *parent, const std::string &actionKey)
 		if (Timer->addTimerEvent(timerNew.eventType, data, timerNew.announceTime, timerNew.alarmTime,
 				timerNew.stopTime, timerNew.eventRepeat, timerNew.repeatCount, false) == -1)
 		{
-			bool forceAdd = askUserOnTimerConflict(timerNew.announceTime, timerNew.stopTime);
+			bool forceAdd = askUserOnTimerConflict(timerNew.alarmTime, timerNew.stopTime,
+					timerNew.eventType == CTimerd::TIMER_RECORD ? timerNew.channel_id : 0);
 
 			if (forceAdd)
 			{
@@ -1975,32 +1978,56 @@ bool CTimerList::askUserOnRemoteTimerConflict(time_t announceTime, time_t stopTi
 		return true;
 }
 
+/* The timers a recording of channel_id from start to stop cannot run beside:
+   at its start and at the start of every recording within it, all that
+   records at that moment has to fit on the tuners. Other timers count only
+   with one tuner, and so does everything when the channel is not known. */
 CTimerd::TimerList timerConflicts(time_t start, time_t stop, t_channel_id channel_id)
 {
 	CTimerd::TimerList conflicts;
 	if (channel_id && IS_WEBCHAN(channel_id))
 		return conflicts;
-	bool useCI = false;
-	CZapitChannel *channel = CServiceManager::getInstance()->FindChannel(channel_id);
-	if (channel)
-		useCI = channel->bUseCI;
-	if (CFEManager::getInstance()->getEnabledCount() != 1 && !useCI)
-		return conflicts;
+	bool one_tuner = CFEManager::getInstance()->getEnabledCount() == 1;
 
 	CTimerdClient Timer;
 	CTimerd::TimerList overlapping = Timer.getOverlappingTimers(start, stop);
 	CRecordManager::getInstance()->RemoveTimeshiftTimers(overlapping);
+	CTimerd::TimerList recordings;
 	for (CTimerd::TimerList::iterator i = overlapping.begin(); i != overlapping.end(); ++i) {
 		bool record = i->eventType == CTimerd::TIMER_RECORD || i->eventType == CTimerd::TIMER_IMMEDIATE_RECORD;
-		if (record && IS_WEBCHAN(i->channel_id))
+		if (!record || !channel_id) {
+			if (one_tuner && !(record && IS_WEBCHAN(i->channel_id)))
+				conflicts.push_back(*i);
 			continue;
-		if (record && channel_id && !useCI && SAME_TRANSPONDER(channel_id, i->channel_id))
+		}
+		if (IS_WEBCHAN(i->channel_id))
 			continue;
 		/* meeting only in the safety times, timerd hands one recording over to the other */
-		if (record && channel_id && i->eventType == CTimerd::TIMER_RECORD &&
+		if (i->eventType == CTimerd::TIMER_RECORD &&
 		    CTimerManager::getInstance()->handsOver(i->eventID, start, stop))
 			continue;
-		conflicts.push_back(*i);
+		recordings.push_back(*i);
+	}
+
+	std::vector<time_t> moments(1, start);
+	for (CTimerd::TimerList::iterator i = recordings.begin(); i != recordings.end(); ++i)
+		if (i->alarmTime > start && i->alarmTime < stop)
+			moments.push_back(i->alarmTime);
+	std::set<int> listed;
+	for (size_t m = 0; m < moments.size(); m++) {
+		std::vector<t_channel_id> running(1, channel_id);
+		CTimerd::TimerList at;
+		for (CTimerd::TimerList::iterator i = recordings.begin(); i != recordings.end(); ++i) {
+			if (i->alarmTime <= moments[m] && moments[m] < i->stopTime) {
+				running.push_back(i->channel_id);
+				at.push_back(*i);
+			}
+		}
+		if (CTimerManager::fitTogether(running))
+			continue;
+		for (CTimerd::TimerList::iterator i = at.begin(); i != at.end(); ++i)
+			if (listed.insert(i->eventID).second)
+				conflicts.push_back(*i);
 	}
 	return conflicts;
 }

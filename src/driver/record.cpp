@@ -125,7 +125,6 @@ class CStreamRec : public CRecordInstance, OpenThreads::Thread
 
 /* TODO:
  * nextRecording / pending recordings - needs testing
- * check/fix askUserOnTimerConflict gui/timerlist.cpp -> getOverlappingTimers lib/timerdclient/timerdclient.cpp
  * check/test is it needed at all and is it possible to use different demux / another recmap for timeshift
  */
 
