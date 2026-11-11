@@ -2220,6 +2220,37 @@ std::string downloadUrlToRandomFile(std::string url, std::string directory, unsi
 	return url;
 }
 
+/* the extension of the file a URL names, empty when its path has none */
+static std::string urlFileExt(const std::string &url)
+{
+	std::string path = url.substr(0, url.find_first_of("?#"));
+	std::string::size_type slash = path.find_last_of('/');
+	std::string::size_type dot = path.find_last_of('.');
+	if (dot == std::string::npos || (slash != std::string::npos && dot < slash))
+		return "";
+	return path.substr(dot);
+}
+
+/* the extension of a downloaded picture, by its first bytes */
+static std::string pictureFileExt(const std::string &file)
+{
+	char head[64] = { 0 };
+	size_t n = 0;
+	FILE *f = fopen(file.c_str(), "rb");
+	if (f)
+	{
+		n = fread(head, 1, sizeof(head) - 1, f);
+		fclose(f);
+	}
+	if (n >= 4 && !memcmp(head, "\x89PNG", 4))
+		return ".png";
+	if (n >= 3 && !memcmp(head, "\xff\xd8\xff", 3))
+		return ".jpg";
+	if (strstr(head, "<svg") || strstr(head, "<?xml"))
+		return ".svg";
+	return "";
+}
+
 std::string downloadUrlToLogo(std::string url, std::string directory, t_channel_id channel_id, unsigned int timeout)
 {
 
@@ -2233,14 +2264,26 @@ std::string downloadUrlToLogo(std::string url, std::string directory, t_channel_
 		snprintf(strChnId, 16, "%llx", channel_id & 0xFFFFFFFFFFFFULL);
 		strChnId[15] = '\0';
 
-		std::string file = directory + "/" + strChnId + url.substr(url.find_last_of("."));
-		if (file_exists(file))
-			return file;
+		/* a URL like .../channels/<id>/logo names no file type: the
+		   picture itself tells it once it is here */
+		std::string base = directory + "/" + strChnId;
+		std::string ext = urlFileExt(url);
+		if (!ext.empty() && file_exists(base + ext))
+			return base + ext;
+		if (ext.empty())
+			for (const char *e : { ".png", ".jpg", ".svg" })
+				if (file_exists(base + e))
+					return base + e;
 		/* put in place only when complete: the logo thread and a paint may
 		   fetch the same logo at once, and a reader must not see half of it */
 		std::string part = randomFile("part", directory);
-		if (downloadUrl(url, part, " ", timeout) && rename(part.c_str(), file.c_str()) == 0)
-			return file;
+		if (downloadUrl(url, part, " ", timeout))
+		{
+			if (ext.empty())
+				ext = pictureFileExt(part);
+			if (!ext.empty() && rename(part.c_str(), (base + ext).c_str()) == 0)
+				return base + ext;
+		}
 		unlink(part.c_str());
 	}
 	return url;
