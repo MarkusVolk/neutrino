@@ -141,11 +141,12 @@ static void programmeTimes(const CTimerEvent_Record *r, int pre, int post, time_
 	to = r->stopTime - (r->recordingSafety ? post : 0);
 }
 
-/* Two recordings that need the one tuner and meet only in their safety
-   times hand over: the earlier stops and the later starts where the later
-   programme begins, its announcement put off by as much. Worked out at
-   every pass, so that the timers keep their own times and one that is
-   removed gives the other its safety time back. */
+/* Two recordings that meet only in their safety times, when the tuners
+   cannot receive everything recording at that moment, hand over: the
+   earlier stops and the later starts where the later programme begins, its
+   announcement put off by as much. Worked out at every pass, so that the
+   timers keep their own times and one that is removed gives the other its
+   safety time back. */
 static void handOver(CTimerEventMap &events, int pre, int post,
 		std::map<int, time_t> &announce, std::map<int, time_t> &alarm, std::map<int, time_t> &stop)
 {
@@ -165,7 +166,11 @@ static void handOver(CTimerEventMap &events, int pre, int post,
 			programmeTimes(b, pre, post, b_from, b_to);
 			if (i == j || a_to > b_from || a->stopTime <= b->alarmTime || b_from >= b_to)
 				continue;
-			if (!CTimerManager::needOneTuner(a->eventInfo.channel_id, b->eventInfo.channel_id))
+			std::vector<t_channel_id> running;
+			for (size_t k = 0; k < recs.size(); k++)
+				if (recs[k]->alarmTime <= b->alarmTime && b->alarmTime < recs[k]->stopTime)
+					running.push_back(recs[k]->eventInfo.channel_id);
+			if (CTimerManager::fitTogether(running))
 				continue;
 			if (!stop.count(a->eventID) || stop[a->eventID] > b_from)
 				stop[a->eventID] = b_from;
@@ -178,22 +183,27 @@ static void handOver(CTimerEventMap &events, int pre, int post,
 	}
 }
 
-/* whether two recordings cannot run at once: with one tuner on different
-   transponders, or one of them through the CI; a web channel takes none */
-bool CTimerManager::needOneTuner(t_channel_id a, t_channel_id b)
+/* whether recordings of these channels can run at once: a web channel takes
+   no tuner, one through the CI none beside it, the rest what the tuners take */
+bool CTimerManager::fitTogether(const std::vector<t_channel_id> &channel_ids)
 {
-	if (IS_WEBCHAN(a) || IS_WEBCHAN(b))
-		return false;
+	std::vector<CZapitChannel *> channels;
+	size_t count = 0;
 	bool useCI = false;
-	{
-		CServiceManager::ChannelGuard guard;
-		CZapitChannel *ca = CServiceManager::getInstance()->FindChannel(a);
-		CZapitChannel *cb = CServiceManager::getInstance()->FindChannel(b);
-		useCI = (ca && ca->bUseCI) || (cb && cb->bUseCI);
+	CServiceManager::ChannelGuard guard;
+	for (size_t i = 0; i < channel_ids.size(); i++) {
+		if (IS_WEBCHAN(channel_ids[i]))
+			continue;
+		count++;
+		CZapitChannel *channel = CServiceManager::getInstance()->FindChannel(channel_ids[i]);
+		if (!channel)
+			continue;
+		useCI = useCI || channel->bUseCI;
+		channels.push_back(channel);
 	}
-	if (CFEManager::getInstance()->getEnabledCount() != 1 && !useCI)
-		return false;
-	return useCI || !SAME_TRANSPONDER(a, b);
+	if (useCI)
+		return count <= 1;
+	return CFEManager::getInstance()->canReceiveTogether(channels);
 }
 
 /* whether a recording of the programme from..to and the recording eventID
