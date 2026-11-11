@@ -46,6 +46,7 @@
 #include <dirent.h>
 #include <set>
 #include <stdlib.h>
+#include <system/boxdiscovery.h>
 #include <system/helpers.h>
 
 extern CBouquetManager *g_bouquetManager;
@@ -252,6 +253,9 @@ int CWebChannelsSetup::Show()
 		m->addItem(nc);
 		oc = new CMenuOptionChooser(LOCALE_WEBTV_DNS_DIAGNOSTICS, &g_settings.webtv_dns_diagnostics, OPTIONS_OFF0_ON1_OPTIONS, OPTIONS_OFF0_ON1_OPTION_COUNT, true, NULL, CRCInput::convertDigitToKey(shortcut++));
 		m->addItem(oc);
+		oc = new CMenuOptionChooser(LOCALE_WEBTV_BOX_TUNERS, &g_settings.webtv_box_tuners, OPTIONS_OFF0_ON1_OPTIONS, OPTIONS_OFF0_ON1_OPTION_COUNT, true, this, CRCInput::convertDigitToKey(shortcut++));
+		oc->setHint("", LOCALE_MENU_HINT_WEBTV_BOX_TUNERS);
+		m->addItem(oc);
 
 		m->addItem(new CMenuSeparator(CMenuSeparator::LINE | CMenuSeparator::STRING, webradio ? LOCALE_WEBRADIO_XML : LOCALE_WEBTV_XML));
 	}
@@ -340,6 +344,15 @@ bool CWebChannelsSetup::changeNotify(const neutrino_locale_t OptionName, void *d
 	{
 		changed = true;
 		ret = menu_return::RETURN_REPAINT;
+	}
+	else if (ARE_LOCALES_EQUAL(OptionName, LOCALE_WEBTV_BOX_TUNERS))
+	{
+		/* the lists of the other boxes come and go with the reload on leaving */
+		if (g_settings.webtv_box_tuners)
+			CBoxDiscovery::getInstance()->Start();
+		else
+			CBoxDiscovery::getInstance()->Stop();
+		changed = true;
 	}
 	else if (ARE_LOCALES_EQUAL(OptionName, LOCALE_LIVESTREAM_RESOLUTION))
 	{

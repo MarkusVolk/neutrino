@@ -853,6 +853,7 @@ struct SNeutrinoSettings
 	int webtv_xml_auto;
 	int webtv_stream_restart_attempts;
 	int webtv_dns_diagnostics;
+	int webtv_box_tuners;
 	std::list<std::string> webtv_xml;
 	std::string last_webtv_dir;
 

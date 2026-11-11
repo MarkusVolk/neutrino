@@ -98,6 +98,8 @@ CBoxDiscovery::CBoxDiscovery()
 std::vector<std::string> CBoxDiscovery::getBoxes()
 {
 	std::vector<std::string> ret;
+	if (!g_settings.webtv_box_tuners)
+		return ret;
 	pthread_mutex_lock(&mutex);
 	for (std::map<std::string, Box>::iterator it = boxes.begin(); it != boxes.end(); ++it)
 		ret.push_back(it->second.host);
@@ -107,7 +109,7 @@ std::vector<std::string> CBoxDiscovery::getBoxes()
 
 void CBoxDiscovery::Start()
 {
-	if (running)
+	if (running || !g_settings.webtv_box_tuners)
 		return;
 
 	group_fd = socket(AF_INET, SOCK_DGRAM | SOCK_CLOEXEC, 0);

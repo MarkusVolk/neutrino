@@ -1995,6 +1995,7 @@ menu.hint_weather_location Select your weather location
 menu.hint_weather_postalcode Select your weather location by postal code
 menu.hint_webradio_setup WebRadio channels configured here will be available in the standard channel lists.
 menu.hint_webradio_xml_auto Auto-load all existing WebRadio files from %s/ and %s/
+menu.hint_webtv_box_tuners Announces the tuners of this box in the network and adds the DVB channels of other Neutrino boxes with reception to the web channels.
 menu.hint_webtv_setup WebTV channels configured here will be available in the standard channel lists.
 menu.hint_webtv_xml_auto Auto-load all existing WebTV files from %s/ and %s/
 menu.hint_widevine The CDM that decrypts protected streams. Google does not allow it in an image, it is fetched onto the box.
@@ -3176,6 +3177,7 @@ webchannels.xml.reload Reload
 webradio.head WebRadio
 webradio.xml WebRadio files
 webradio.xml.auto Auto-load WebRadio files
+webtv.box_tuners Share tuners with other boxes
 webtv.dns.blocker_suspected The stream host resolved to a block address:\n\nHost: %s\nAddress: %s\n\nThis can indicate a DNS blocker such as Pi-hole, AdGuard Home or a\nrouter filter.
 webtv.dns.diagnostics DNS diagnostics
 webtv.dns.failed DNS lookup failed for:\n%s\n\nPlease check the internet connection, DNS settings or router.

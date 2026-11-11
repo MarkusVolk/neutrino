@@ -989,6 +989,7 @@ int CNeutrinoApp::loadSetup(const char *fname)
 
 	// webtv
 	g_settings.webtv_xml_auto = configfile.getInt32("webtv_xml_auto", 1);
+	g_settings.webtv_box_tuners = configfile.getInt32("webtv_box_tuners", 1);
 	g_settings.webtv_stream_restart_attempts = configfile.getInt32("webtv_stream_restart_attempts", 1);
 	if (g_settings.webtv_stream_restart_attempts < 0)
 		g_settings.webtv_stream_restart_attempts = 0;
@@ -1995,6 +1996,7 @@ void CNeutrinoApp::saveSetup(const char *fname)
 	// webtv
 	CWebChannelsSetup webchannelssetup;
 	configfile.setInt32("webtv_xml_auto", g_settings.webtv_xml_auto);
+	configfile.setInt32("webtv_box_tuners", g_settings.webtv_box_tuners);
 	configfile.setInt32("webtv_stream_restart_attempts", g_settings.webtv_stream_restart_attempts);
 	configfile.setInt32("webtv_dns_diagnostics", g_settings.webtv_dns_diagnostics);
 	int webtv_count = 0;
