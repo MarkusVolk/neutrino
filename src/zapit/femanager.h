@@ -116,6 +116,7 @@ class CFEManager
 		bool		getSatelliteConfig(CFrontend * fe, sat_config_t &satconfig);
 
 		bool		loopCanTune(CFrontend * fe, CZapitChannel * channel);
+		bool		feCanReceive(CFrontend * mfe, CZapitChannel * channel);
 		void		copySettings(CFrontend * from, CFrontend * to);
 
 		static CFEManager * manager;
@@ -146,6 +147,7 @@ class CFEManager
 
 		CFrontend *	getScanFrontend(t_satellite_position satellitePosition);
 		bool		canTune(CZapitChannel * channel);
+		bool		canReceiveTogether(const std::vector<CZapitChannel *> &channels);
 
 		bool		configExist() { return config_exist; };
 		bool		loadSettings();

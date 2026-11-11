@@ -854,6 +854,141 @@ bool CFEManager::loopCanTune(CFrontend * fe, CZapitChannel * channel)
 	return false;
 }
 
+/* Whether an active tuner that is no link could receive the channel at all:
+ * its delivery system, and the satellite configured for it. */
+bool CFEManager::feCanReceive(CFrontend * mfe, CZapitChannel * channel)
+{
+	if (mfe->getMode() == CFrontend::FE_MODE_UNUSED || CFrontend::linked(mfe->getMode())) {
+		FEDEBUG("frontend %d not activ, skipping...", mfe->fenumber);
+		return false;
+	}
+	if (!mfe->supportsDelivery(channel->delsys)) {
+		FEDEBUG("frontend %d not support delsys, skipping...", mfe->fenumber);
+		return false;
+	}
+	if (mfe->isHybrid() && mfe->forcedDelivery(channel->delsys)) {
+		FEDEBUG("frontend %d not support delsys by user, skipping...", mfe->fenumber);
+		return false;
+	}
+	t_satellite_position satellitePosition = channel->getSatellitePosition();
+	if (mfe->hasSat() && !SAT_POSITION_CABLE(satellitePosition) && !SAT_POSITION_TERR(satellitePosition)) {
+		satellite_map_t & satmap = mfe->getSatellites();
+		sat_iterator_t sit = satmap.find(satellitePosition);
+		if ((sit == satmap.end()) || !sit->second.configured) {
+			FEDEBUG("frontend %d not support requested satpos, skipping...", mfe->fenumber);
+			return false;
+		}
+	}
+	return true;
+}
+
+/* What one master or independent tuner takes of a set of channels to receive
+ * at once: the master and its loop tuners one transponder each, all on the
+ * satellite, polarisation and band of the cable they share; a twin one
+ * transponder of its own; with a rotor everything on one satellite. */
+struct fe_group_use {
+	CFrontend *mfe;
+	bool sat, loop, rotor;
+	int32_t lnb_switch;
+	unsigned loop_free, twin_free;
+	std::vector<CZapitChannel *> loop_chans, all_chans;
+};
+
+static bool same_cable_part(const fe_group_use &u, CZapitChannel *a, CZapitChannel *b)
+{
+	if (!u.sat)
+		return true;
+	return a->getSatellitePosition() == b->getSatellitePosition() &&
+		(a->polarization & 1) == (b->polarization & 1) &&
+		((int)a->getFreqId() * 1000 >= u.lnb_switch) == ((int)b->getFreqId() * 1000 >= u.lnb_switch);
+}
+
+static bool assign_demands(std::vector<CZapitChannel *> &demands, size_t n, std::vector<fe_group_use> &groups,
+			   const std::vector<std::vector<bool> > &can)
+{
+	if (n == demands.size())
+		return true;
+	CZapitChannel *ch = demands[n];
+	for (size_t g = 0; g < groups.size(); g++) {
+		fe_group_use &u = groups[g];
+		if (!can[n][g])
+			continue;
+		if (u.rotor && !u.all_chans.empty() &&
+		    u.all_chans[0]->getSatellitePosition() != ch->getSatellitePosition())
+			continue;
+		bool loop_ok = u.loop_free > 0;
+		for (size_t i = 0; loop_ok && u.loop && i < u.loop_chans.size(); i++)
+			loop_ok = same_cable_part(u, u.loop_chans[i], ch);
+		if (loop_ok) {
+			u.loop_free--;
+			u.loop_chans.push_back(ch);
+			u.all_chans.push_back(ch);
+			if (assign_demands(demands, n + 1, groups, can))
+				return true;
+			u.all_chans.pop_back();
+			u.loop_chans.pop_back();
+			u.loop_free++;
+		}
+		if (u.twin_free > 0) {
+			u.twin_free--;
+			u.all_chans.push_back(ch);
+			if (assign_demands(demands, n + 1, groups, can))
+				return true;
+			u.all_chans.pop_back();
+			u.twin_free++;
+		}
+	}
+	return false;
+}
+
+/* Whether the tuners as they are set up could receive all these channels at
+ * the same time, one transponder per tuner (one channel per tuner with
+ * noSameFE). Only the setup counts, not what the tuners do right now. */
+bool CFEManager::canReceiveTogether(const std::vector<CZapitChannel *> &channels)
+{
+	OpenThreads::ScopedLock<OpenThreads::Mutex> m_lock(mutex);
+
+	std::vector<CZapitChannel *> demands;
+	for (size_t i = 0; i < channels.size(); i++) {
+		bool shared = false;
+		for (size_t j = 0; !shared && j < demands.size(); j++)
+			shared = noSameFE ? demands[j]->getChannelID() == channels[i]->getChannelID()
+					  : demands[j]->getTransponderId() == channels[i]->getTransponderId();
+		if (!shared)
+			demands.push_back(channels[i]);
+	}
+
+	std::vector<fe_group_use> groups;
+	for (fe_map_iterator_t it = femap.begin(); it != femap.end(); it++) {
+		CFrontend *mfe = it->second;
+		int femode = mfe->getMode();
+		if (femode != CFrontend::FE_MODE_MASTER && femode != CFrontend::FE_MODE_INDEPENDENT)
+			continue;
+		fe_group_use u;
+		u.mfe = mfe;
+		u.sat = mfe->hasSat();
+		u.loop = mfe->have_loop;
+		u.rotor = mfe->have_rotor;
+		u.lnb_switch = mfe->lnbSwitch;
+		u.loop_free = 1;
+		u.twin_free = 0;
+		for (size_t i = 1; femode == CFrontend::FE_MODE_MASTER && i < mfe->linkmap.size(); i++) {
+			if (mfe->linkmap[i]->getMode() == CFrontend::FE_MODE_LINK_TWIN)
+				u.twin_free++;
+			else
+				u.loop_free++;
+		}
+		groups.push_back(u);
+	}
+
+	std::vector<std::vector<bool> > can(demands.size(), std::vector<bool>(groups.size()));
+	for (size_t n = 0; n < demands.size(); n++)
+		for (size_t g = 0; g < groups.size(); g++)
+			can[n][g] = feCanReceive(groups[g].mfe, demands[n]);
+
+	return assign_demands(demands, 0, groups, can);
+}
+
 CFrontend * CFEManager::getFrontend(CZapitChannel * channel)
 {
 	CFrontend * retfe = NULL;
@@ -872,37 +1007,8 @@ CFrontend * CFEManager::getFrontend(CZapitChannel * channel)
 	for(fe_map_iterator_t it = femap.begin(); it != femap.end(); it++) {
 		CFrontend * mfe = it->second;
 
-		// frontend activ
-		if (mfe->getMode() == CFrontend::FE_MODE_UNUSED || CFrontend::linked(mfe->getMode()))
-		{
-			FEDEBUG("frontend %d not activ, skipping...", mfe->fenumber);
+		if (!feCanReceive(mfe, channel))
 			continue;
-		}
-
-		// frontend can requested delivery system
-		if (!mfe->supportsDelivery(channel->delsys))
-		{
-			FEDEBUG("frontend %d not support delsys, skipping...", mfe->fenumber);
-			continue;
-		}
-
-		// frontend is hybrid, check if delivery system is forced by user
-		if (mfe->isHybrid() && mfe->forcedDelivery(channel->delsys))
-		{
-			FEDEBUG("frontend %d not support delsys by user, skipping...", mfe->fenumber);
-			continue;
-		}
-
-		// frontend is sat, and requested position can be serviced
-		if (mfe->hasSat() && !SAT_POSITION_CABLE(satellitePosition) && !SAT_POSITION_TERR(satellitePosition)) {
-			satellite_map_t & satmap = mfe->getSatellites();
-			sat_iterator_t sit = satmap.find(satellitePosition);
-			if ((sit == satmap.end()) || !sit->second.configured)
-			{
-				FEDEBUG("frontend %d not support requested satpos, skipping...", mfe->fenumber);
-				continue;
-			}
-		}
 
 		if (mfe->getMode() == CFrontend::FE_MODE_MASTER) {
 			bool have_loop = mfe->have_loop;
