@@ -44,6 +44,7 @@
 #include <global.h>
 #include <neutrino.h>
 #include <driver/pictureviewer/pictureviewer.h>
+#include <system/boxdiscovery.h>
 #include <system/helpers.h>
 #include <system/set_threadname.h>
 
@@ -1257,6 +1258,12 @@ static void buildWebchannelSources(int mode, std::list<std::string> &sources)
 				sources.push_back(*it);
 		}
 	}
+
+	/* the DVB channels of the other boxes with reception */
+	std::vector<std::string> boxes = CBoxDiscovery::getInstance()->getBoxes();
+	for (size_t i = 0; i < boxes.size(); i++)
+		sources.push_back("http://" + boxes[i] + "/control/xmltv.m3u?mode=" +
+				  (mode == MODE_WEBTV ? "tv" : "radio") + "&dvb=1");
 
 	if (!auto_enabled)
 		return;

@@ -61,6 +61,7 @@
 #include <driver/screenshot.h>
 #include <driver/volume.h>
 #include <driver/streamts.h>
+#include <system/boxdiscovery.h>
 #include <driver/display.h>
 #include <driver/radiotext.h>
 #include <driver/scanepg.h>
@@ -3305,6 +3306,7 @@ TIMER_START();
 		pthread_detach (nhttpd_thread);
 
 	CStreamManager::getInstance()->Start();
+	CBoxDiscovery::getInstance()->Start();
 #ifdef ENABLE_MPRIS
 	CMprisServer::getInstance()->Start();
 #endif
@@ -6443,6 +6445,7 @@ void stop_daemons(bool stopall, bool for_flash)
 #ifdef ENABLE_TRAY
 	CTrayIcon::getInstance()->Stop();
 #endif
+	CBoxDiscovery::getInstance()->Stop();
 	printf("streaming shutdown\n");
 	CStreamManager::getInstance()->Stop();
 	printf("streaming shutdown done\n");

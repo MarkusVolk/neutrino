@@ -1,4 +1,5 @@
 libneutrino_system_sources = [
+	'boxdiscovery.cpp',
 	'configure_network.cpp',
 	'debug.cpp',
 	'flashtool.cpp',
