@@ -34,7 +34,6 @@
 #include <system/llm_client.h>
 #include <nhttpd/yconfig.h>
 #include <nhttpd/tuxboxapi/mcpoauth.h>
-#include <libconfigfile/configfile.h>
 #include <libnet/libnet.h>
 
 #include <fcntl.h>
@@ -213,15 +212,10 @@ static std::string box_server_address()
 	if (stat(HTTPD_CONFIGFILE, &st) != 0)
 		memset(&st, 0, sizeof(st));
 	if (configured_port < 0 || st.st_ino != seen.st_ino || st.st_size != seen.st_size || st.st_mtime != seen.st_mtime) {
-		CConfigFile config(',');
-		config.loadConfig(HTTPD_CONFIGFILE);
-		configured_port = config.getInt32("WebsiteMain.port", HTTPD_STANDARD_PORT);
+		configured_port = httpdPort();
 		seen = st;
 	}
 	int port = configured_port;
-	/* without root nhttpd falls back from port 80 */
-	if (port == HTTPD_STANDARD_PORT && geteuid() != 0)
-		port = HTTPD_FALLBACK_PORT;
 	return "http://" + ip + (port == 80 ? "" : ":" + to_string(port)) + "/mcp";
 }
 

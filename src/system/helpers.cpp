@@ -59,6 +59,8 @@
 //#include <driver/framebuffer.h>
 #include <system/helpers.h>
 #include <system/helpers-json.h>
+#include <libconfigfile/configfile.h>
+#include <nhttpd/yconfig.h>
 #include <lib/libnet/libnet.h>
 #include <gui/update_ext.h>
 #include <libmd5sum.h>
@@ -2319,6 +2321,17 @@ size_t CurlWriteToString(void *ptr, size_t size, size_t nmemb, void *data)
 	pStr->append((char *) ptr, nmemb);
 
 	return size * nmemb;
+}
+
+int httpdPort()
+{
+	CConfigFile config(',');
+	config.loadConfig(HTTPD_CONFIGFILE);
+	int port = config.getInt32("WebsiteMain.port", HTTPD_STANDARD_PORT);
+	/* without root nhttpd falls back from port 80 */
+	if (port == HTTPD_STANDARD_PORT && geteuid() != 0)
+		port = HTTPD_FALLBACK_PORT;
+	return port;
 }
 
 bool getUrl(std::string &url, std::string &answer, std::string userAgent, unsigned int timeout)

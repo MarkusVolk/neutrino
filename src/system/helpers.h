@@ -261,6 +261,9 @@ size_t WriteMemoryCallback(void *ptr, size_t size, size_t nmemb, void *data);
 std::string encodeUrl(std::string txt);
 std::string decodeUrl(std::string url);
 
+/* the port nhttpd listens on */
+int httpdPort();
+
 bool getUrl(std::string &url, std::string &answer, const std::string userAgent = AGENT, unsigned int timeout = 60);
 bool downloadUrl(std::string url, std::string file, const std::string userAgent = AGENT, unsigned int timeout = 60);
 
