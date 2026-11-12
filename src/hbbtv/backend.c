@@ -207,6 +207,22 @@ struct egl {
 	struct gbm_device *gbm;
 };
 
+static gboolean open_gpu(struct egl *egl, const char *path)
+{
+	egl->fd = open(path, O_RDWR | O_CLOEXEC);
+	if (egl->fd < 0)
+		return FALSE;
+	egl->gbm = gbm_create_device(egl->fd);
+	if (!egl->gbm) {
+		close(egl->fd);
+		egl->fd = -1;
+		return FALSE;
+	}
+	if (g_getenv("NEUTRINO_HBBTV_DEBUG"))
+		fprintf(stderr, "neutrino-hbbtv: rendering on %s\n", path);
+	return TRUE;
+}
+
 static void *egl_create(int host_fd)
 {
 	struct egl *egl = g_new0(struct egl, 1);
@@ -214,16 +230,17 @@ static void *egl_create(int host_fd)
 	if (host_fd >= 0)
 		close(host_fd);
 	egl->fd = -1;
-	for (int i = 128; i < 136 && !egl->gbm; i++) {
-		char path[32];
+	/* the GPU Neutrino draws with first: a dmabuf of another one, or of a
+	 * device without a GPU such as vgem, may not be shown */
+	const char *node = g_getenv("NEUTRINO_HBBTV_RENDER_NODE");
+	if (!(node && *node && open_gpu(egl, node))) {
+		for (int i = 128; i < 136; i++) {
+			char path[32];
 
-		snprintf(path, sizeof(path), "/dev/dri/renderD%d", i);
-		egl->fd = open(path, O_RDWR | O_CLOEXEC);
-		if (egl->fd < 0)
-			continue;
-		egl->gbm = gbm_create_device(egl->fd);
-		if (!egl->gbm)
-			close(egl->fd);
+			snprintf(path, sizeof(path), "/dev/dri/renderD%d", i);
+			if (open_gpu(egl, path))
+				break;
+		}
 	}
 	if (!egl->gbm)
 		g_warning("no GPU to render with");

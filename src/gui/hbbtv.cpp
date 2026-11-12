@@ -586,7 +586,7 @@ static pid_t spawn(const std::string &url, const std::string &channel, const std
 		if (strncmp(*e, "NEUTRINO_HBBTV_FD=", 18) && strncmp(*e, "NEUTRINO_HBBTV_START_KEY=", 25) &&
 		    strncmp(*e, "NEUTRINO_HBBTV_DISPLAY=", 23) && strncmp(*e, "NEUTRINO_HBBTV_APPS=", 20) &&
 		    strncmp(*e, "NEUTRINO_HBBTV_PAGE=", 20) && strncmp(*e, "NEUTRINO_HBBTV_PAGE_KEYS=", 25) &&
-		    strncmp(*e, "NEUTRINO_HBBTV_KEYS=", 20) &&
+		    strncmp(*e, "NEUTRINO_HBBTV_KEYS=", 20) && strncmp(*e, "NEUTRINO_HBBTV_RENDER_NODE=", 27) &&
 		    strncmp(*e, "XDG_DATA_HOME=", 14))
 			env.push_back(*e);
 	if (page)
@@ -600,6 +600,8 @@ static pid_t spawn(const std::string &url, const std::string &channel, const std
 	env.push_back("NEUTRINO_HBBTV_FD=" + to_string(CONTROL_FD));
 	if (display >= 0)
 		env.push_back("NEUTRINO_HBBTV_DISPLAY=" + to_string(DISPLAY_FD));
+	if (*g_info.hw_caps->render_node)
+		env.push_back(std::string("NEUTRINO_HBBTV_RENDER_NODE=") + g_info.hw_caps->render_node);
 	/* in a window the keys come from the compositor through Neutrino */
 	if (g_info.hw_caps->windowed)
 		env.push_back("NEUTRINO_HBBTV_KEYS=forward");
