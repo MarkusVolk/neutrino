@@ -611,6 +611,8 @@ int main(int argc, char **argv)
 	WebKitColor transparent = { 0, 0, 0, 0 };
 	webkit_web_view_set_background_color(view, &transparent);
 	g_signal_connect(view, "web-process-terminated", G_CALLBACK(web_process_terminated), NULL);
+	/* window.close() of a page is how it ends itself, Joyn's quit does that */
+	g_signal_connect_swapped(view, "close", G_CALLBACK(g_main_loop_quit), loop);
 	g_signal_connect(view, "load-changed", G_CALLBACK(load_changed), NULL);
 	g_signal_connect(view, "load-failed", G_CALLBACK(load_failed), NULL);
 
