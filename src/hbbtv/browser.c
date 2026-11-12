@@ -72,7 +72,8 @@ static struct {
 	{ KEY_INFO, 457, 0 }, { KEY_TEXT, 459, 0 },
 };
 
-static gboolean page_mode;
+/* exit is the back key of the page, held it ends the browser */
+static gboolean exit_is_back;
 
 /* an ordinary page wants real key events: exit is its back key, there are
  * remote controls with no other, and the page has its own way to end. An
@@ -80,7 +81,7 @@ static gboolean page_mode;
  * as its back. */
 static void use_page_keys(gboolean hbbtv)
 {
-	page_mode = TRUE;
+	exit_is_back = TRUE;
 	if (hbbtv)
 		return;
 	for (size_t i = 0; i < G_N_ELEMENTS(keymap); i++) {
@@ -99,7 +100,9 @@ static struct wpe_view_backend *wpe_backend;
 /* the colour key that started HbbTV, for the application once it listens */
 static int start_key;
 
-static void send_key(size_t i, gboolean pressed)
+/* leave: an HbbTV application that does not take the key is at its start,
+ * and the browser ends */
+static void send_key(size_t i, gboolean pressed, gboolean leave)
 {
 	char script[512];
 	int code = keymap[i].code;
@@ -120,8 +123,8 @@ static void send_key(size_t i, gboolean pressed)
 		"var e=new KeyboardEvent('%s',{bubbles:true,cancelable:true});"
 		"Object.defineProperty(e,'keyCode',{get:function(){return %d;}});"
 		"Object.defineProperty(e,'which',{get:function(){return %d;}});"
-		"t.dispatchEvent(e);})();",
-		pressed ? "keydown" : "keyup", code, code);
+		"if(t.dispatchEvent(e)&&%d)window.webkit.messageHandlers.neutrino.postMessage({cmd:'exit'});})();",
+		pressed ? "keydown" : "keyup", code, code, leave && pressed);
 	webkit_web_view_evaluate_javascript(view, script, -1, NULL, NULL, NULL, NULL, NULL);
 }
 
@@ -139,8 +142,8 @@ static gboolean press_key(gpointer data)
 	size_t i = key_index(GPOINTER_TO_INT(data));
 
 	if (i < G_N_ELEMENTS(keymap)) {
-		send_key(i, TRUE);
-		send_key(i, FALSE);
+		send_key(i, TRUE, FALSE);
+		send_key(i, FALSE, FALSE);
 	}
 	return G_SOURCE_REMOVE;
 }
@@ -198,11 +201,13 @@ static void device_key(unsigned code, int value)
 			control_send("volume mute");
 		return;
 	}
-	if (code == KEY_EXIT && page_mode) {
+	gboolean leave = FALSE;
+	if (code == KEY_EXIT && exit_is_back) {
 		/* held, it leaves whatever the page does */
 		if (value == 2)
 			g_main_loop_quit(loop);
 		code = KEY_BACK;
+		leave = TRUE;
 	}
 	if (value == 2)
 		return;
@@ -217,7 +222,7 @@ static void device_key(unsigned code, int value)
 	if (debug)
 		fprintf(stderr, "neutrino-hbbtv: key %u %s -> %d%s\n", code, value ? "down" : "up",
 			keymap[i].code, keymap[i].sym ? " (key event)" : "");
-	send_key(i, value != 0);
+	send_key(i, value != 0, leave);
 }
 
 static gboolean input_cb(GIOChannel *channel, GIOCondition cond, gpointer data)
@@ -520,7 +525,19 @@ static void add_scripts(WebKitUserContentManager *manager, const char *channel)
 
 static void load_changed(WebKitWebView *v, WebKitLoadEvent event, gpointer data)
 {
+	static char *first;
+
 	(void)data;
+	/* an application the red key brought that leaves its first page, the
+	 * bar, for another: exit goes back there as in one opened from a menu */
+	if (event == WEBKIT_LOAD_COMMITTED) {
+		const char *uri = webkit_web_view_get_uri(v);
+		size_t n = strcspn(uri, "?#");
+		if (!first)
+			first = g_strndup(uri, n);
+		else if (strlen(first) != n || strncmp(first, uri, n))
+			exit_is_back = TRUE;
+	}
 	if (event == WEBKIT_LOAD_COMMITTED || event == WEBKIT_LOAD_FINISHED)
 		fprintf(stderr, "neutrino-hbbtv: %s %s\n",
 			event == WEBKIT_LOAD_COMMITTED ? "committed" : "finished", webkit_web_view_get_uri(v));
