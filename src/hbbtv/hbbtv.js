@@ -120,6 +120,14 @@
 		getOwnerApplication: function () { return application; }
 	});
 
+	/* WebKit closes only a window that a script opened and that has not
+	 * moved on; an application that ends itself with close() ends HbbTV */
+	if (window === window.top)
+		window.close = function () {
+			if (bridge)
+				bridge.postMessage({ cmd: 'exit' });
+		};
+
 	var configuration = {
 		preferredAudioLanguage: 'deu,eng',
 		preferredSubtitleLanguage: 'deu,eng',
