@@ -476,9 +476,14 @@ class CHbbtvControl
 			return widevine_off;
 		}
 
-		void key(neutrino_msg_t msg)
+		/* the browser takes the codes of the input devices; value as they
+		   give it (1 down, 2 held, 0 up), or -1 for a whole press */
+		void key(neutrino_msg_t msg, int value = -1)
 		{
-			send("key " + to_string((int)msg));
+			std::string line = "key " + to_string(g_RCInput->translateRevert((int)msg));
+			if (value >= 0)
+				line += " " + to_string(value);
+			send(line);
 		}
 
 		/* what the application shows; the browser gets a second for it */
@@ -581,6 +586,7 @@ static pid_t spawn(const std::string &url, const std::string &channel, const std
 		if (strncmp(*e, "NEUTRINO_HBBTV_FD=", 18) && strncmp(*e, "NEUTRINO_HBBTV_START_KEY=", 25) &&
 		    strncmp(*e, "NEUTRINO_HBBTV_DISPLAY=", 23) && strncmp(*e, "NEUTRINO_HBBTV_APPS=", 20) &&
 		    strncmp(*e, "NEUTRINO_HBBTV_PAGE=", 20) && strncmp(*e, "NEUTRINO_HBBTV_PAGE_KEYS=", 25) &&
+		    strncmp(*e, "NEUTRINO_HBBTV_KEYS=", 20) &&
 		    strncmp(*e, "XDG_DATA_HOME=", 14))
 			env.push_back(*e);
 	if (page)
@@ -594,6 +600,9 @@ static pid_t spawn(const std::string &url, const std::string &channel, const std
 	env.push_back("NEUTRINO_HBBTV_FD=" + to_string(CONTROL_FD));
 	if (display >= 0)
 		env.push_back("NEUTRINO_HBBTV_DISPLAY=" + to_string(DISPLAY_FD));
+	/* in a window the keys come from the compositor through Neutrino */
+	if (g_info.hw_caps->windowed)
+		env.push_back("NEUTRINO_HBBTV_KEYS=forward");
 	if (start_key)
 		env.push_back("NEUTRINO_HBBTV_START_KEY=" + to_string(start_key));
 	std::vector<char *> envp;
@@ -683,7 +692,11 @@ void CHbbtv::run(const CAitApp &ait_app, t_channel_id id, const std::string &cha
 	fb->paintBackground();
 	fb->blit();
 	g_RCInput->clearRCMsg();
-	g_RCInput->stopInput();
+	/* on a box the browser reads the remote control itself; in a window
+	   Neutrino keeps the keys and passes them on */
+	const bool windowed = g_info.hw_caps->windowed;
+	if (!windowed)
+		g_RCInput->stopInput();
 	fb->setDisplayHandedOver(true);
 	/* applications lay out for 1280x720: the browser draws that many pixels
 	   and the display layer scales them, less than half the work for the GPU */
@@ -729,6 +742,13 @@ void CHbbtv::run(const CAitApp &ait_app, t_channel_id id, const std::string &cha
 		return link.screen() + "\nKeys go to the application with tv_key; back is its back key, exit "
 		       "or tv_hbbtv with close ends it.";
 	});
+	/* in a window the keys of the input devices go to the browser as it
+	   would read them itself: down, held and up */
+	if (windowed)
+		g_RCInput->setDeviceKeyFilter([&link](neutrino_msg_t key, neutrino_msg_data_t value) {
+			link.key(key, (int)value);
+			return true;
+		});
 	while (pid > 0 && !close_wanted)
 	{
 		if (waitpid(pid, NULL, WNOHANG) == pid)
@@ -779,6 +799,8 @@ void CHbbtv::run(const CAitApp &ait_app, t_channel_id id, const std::string &cha
 			break;
 	}
 	delete view;
+	if (windowed)
+		g_RCInput->setDeviceKeyFilter(NULL);
 	if (pid > 0)
 		stop_browser(pid);
 	shown = false;
@@ -799,7 +821,8 @@ void CHbbtv::run(const CAitApp &ait_app, t_channel_id id, const std::string &cha
 		COsdHelpers::getInstance()->applyOsdSize(true);
 	fb->paintBackground();
 	fb->blit();
-	g_RCInput->restartInput();
+	if (!windowed)
+		g_RCInput->restartInput();
 	g_RCInput->clearRCMsg();
 	printf("[hbbtv] end\n");
 	/* the browser had the display meanwhile */

@@ -182,6 +182,44 @@ static void report_input(void)
 	control_send("input");
 }
 
+/* a key of the remote control, from the input devices or from Neutrino:
+ * value 1 down, 2 held, 0 up, as the input devices give it */
+static void device_key(unsigned code, int value)
+{
+	if (value == 1)
+		report_input();
+	if (code == KEY_VOLUMEUP || code == KEY_VOLUMEDOWN) {
+		if (value)
+			control_send(code == KEY_VOLUMEUP ? "volume up" : "volume down");
+		return;
+	}
+	if (code == KEY_MUTE) {
+		if (value == 1)
+			control_send("volume mute");
+		return;
+	}
+	if (code == KEY_EXIT && page_mode) {
+		/* held, it leaves whatever the page does */
+		if (value == 2)
+			g_main_loop_quit(loop);
+		code = KEY_BACK;
+	}
+	if (value == 2)
+		return;
+	if (code == KEY_EXIT || code == KEY_HOME || code == KEY_POWER) {
+		if (value)
+			g_main_loop_quit(loop);
+		return;
+	}
+	size_t i = key_of_device(code);
+	if (i == G_N_ELEMENTS(keymap))
+		return;
+	if (debug)
+		fprintf(stderr, "neutrino-hbbtv: key %u %s -> %d%s\n", code, value ? "down" : "up",
+			keymap[i].code, keymap[i].sym ? " (key event)" : "");
+	send_key(i, value != 0);
+}
+
 static gboolean input_cb(GIOChannel *channel, GIOCondition cond, gpointer data)
 {
 	struct input_event ev;
@@ -190,43 +228,9 @@ static gboolean input_cb(GIOChannel *channel, GIOCondition cond, gpointer data)
 	(void)data;
 	if (cond & (G_IO_HUP | G_IO_ERR))
 		return G_SOURCE_REMOVE;
-	while (read(fd, &ev, sizeof(ev)) == sizeof(ev)) {
-		if (ev.type != EV_KEY)
-			continue;
-		if (ev.value == 1)
-			report_input();
-		unsigned code = ev.code;
-		if (code == KEY_VOLUMEUP || code == KEY_VOLUMEDOWN) {
-			if (ev.value)
-				control_send(code == KEY_VOLUMEUP ? "volume up" : "volume down");
-			continue;
-		}
-		if (code == KEY_MUTE) {
-			if (ev.value == 1)
-				control_send("volume mute");
-			continue;
-		}
-		if (code == KEY_EXIT && page_mode) {
-			/* held, it leaves whatever the page does */
-			if (ev.value == 2)
-				g_main_loop_quit(loop);
-			code = KEY_BACK;
-		}
-		if (ev.value == 2)
-			continue;
-		if (code == KEY_EXIT || code == KEY_HOME || code == KEY_POWER) {
-			if (ev.value)
-				g_main_loop_quit(loop);
-			continue;
-		}
-		size_t i = key_of_device(code);
-		if (i == G_N_ELEMENTS(keymap))
-			continue;
-		if (debug)
-			fprintf(stderr, "neutrino-hbbtv: key %u %s -> %d%s\n", ev.code, ev.value ? "down" : "up",
-				keymap[i].code, keymap[i].sym ? " (key event)" : "");
-		send_key(i, ev.value != 0);
-	}
+	while (read(fd, &ev, sizeof(ev)) == sizeof(ev))
+		if (ev.type == EV_KEY)
+			device_key(ev.code, ev.value);
 	return G_SOURCE_CONTINUE;
 }
 
@@ -322,15 +326,21 @@ static void screen_ready(GObject *object, GAsyncResult *result, gpointer data)
 		g_object_unref(value);
 }
 
-/* "key <code>" is a key Neutrino got from a remote client, with the code of
- * the input device; "describe" asks for the screen text */
+/* "key <code>" is a key Neutrino got from a remote client, a whole press;
+ * "key <code> <value>" one event of the keyboard of a window, as an input
+ * device gives it. Codes are those of the input devices. "describe" asks
+ * for the screen text */
 static void control_line(const char *line)
 {
 	if (g_str_has_prefix(line, "key ")) {
-		size_t i = key_of_device(atoi(line + 4));
-		if (i < G_N_ELEMENTS(keymap)) {
-			send_key(i, TRUE);
-			send_key(i, FALSE);
+		unsigned code;
+		int value;
+		int n = sscanf(line + 4, "%u %d", &code, &value);
+		if (n == 2) {
+			device_key(code, value);
+		} else if (n == 1) {
+			device_key(code, 1);
+			device_key(code, 0);
 		}
 	} else if (g_strcmp0(line, "describe") == 0) {
 		webkit_web_view_evaluate_javascript(view, "window.__neutrinoScreen ? window.__neutrinoScreen() : document.title",
@@ -604,7 +614,10 @@ int main(int argc, char **argv)
 	g_signal_connect(view, "load-changed", G_CALLBACK(load_changed), NULL);
 	g_signal_connect(view, "load-failed", G_CALLBACK(load_failed), NULL);
 
-	open_inputs();
+	/* in a window of a desktop the keys are the compositor's: Neutrino
+	 * passes them on, and the input devices stay untouched */
+	if (g_strcmp0(g_getenv("NEUTRINO_HBBTV_KEYS"), "forward"))
+		open_inputs();
 	open_control();
 	if (debug)
 		g_timeout_add_seconds(5, dump, NULL);
