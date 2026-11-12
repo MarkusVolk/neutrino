@@ -35,7 +35,6 @@ class CNhttpdSetup : public CMenuTarget, public CChangeObserver
 		int width;
 		int port;
 		int auth_enabled;
-		int threading;
 		int loglevel;
 		int https_enabled;
 		int https_port;

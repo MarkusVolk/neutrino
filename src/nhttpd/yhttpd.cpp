@@ -99,9 +99,6 @@ void * nhttpd_main_thread(void *) {
 	}
 	/* we pthread_cancel this thread from the main thread, but still want to clean up */
 	pthread_cleanup_push(thread_cleanup, yhttpd);
-#ifndef Y_CONFIG_FEATURE_THREADING
-	yhttpd->flag_threading_off = true;
-#endif
 
 	yhttpd->hooks_attach();
 	yhttpd->ReadConfig();
@@ -124,7 +121,6 @@ void * nhttpd_main_thread(void *) {
 //=============================================================================
 Cyhttpd::Cyhttpd() {
 	webserver = new CWebserver();
-	flag_threading_off = false;
 }
 //-----------------------------------------------------------------------------
 Cyhttpd::~Cyhttpd() {
@@ -213,8 +209,6 @@ bool Cyhttpd::Configure() {
 void Cyhttpd::run() {
 	set_threadname("yweb:run");
 	if (webserver) {
-		if (flag_threading_off)
-			webserver->is_threading = false;
 		webserver->run();
 		stop_webserver();
 	} else
@@ -308,7 +302,6 @@ void Cyhttpd::ReadConfig(void) {
 			Config->setInt32("server.log.loglevel", OrgConfig.getInt32("LogLevel", 0));
 			Config->setInt32("configfile.version", CONF_VERSION);
 			Config->setString("webserver.websites", "WebsiteMain");
-			Config->setBool("webserver.threading", OrgConfig.getBool("THREADS", true));
 			Config->setInt32("WebsiteMain.port", OrgConfig.getInt32("Port", HTTPD_STANDARD_PORT));
 			Config->setString("WebsiteMain.directory", OrgConfig.getString("PrivatDocRoot", PRIVATEDOCUMENTROOT));
 			if (!OrgConfig.getString("PublicDocRoot", "").empty())
@@ -366,9 +359,8 @@ void Cyhttpd::ReadConfig(void) {
 
 	// get variables
 	const int web_port = Config->getInt32("WebsiteMain.port", HTTPD_STANDARD_PORT);
-	const bool use_threading = Config->getBool("webserver.threading", true);
 	const std::string web_host = Config->getString("WebsiteMain.host", HTTPD_DEFAULT_HOST);
-	webserver->init(web_port, use_threading, web_host);
+	webserver->init(web_port, web_host);
 	const bool https = Config->getBool("WebsiteMain.https", true);
 	const int https_port = Config->getInt32("WebsiteMain.https_port", HTTPS_STANDARD_PORT);
 	webserver->init_https(https, https_port);
@@ -377,7 +369,6 @@ void Cyhttpd::ReadConfig(void) {
 	ConfigList["WebsiteMain.https"] = https ? "true" : "false";
 	ConfigList["WebsiteMain.https_port"] = itoa(https_port);
 	ConfigList["WebsiteMain.host"] = web_host;
-	ConfigList["webserver.threading"] = Config->getString("webserver.threading", "true");
 	ConfigList["configfile.version"] = Config->getInt32("configfile.version", CONF_VERSION);
 	ConfigList["server.log.loglevel"] = itoa(Config->getInt32("server.log.loglevel", 0));
 	ConfigList["server.no_keep-alive_ips"] = Config->getString("server.no_keep-alive_ips", "");

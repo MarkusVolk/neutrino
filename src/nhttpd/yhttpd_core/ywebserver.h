@@ -32,15 +32,14 @@ protected:
 	std::string	bindAddress;				// Address/interface to bind to
 
 public:
-	static bool 	is_threading;				// Use a thread per connection
 	CStringVector 	conf_no_keep_alive_ips;			// List of IP for NO keep-alive
 
 	// constructor & destructor
 	CWebserver();
 	~CWebserver(void);
 
-	void 		init(unsigned int _port, bool _is_threading, const std::string &_bindAddress = std::string()) // Initialize Webserver Settings
-				{port=_port; is_threading=_is_threading; bindAddress = _bindAddress;}
+	void 		init(unsigned int _port, const std::string &_bindAddress = std::string()) // Initialize Webserver Settings
+				{port=_port; bindAddress = _bindAddress;}
 	// takes effect when the server starts
 	void		init_https(bool enabled, unsigned int _port)
 				{if (!tls_daemon) {tls_wanted = enabled; tls_port = _port;}}

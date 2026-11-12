@@ -1703,7 +1703,6 @@ menu.hint_net_httpd_noauth Clients ohne Login\n(kommagetrennte IPs/Hosts)
 menu.hint_net_httpd_pair Einen Code zum Scannen anzeigen; das Handy wird danach zur Fernbedienung
 menu.hint_net_httpd_pass Passwort für die HTTP-Authentifizierung
 menu.hint_net_httpd_port TCP-Port für das Webinterface (1-65535)
-menu.hint_net_httpd_threading Verbindungen in separaten Threads bearbeiten
 menu.hint_net_httpd_user Benutzername für die HTTP-Authentifizierung
 menu.hint_net_if Wählen Sie die Schnittstelle zur Konfiguration
 menu.hint_net_ipaddress Geben Sie die IP-Adresse für die Box ein
@@ -2419,7 +2418,6 @@ networkmenu.httpd_pass Passwort
 networkmenu.httpd_port Port
 networkmenu.httpd_port_invalid Ungültiger Port. 1-65535 verwenden.
 networkmenu.httpd_save_failed nhttpd.conf konnte nicht gespeichert werden
-networkmenu.httpd_threading Verbindungs-Threads
 networkmenu.httpd_user Benutzername
 networkmenu.inactive_network Netzwerk nicht aktiviert!
 networkmenu.ipaddress IP

@@ -20,5 +20,4 @@ server.group_name=
 server.log.loglevel=0
 server.no_keep-alive_ips=
 server.user_name=
-webserver.threading=false
 webserver.websites=WebsiteMain

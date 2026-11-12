@@ -35,8 +35,6 @@
 #include <api/apiserver.h>
 #include <system/set_threadname.h>
 
-bool CWebserver::is_threading = true;
-
 namespace {
 
 // the one server, for the request handling to read its settings
@@ -559,13 +557,11 @@ CWebserver::~CWebserver() {
 //-----------------------------------------------------------------------------
 struct MHD_Daemon *CWebserver::start(unsigned int _port, bool tls) {
 	server = this;
-	unsigned int flags = MHD_USE_ERROR_LOG;
+	/* a thread per connection: a long answer, an EPG export or a
+	 * recording, must not hold up the others */
+	unsigned int flags = MHD_USE_ERROR_LOG | MHD_USE_THREAD_PER_CONNECTION | MHD_USE_INTERNAL_POLLING_THREAD;
 	if (tls)
 		flags |= MHD_USE_TLS;
-	if (is_threading)
-		flags |= MHD_USE_THREAD_PER_CONNECTION | MHD_USE_INTERNAL_POLLING_THREAD;
-	else
-		flags |= MHD_USE_INTERNAL_POLLING_THREAD;
 
 	struct sockaddr_in sai;
 	memset(&sai, 0, sizeof(sai));

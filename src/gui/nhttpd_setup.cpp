@@ -74,7 +74,6 @@ CNhttpdSetup::CNhttpdSetup()
 	: width(40)
 	, port(HTTPD_STANDARD_PORT)
 	, auth_enabled(0)
-	, threading(0)
 	, loglevel(0)
 	, https_enabled(1)
 	, https_port(HTTPS_STANDARD_PORT)
@@ -112,7 +111,6 @@ void CNhttpdSetup::loadConfig()
 
 	host = config.getString("WebsiteMain.host", HTTPD_DEFAULT_HOST);
 	port = config.getInt32("WebsiteMain.port", HTTPD_STANDARD_PORT);
-	threading = config.getBool("webserver.threading", false) ? 1 : 0;
 	loglevel = config.getInt32("server.log.loglevel", 0);
 	if (loglevel < 0 || loglevel > 3)
 		loglevel = 0;
@@ -138,7 +136,6 @@ bool CNhttpdSetup::saveConfig()
 
 	config.setInt32("WebsiteMain.port", port);
 	config.setString("WebsiteMain.host", host);
-	config.setBool("webserver.threading", threading != 0);
 	config.setInt32("server.log.loglevel", loglevel);
 
 	config.setBool("WebsiteMain.https", https_enabled != 0);
@@ -173,7 +170,6 @@ int CNhttpdSetup::showSetup()
 
 	int orig_port = port;
 	int orig_auth_enabled = auth_enabled;
-	int orig_threading = threading;
 	int orig_loglevel = loglevel;
 	int orig_https_enabled = https_enabled;
 	int orig_https_port = https_port;
@@ -247,10 +243,6 @@ int CNhttpdSetup::showSetup()
 
 	menu->addItem(GenericMenuSeparatorLine);
 
-	CMenuOptionChooser *thread_opt = new CMenuOptionChooser(LOCALE_NETWORKMENU_HTTPD_THREADING, &threading, OPTIONS_OFF0_ON1_OPTIONS, OPTIONS_OFF0_ON1_OPTION_COUNT, true);
-	thread_opt->setHint("", LOCALE_MENU_HINT_NET_HTTPD_THREADING);
-	menu->addItem(thread_opt);
-
 	CMenuOptionChooser *loglevel_opt = new CMenuOptionChooser(LOCALE_NETWORKMENU_HTTPD_LOGLEVEL, &loglevel, HTTPD_LOGLEVEL_OPTIONS, HTTPD_LOGLEVEL_OPTION_COUNT, true);
 	loglevel_opt->setHint("", LOCALE_MENU_HINT_NET_HTTPD_LOGLEVEL);
 	menu->addItem(loglevel_opt);
@@ -267,7 +259,6 @@ int CNhttpdSetup::showSetup()
 
 	bool changed = (orig_port != port)
 		|| (orig_auth_enabled != auth_enabled)
-		|| (orig_threading != threading)
 		|| (orig_loglevel != loglevel)
 		|| (orig_https_enabled != https_enabled)
 		|| (orig_https_port != https_port)

@@ -27,8 +27,6 @@ server.no_keep-alive_ips List of IP-Adresses for clients not supporting keep-ali
 -----------------------------------------------------------------------------
 General Webserver Settings
 -----------------------------------------------------------------------------
-webserver.threading	Use Threading ?
-			Type: 		bool
 webserver.websites	List of hosted Websites
 			Type: 		Stringlist
 			Example:	Main, SSLsite, Admin

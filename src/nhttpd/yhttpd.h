@@ -24,7 +24,6 @@ private:
 	CWebserver *webserver; 			// Aggregation of Webserver (now: only one)
 
 public:
-	bool flag_threading_off; 		// switch of Connection Threading
 	static CStringList ConfigList; 	// Vars & Values from ReadConfig
 
 	// signal handler
