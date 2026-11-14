@@ -40,6 +40,7 @@
 #include <global.h>
 #include <neutrino.h>
 #include <gui/filebrowser.h>
+#include <gui/hbbtv.h>
 #include <gui/movieplayer.h>
 #include <gui/nfs.h>
 #include <gui/widget/hintbox.h>
@@ -1564,13 +1565,15 @@ void CRecordManager::EndTimeshiftOfLocked(t_channel_id channel_id)
 }
 
 /* a timeshift is for live TV: not in standby, and not while the audio
- * player, the pictures, UPnP or the AV input have the screen. The movie
- * player may be playing the timeshift itself and is asked on its own. */
+ * player, the pictures, UPnP, the AV input or an HbbTV application have
+ * the screen. The movie player may be playing the timeshift itself and is
+ * asked on its own. */
 static bool live_mode()
 {
 	int mode = CNeutrinoApp::getInstance()->getMode();
-	return mode == NeutrinoModes::mode_tv || mode == NeutrinoModes::mode_radio ||
-	       mode == NeutrinoModes::mode_webtv || mode == NeutrinoModes::mode_webradio;
+	return !CHbbtv::open() &&
+	       (mode == NeutrinoModes::mode_tv || mode == NeutrinoModes::mode_radio ||
+		mode == NeutrinoModes::mode_webtv || mode == NeutrinoModes::mode_webradio);
 }
 
 /* the timer that starts the timeshift on the live channel */
@@ -2217,6 +2220,7 @@ bool CRecordManager::AskToStop(const t_channel_id channel_id, const int recid)
 		if (inst)
 			StopInstance(inst);
 		mutex.unlock();
+		StopPostProcess();
 		return true;
 	}
 	return false;

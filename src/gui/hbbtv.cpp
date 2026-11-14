@@ -269,7 +269,6 @@ class CHbbtvControl
 				close();
 			else if (!active)
 			{
-				CRecordManager::getInstance()->StopAutoRecord();
 				CNeutrinoApp::getInstance()->lockPlayBack();
 				active = true;
 			}
@@ -788,6 +787,8 @@ void CHbbtv::run(const CAitApp &ait_app, t_channel_id id, const std::string &cha
 	const int mode = app->getMode();
 
 	printf("[hbbtv] start %s for %s\n", url.c_str(), channel.c_str());
+	/* the application has the screen and the keys, pause among them */
+	CRecordManager::getInstance()->StopAutoRecord();
 	g_InfoViewer->killTitle();
 	fb->paintBackground();
 	fb->blit();
@@ -929,6 +930,9 @@ void CHbbtv::run(const CAitApp &ait_app, t_channel_id id, const std::string &cha
 	shown = false;
 	close_wanted = false;
 	link.stop(!power_off);
+	/* live TV again, without a zap that would start the timeshift */
+	if (!power_off)
+		CRecordManager::getInstance()->ArmTimeshift();
 	if (control[0] >= 0)
 		::close(control[0]);
 	if (display[0] >= 0)

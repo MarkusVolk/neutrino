@@ -205,7 +205,6 @@ class CRecordManager : public CMenuTarget /*, public CChangeObserver*/
 		void StopPostProcess();
 		void StopInstance(CRecordInstance * inst, bool remove_event = true);
 		bool StopTimeshiftLocked(bool play_out = false);
-		void ArmTimeshift();
 		void EndTimeshiftOfLocked(t_channel_id channel_id);
 		void AddInstanceLocked(CRecordInstance * inst);
 		bool RecordingRunningLocked();
@@ -243,6 +242,8 @@ class CRecordManager : public CMenuTarget /*, public CChangeObserver*/
 		bool StartAutoRecord(bool silent = false);
 		bool StopAutoRecord();
 		void StopAutoTimer();
+		/* the timer that starts the timeshift, where one may run */
+		void ArmTimeshift();
 		recmap_t GetRecordMap()const{return recmap;}
 
 		MI_MOVIE_INFO * GetMovieInfo(const t_channel_id channel_id, bool timeshift = true);
