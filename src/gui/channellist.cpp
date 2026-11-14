@@ -774,7 +774,6 @@ int CChannelList::show()
 				{
 					if (CRecordManager::getInstance()->AskToStop((*chanlist)[selected]->getChannelID()))
 					{
-						CRecordManager::getInstance()->Stop((*chanlist)[selected]->getChannelID());
 						calcSize();
 						paintBody();
 					}

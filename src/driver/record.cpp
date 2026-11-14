@@ -2185,6 +2185,7 @@ bool CRecordManager::ShowMenu(void)
 	return false;
 }
 
+/* asks, and on yes ends the recording or the timeshift */
 bool CRecordManager::AskToStop(const t_channel_id channel_id, const int recid)
 {
 	std::string title, duration;
