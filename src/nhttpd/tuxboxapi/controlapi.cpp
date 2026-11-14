@@ -34,6 +34,8 @@
 #include <configfile.h>
 #include <system/configure_network.h>
 #include <system/helpers.h>
+#include <system/main_call.h>
+#include <gui/widget/remote_ui.h>
 #include <cs_api.h>
 #include <gui/plugins.h>//for relodplugins
 #include <neutrino.h>
@@ -2394,17 +2396,18 @@ void CControlAPI::ScreenshotCGI(CyhookHandler *hh)
 	/* a TV picture is a tenth the size as JPEG and encodes faster; PNG keeps the OSD sharp */
 	bool jpg = hh->ParamList["format"] == "jpg";
 
-	CScreenShot * screenshot = new CScreenShot("/tmp/" + filename + (jpg ? ".jpg" : ".png"),
-						   jpg ? CScreenShot::FORMAT_JPG : CScreenShot::FORMAT_PNG);
-	if(screenshot){
-		screenshot->EnableOSD(enableOSD);
-		screenshot->EnableVideo(enableVideo);
-		if (screenshot->StartSync())
-			hh->SendOk();
-		else
-			hh->SendError();
-		delete screenshot;
-	}
+	/* the capture reads the frame buffer and the decoder, which belong to
+	 * the main loop; the job keeps the shot in case the loop is late. A
+	 * question for the viewer is not for a client's eyes */
+	std::shared_ptr<CScreenShot> screenshot(new CScreenShot("/tmp/" + filename + (jpg ? ".jpg" : ".png"),
+								jpg ? CScreenShot::FORMAT_JPG : CScreenShot::FORMAT_PNG));
+	screenshot->EnableOSD(enableOSD);
+	screenshot->EnableVideo(enableVideo);
+	std::shared_ptr<bool> taken(new bool(false));
+	if (main_call::run([screenshot, taken] { *taken = !CRemoteUi::viewerOnly() && screenshot->StartSync(); }, 30000) && *taken)
+		hh->SendOk();
+	else
+		hh->SendError();
 }
 #endif
 

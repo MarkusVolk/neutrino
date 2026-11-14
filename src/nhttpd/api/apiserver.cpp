@@ -94,6 +94,7 @@
 #include <driver/screenshot.h>
 #include <driver/record.h>
 #include <hardware/video.h>
+#include <gui/widget/remote_ui.h>
 #include <system/main_call.h>
 #include <system/fsmounter.h>
 #include <system/netshares.h>
@@ -1323,11 +1324,18 @@ void ep_screenshot(Call &c)
 	/* the capture reads the frame buffer and the decoder, which belong to
 	 * the main loop; the job keeps the shot in case the loop is late */
 	std::shared_ptr<bool> taken(new bool(false));
-	bool ok = main_call::run([shot, taken] { *taken = shot->StartSync(); }, 30000) && *taken
+	/* a question for the viewer, such as a pairing code, is not for a client's eyes either */
+	std::shared_ptr<bool> viewer(new bool(false));
+	bool ok = main_call::run([shot, taken, viewer] {
+			*viewer = CRemoteUi::viewerOnly();
+			*taken = !*viewer && shot->StartSync();
+		}, 30000) && *taken
 		&& send_file(c, file, jpeg ? "image/jpeg" : "image/png", true);
 	unlink(file.c_str());
 	pthread_mutex_unlock(&screenshot_mutex);
-	if (!ok)
+	if (*viewer)
+		problem(c.out, 403, "screen-for-the-viewer", "a question for the viewer at the TV is open");
+	else if (!ok)
 		problem(c.out, 501, "screen-not-captured", "the screen could not be captured");
 }
 
