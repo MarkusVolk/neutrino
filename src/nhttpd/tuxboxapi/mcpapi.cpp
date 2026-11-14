@@ -131,8 +131,19 @@ Json::Value CMcpAPI::initialize(const Json::Value &params)
 	result["serverInfo"]["name"] = "neutrino";
 	result["serverInfo"]["version"] = PACKAGE_VERSION;
 	result["instructions"] = "The tools operate a Neutrino set-top box: what is on, the channel list, "
-				 "switching channels, the programme guide, timers for recordings, volume and standby. "
-				 "Times are the local time of the box.";
+				 "switching channels, the programme guide, timers for recordings, volume and standby, "
+				 "its menus and the HbbTV applications of the channels. "
+				 "Times are the local time of the box.\n"
+				 "A tool that operates the box answers once the action is through, with the screen it "
+				 "left; do not call tv_screen after it and do not wait. "
+				 "Somebody may be watching: a key does what the screen makes of it, so give tv_key the "
+				 "screen it is meant for with on, a part of the first line tv_screen shows (live, a "
+				 "menu's title, HbbTV). Prefer tv_menu, tv_select and tv_zap to keys. "
+				 "HbbTV: tv_hbbtv opens the application and answers with its page, tv_key operates it, "
+				 "tv_hbbtv with close ends it. A page may fill in after the answer; tv_screen with wait "
+				 "answers when the screen has changed. tv_screenshot shows what words do not. "
+				 "A question for the viewer at the TV, such as a pairing code, can neither be read nor "
+				 "answered; tell the user to answer it there.";
 	return result;
 }
 
