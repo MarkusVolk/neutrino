@@ -1817,14 +1817,19 @@ bool CRecordManager::Update(const t_channel_id channel_id)
 {
 	mutex.lock();
 
-	CRecordInstance * inst = FindInstance(channel_id);
-	if(inst != NULL)
-		inst->Update();
-	else
+	/* a timeshift being played and the recording that took its place */
+	bool found = false;
+	for (recmap_iterator_t it = recmap.begin(); it != recmap.end(); it++) {
+		if (it->second->GetChannelId() == channel_id) {
+			it->second->Update();
+			found = true;
+		}
+	}
+	if (!found)
 		printf("%s: channel %" PRIx64 " not recording\n", __func__, channel_id);
 
 	mutex.unlock();
-	return (inst != NULL);
+	return found;
 }
 
 int CRecordManager::handleMsg(const neutrino_msg_t msg, neutrino_msg_data_t data)

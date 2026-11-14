@@ -3526,13 +3526,14 @@ void CNeutrinoApp::quickZap(int msg)
 	}
 }
 
-/* the timeshift back key in the live picture: into the running timeshift,
- * a minute back, and further with more presses. Not while a PiP is open,
+/* the timeshift back key in the live picture: into the running timeshift
+ * or the recording of the live channel, a minute back, and further with more presses. Not while a PiP is open,
  * whose keys may be set to the same. */
 bool CNeutrinoApp::timeshiftJumpBack(void)
 {
 	t_channel_id live_channel_id = CZapit::getInstance()->GetCurrentChannelID();
-	if (!(CRecordManager::getInstance()->GetRecordMode(live_channel_id) & CRecordManager::RECMODE_TSHIFT))
+	/* a recording of the live channel has the timeshift's place */
+	if (!CRecordManager::getInstance()->InstanceStatus(live_channel_id))
 		return false;
 #if ENABLE_PIP
 	if (CZapit::getInstance()->GetPipChannelID())
