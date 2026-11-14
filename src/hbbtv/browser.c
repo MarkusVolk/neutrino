@@ -158,6 +158,16 @@ static size_t key_of_device(unsigned code)
 
 static void control_send(const char *line);
 
+/* ends the browser; Neutrino tells a remote client why */
+static void quit(const char *why)
+{
+	char line[32];
+
+	snprintf(line, sizeof(line), "exit %s", why);
+	control_send(line);
+	g_main_loop_quit(loop);
+}
+
 /* Neutrino's inactivity timer sees none of the keys read here: a key press
  * tells it, once a minute at most, that somebody is there */
 static void report_input(void)
@@ -191,7 +201,7 @@ static void device_key(unsigned code, int value)
 	if (code == KEY_EXIT && exit_is_back) {
 		/* held, it leaves whatever the page does */
 		if (value == 2)
-			g_main_loop_quit(loop);
+			quit("key");
 		code = KEY_BACK;
 		leave = TRUE;
 	}
@@ -199,7 +209,7 @@ static void device_key(unsigned code, int value)
 		return;
 	if (code == KEY_EXIT || code == KEY_HOME || code == KEY_POWER) {
 		if (value)
-			g_main_loop_quit(loop);
+			quit("key");
 		return;
 	}
 	size_t i = key_of_device(code);
@@ -274,11 +284,22 @@ static void open_inputs(void)
 
 /* an application asks for the colour keys through its keyset (red 0x1 to
  * blue 0x8); the first one that takes the start key gets it */
+static void control_send(const char *line);
+
+/* what the start key brings belongs to the page a remote client waits for */
+static gboolean press_start_key(gpointer data)
+{
+	press_key(data);
+	control_send("load finished key");
+	return G_SOURCE_REMOVE;
+}
+
 static void keyset_changed(int value)
 {
 	if (start_key < 403 || start_key > 406 || !(value & (1 << (start_key - 403))))
 		return;
-	g_timeout_add(300, press_key, GINT_TO_POINTER(start_key));
+	control_send("load started key");
+	g_timeout_add(300, press_start_key, GINT_TO_POINTER(start_key));
 	start_key = 0;
 }
 
@@ -395,7 +416,7 @@ static void script_message(WebKitUserContentManager *manager, JSCValue *value, g
 	JSCValue *cmd = jsc_value_object_get_property(value, "cmd");
 	char *s = jsc_value_to_string(cmd);
 	if (g_strcmp0(s, "exit") == 0)
-		g_main_loop_quit(loop);
+		quit("page");
 	else if (g_strcmp0(s, "keyset") == 0) {
 		JSCValue *v = jsc_value_object_get_property(value, "value");
 		keyset_changed(jsc_value_to_int32(v));
@@ -527,6 +548,13 @@ static void load_changed(WebKitWebView *v, WebKitLoadEvent event, gpointer data)
 	if (event == WEBKIT_LOAD_COMMITTED || event == WEBKIT_LOAD_FINISHED)
 		fprintf(stderr, "neutrino-hbbtv: %s %s\n",
 			event == WEBKIT_LOAD_COMMITTED ? "committed" : "finished", webkit_web_view_get_uri(v));
+	/* a remote client waits for the page a key brought */
+	if (event == WEBKIT_LOAD_STARTED || event == WEBKIT_LOAD_FINISHED) {
+		char *line = g_strdup_printf("load %s %s", event == WEBKIT_LOAD_STARTED ? "started" : "finished",
+			webkit_web_view_get_uri(v));
+		control_send(line);
+		g_free(line);
+	}
 }
 
 static gboolean load_failed(WebKitWebView *v, WebKitLoadEvent event, char *uri, GError *error, gpointer data)
@@ -535,6 +563,9 @@ static gboolean load_failed(WebKitWebView *v, WebKitLoadEvent event, char *uri, 
 	(void)event;
 	(void)data;
 	fprintf(stderr, "neutrino-hbbtv: loading %s failed: %s\n", uri, error->message);
+	char *line = g_strdup_printf("load failed %s", uri);
+	control_send(line);
+	g_free(line);
 	return FALSE;
 }
 
@@ -543,7 +574,7 @@ static gboolean web_process_terminated(WebKitWebView *v, WebKitWebProcessTermina
 	(void)v;
 	(void)data;
 	fprintf(stderr, "neutrino-hbbtv: web process terminated (%d)\n", reason);
-	g_main_loop_quit(loop);
+	quit("crash");
 	return TRUE;
 }
 /* a box has little memory: past these the web processes give memory back

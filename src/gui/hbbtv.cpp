@@ -15,7 +15,9 @@
 	over a socket on its fd 3, and gets "position <ms> <ms> playing|paused",
 	"ended" and "error" back. A page's script may ask for "resolve <arg>" and
 	"prepare" instead, see CHbbtvPage. "input" says a key was pressed, for
-	the inactivity timer.
+	the inactivity timer. "load started|finished|failed <address>" and
+	"exit key|page|crash" tell a remote client when a page is there and why
+	the browser ended.
 
 	License: GPL
 
@@ -103,6 +105,43 @@ bool CHbbtv::open(CAitApp *app)
 void CHbbtv::close()
 {
 	close_wanted = shown;
+}
+
+/* why the last one ended, for a remote client that finds live TV again */
+static std::string ended_why;
+static time_t ended_at;
+
+std::string CHbbtv::ended(int within)
+{
+	return time(NULL) - ended_at <= within ? ended_why : "";
+}
+
+namespace
+{
+	/* a remote client waits until the page is through with what it began */
+	struct settle_wait
+	{
+		std::function<void()> done;
+		int64_t next;
+		int64_t until;
+		bool looked;
+		std::string last;
+		/* since when the page is not loading */
+		int64_t calm;
+		/* the page showed something new since the client waits */
+		bool changed;
+	};
+}
+static std::vector<settle_wait> settling;
+#define QUIET_MS	600
+
+bool CHbbtv::whenSettled(const std::function<void()> &done, int timeout_ms)
+{
+	if (!shown)
+		return false;
+	settle_wait w = { done, 0, time_monotonic_ms() + timeout_ms, false, "", 0, false };
+	settling.push_back(w);
+	return true;
 }
 
 /* the running channel with its applications, when one can start */
@@ -196,6 +235,10 @@ class CHbbtvControl
 		std::string input;
 		std::string screen_text;
 		bool screen_new;
+		/* "load started|finished|failed <address>" and "exit <why>" */
+		bool page_loading;
+		std::string page_failed;
+		std::string exit_why;
 		bool loaded;
 		/* an ordinary page has no TV underneath: the player stays taken */
 		bool keep;
@@ -407,6 +450,13 @@ class CHbbtvControl
 				}
 				screen_new = true;
 			}
+			else if (cmd == "load")
+			{
+				page_loading = !args.compare(0, 8, "started ");
+				page_failed = !args.compare(0, 7, "failed ") ? args.substr(7) : "";
+			}
+			else if (cmd == "exit")
+				exit_why = args;
 			else if (cmd == "play" && !args.empty())
 				play(args);
 			else if (cmd == "drm")
@@ -459,7 +509,7 @@ class CHbbtvControl
 
 	public:
 		CHbbtvControl(int control, const CHbbtvPage *page) : fd(control), active(false), paused(false), next_report(0), screen_new(false),
-			loaded(false), keep(page != NULL), resolver(page ? page->resolver : ""), resolving(0), resolving_fd(-1), resolve_plays(false), skip_last(-1),
+			page_loading(true), loaded(false), keep(page != NULL), resolver(page ? page->resolver : ""), resolving(0), resolving_fd(-1), resolve_plays(false), skip_last(-1),
 			widevine_off(false)
 		{
 			if (keep)
@@ -499,7 +549,55 @@ class CHbbtvControl
 				if (!read())
 					break;
 			}
-			return screen_new ? screen_text : "The application does not answer.";
+			std::string state = page_loading ? "The page is loading.\n" :
+					    !page_failed.empty() ? "Loading " + page_failed + " failed.\n" : "";
+			return state + (screen_new ? screen_text : "The application does not answer.");
+		}
+
+		const std::string &exitWhy() const
+		{
+			return exit_why;
+		}
+
+		/* answers the clients whose page loaded and shows the same twice in
+		 * a row; one that never holds still, a clock or a ticker, gets a
+		 * second, and one without a word yet, a splash screen, all its time.
+		 * What a key began may show late, so a page that did not change gets
+		 * QUIET_MS before that counts as its answer */
+		void settle()
+		{
+			int64_t now = time_monotonic_ms();
+			for (size_t i = 0; i < settling.size(); i++)
+			{
+				settle_wait &w = settling[i];
+				if (now < w.next)
+					continue;
+				w.next = now + 150;
+				if (now < w.until)
+				{
+					if (page_loading)
+					{
+						w.looked = false;
+						w.calm = 0;
+						continue;
+					}
+					if (!w.calm)
+						w.calm = now;
+					std::string text = screen();
+					bool blank = text.find("\nText:\n") == std::string::npos;
+					bool same = w.looked && text == w.last;
+					w.changed |= w.looked && !same;
+					if (blank || (!same && now - w.calm < 1000) || (same && !w.changed && now - w.calm < QUIET_MS))
+					{
+						w.looked = true;
+						w.last = text;
+						continue;
+					}
+				}
+				std::function<void()> done = w.done;
+				settling.erase(settling.begin() + i--);
+				done();
+			}
 		}
 
 		/* restart false: standby or shutdown follows, nothing starts again */
@@ -751,6 +849,7 @@ void CHbbtv::run(const CAitApp &ait_app, t_channel_id id, const std::string &cha
 			link.key(key, (int)value);
 			return true;
 		});
+	const char *why = "the browser ended";
 	while (pid > 0 && !close_wanted)
 	{
 		if (waitpid(pid, NULL, WNOHANG) == pid)
@@ -761,6 +860,7 @@ void CHbbtv::run(const CAitApp &ait_app, t_channel_id id, const std::string &cha
 		if (control[0] >= 0 && !link.read())
 			break;
 		link.report();
+		link.settle();
 		g_RCInput->getMsg_ms(&msg, &data, 50);
 		if (msg == CRCInput::RC_timeout)
 			continue;
@@ -769,9 +869,13 @@ void CHbbtv::run(const CAitApp &ait_app, t_channel_id id, const std::string &cha
 			/* the remote control is the browser's; these keys come from
 			 * remote clients and do what the remote control does */
 			if (msg == CRCInput::RC_home)
+			{
+				why = "a remote client pressed exit";
 				break;
+			}
 			if (msg == CRCInput::RC_standby)
 			{
+				why = "standby";
 				repost = msg;
 				break;
 			}
@@ -786,6 +890,7 @@ void CHbbtv::run(const CAitApp &ait_app, t_channel_id id, const std::string &cha
 		    msg == NeutrinoMessages::REBOOT)
 		{
 			/* handled once the display is Neutrino's again */
+			why = "standby or shutdown";
 			pending = true;
 			power_off = true;
 			break;
@@ -798,8 +903,24 @@ void CHbbtv::run(const CAitApp &ait_app, t_channel_id id, const std::string &cha
 		if ((app->handleMsg(msg, data) & messages_return::cancel_all) ||
 		    app->getMode() != mode ||
 		    CZapit::getInstance()->GetCurrentChannelID() != id)
+		{
+			why = "the channel or the mode changed";
 			break;
+		}
 	}
+	if (close_wanted)
+		why = "a remote client closed it";
+	/* the browser's last word may still be on its way */
+	if (control[0] >= 0)
+		link.read();
+	if (link.exitWhy() == "key")
+		why = "the exit key";
+	else if (link.exitWhy() == "page")
+		why = "the application ended itself";
+	else if (link.exitWhy() == "crash")
+		why = "the browser crashed";
+	ended_why = why;
+	ended_at = time(NULL);
 	delete view;
 	if (windowed)
 		g_RCInput->setDeviceKeyFilter(NULL);
@@ -826,7 +947,12 @@ void CHbbtv::run(const CAitApp &ait_app, t_channel_id id, const std::string &cha
 	if (!windowed)
 		g_RCInput->restartInput();
 	g_RCInput->clearRCMsg();
-	printf("[hbbtv] end\n");
+	printf("[hbbtv] end: %s\n", why);
+	/* who waited for the page gets live TV instead */
+	std::vector<settle_wait> left;
+	left.swap(settling);
+	for (size_t i = 0; i < left.size(); i++)
+		left[i].done();
 	/* the browser had the display meanwhile */
 	if (link.widevineOff() && !power_off)
 		DisplayInfoMessage(g_Locale->getText(LOCALE_WIDEVINE_OFF), LOCALE_WIDEVINE_HEAD);

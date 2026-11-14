@@ -20,6 +20,7 @@
 #ifndef __gui_hbbtv_h__
 #define __gui_hbbtv_h__
 
+#include <functional>
 #include <string>
 #include <zapit/client/zapittypes.h>
 #include <zapit/scanait.h>
@@ -62,6 +63,12 @@ class CHbbtv
 		static bool open(CAitApp *app = NULL);
 		/* ends the application on screen */
 		static void close();
+		/* calls done in the main loop once the page on screen has loaded
+		 * and holds still, after timeout_ms at the latest or when it ends;
+		 * false while none is on screen */
+		static bool whenSettled(const std::function<void()> &done, int timeout_ms);
+		/* why the last one ended, if that was within so many seconds */
+		static std::string ended(int within);
 
 	private:
 		/* shows app until it ends, the channel changes or the box leaves TV
