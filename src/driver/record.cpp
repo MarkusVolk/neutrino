@@ -1271,6 +1271,13 @@ CRecordInstance * CRecordManager::FindTimeshift()
 	return NULL;
 }
 
+/* the timeshift, if it is this channel's */
+CRecordInstance * CRecordManager::FindTimeshiftOf(t_channel_id channel_id)
+{
+	CRecordInstance * inst = FindTimeshift();
+	return inst && inst->GetChannelId() == channel_id ? inst : NULL;
+}
+
 /* the timeshift runs on an immediate record timer; a list of the timers
  * shows the recordings only */
 void CRecordManager::RemoveTimeshiftTimers(CTimerd::TimerList &list)
@@ -1305,9 +1312,7 @@ MI_MOVIE_INFO * CRecordManager::GetMovieInfo(t_channel_id channel_id, bool times
 	MI_MOVIE_INFO * mi = NULL;
 
 	mutex.lock();
-	CRecordInstance * inst = NULL;
-	if (timeshift)
-		inst = FindTimeshift();
+	CRecordInstance * inst = timeshift ? FindTimeshiftOf(channel_id) : NULL;
 	if (inst == NULL)
 		inst = FindInstance(channel_id);
 	if (inst)
@@ -1319,9 +1324,7 @@ MI_MOVIE_INFO * CRecordManager::GetMovieInfo(t_channel_id channel_id, bool times
 const std::string CRecordManager::GetFileName(t_channel_id channel_id, bool timeshift)
 {
 	std::string filename;
-	CRecordInstance * inst = NULL;
-	if (timeshift)
-		inst = FindTimeshift();
+	CRecordInstance * inst = timeshift ? FindTimeshiftOf(channel_id) : NULL;
 	if (inst == NULL)
 		inst = FindInstance(channel_id);
 
@@ -1503,6 +1506,9 @@ bool CRecordManager::StartAutoRecord(bool silent)
 		printf("%s: the live channel is recorded, no timeshift\n", __FUNCTION__);
 		return false;
 	}
+	/* the timeshift belongs to the live channel; one a zap left behind ends here */
+	if (TimeshiftStatus() && !TimeshiftStatus(live_channel_id))
+		StopAutoRecord();
 	printf("%s: starting to %s\n", __FUNCTION__, TimeshiftDirectory.c_str());
 	return Record(live_channel_id, TimeshiftDirectory.c_str(), true, silent);
 }
@@ -1825,7 +1831,7 @@ int CRecordManager::handleMsg(const neutrino_msg_t msg, neutrino_msg_data_t data
 		   left live TV, the tuner it wrote from is tuned elsewhere. It
 		   ends as well on the way back from playing it while a recording
 		   of its channel has taken its place. */
-		if (msg == NeutrinoMessages::EVT_ZAP_COMPLETE && TimeshiftStatus()) {
+		if (TimeshiftStatus()) {
 			t_channel_id chid = *(t_channel_id *) data;
 			if (!TimeshiftStatus(chid) || RecordingStatus(chid))
 				StopAutoRecord();
@@ -1840,7 +1846,8 @@ int CRecordManager::handleMsg(const neutrino_msg_t msg, neutrino_msg_data_t data
 			/* while a zap is under way zapit has still the channel left,
 			   and a recording would zap back to it; the end of the zap arms
 			   the timer again */
-			if (CNeutrinoApp::getInstance()->getMode() != NeutrinoModes::mode_standby && !FindTimeshift() &&
+			if (CNeutrinoApp::getInstance()->getMode() != NeutrinoModes::mode_standby &&
+			    !TimeshiftStatus(CZapit::getInstance()->GetCurrentChannelID()) &&
 			    g_RemoteControl->current_channel_id == CZapit::getInstance()->GetCurrentChannelID())
 				StartAutoRecord(true);
 			return messages_return::handled;
@@ -1879,7 +1886,7 @@ bool CRecordManager::PrepareTimeshift()
 	if (!g_RemoteControl->is_video_started)
 		return false;
 	t_channel_id live_channel_id = CZapit::getInstance()->GetCurrentChannelID();
-	return FindTimeshift() || RecordingStatus(live_channel_id) || StartAutoRecord(false);
+	return TimeshiftStatus(live_channel_id) || RecordingStatus(live_channel_id) || StartAutoRecord(false);
 }
 
 void CRecordManager::StartTimeshift()
@@ -1891,7 +1898,7 @@ void CRecordManager::StartTimeshift()
 		/* start the timeshift if it is not running yet; a recording of the
 		   live channel is paused instead */
 		t_channel_id live_channel_id = CZapit::getInstance()->GetCurrentChannelID();
-		if (!FindTimeshift() && !RecordingStatus(live_channel_id)) {
+		if (!TimeshiftStatus(live_channel_id) && !RecordingStatus(live_channel_id)) {
 			res = StartAutoRecord(false);
 			tmode = "timeshift"; // record just started
 		}

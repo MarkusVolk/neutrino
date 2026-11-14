@@ -209,6 +209,7 @@ class CRecordManager : public CMenuTarget /*, public CChangeObserver*/
 		CRecordInstance * FindRecording(t_channel_id);
 		CRecordInstance * FindInstanceID(int recid);
 		CRecordInstance * FindTimeshift();
+		CRecordInstance * FindTimeshiftOf(t_channel_id channel_id);
 
 	public:
 		enum record_modes_t
