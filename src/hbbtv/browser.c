@@ -148,20 +148,6 @@ static gboolean press_key(gpointer data)
 	return G_SOURCE_REMOVE;
 }
 
-/* "ms:code,ms:code,..." sends keys without a remote, for remote testing */
-static void schedule_test_keys(const char *spec)
-{
-	char **items = g_strsplit(spec, ",", -1);
-
-	for (char **i = items; *i; i++) {
-		unsigned ms = 0;
-		int code = 0;
-		if (sscanf(*i, "%u:%d", &ms, &code) == 2 && code > 0)
-			g_timeout_add(ms, press_key, GINT_TO_POINTER(code));
-	}
-	g_strfreev(items);
-}
-
 static size_t key_of_device(unsigned code)
 {
 	for (size_t i = 0; i < G_N_ELEMENTS(keymap); i++)
@@ -638,8 +624,6 @@ int main(int argc, char **argv)
 	open_control();
 	if (debug)
 		g_timeout_add_seconds(5, dump, NULL);
-	if (g_getenv("NEUTRINO_HBBTV_TESTKEYS"))
-		schedule_test_keys(g_getenv("NEUTRINO_HBBTV_TESTKEYS"));
 	webkit_web_view_load_uri(view, argv[1]);
 	g_main_loop_run(loop);
 
