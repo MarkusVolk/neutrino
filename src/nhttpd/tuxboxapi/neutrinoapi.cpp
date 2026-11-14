@@ -630,7 +630,6 @@ void CNeutrinoAPI::SendAllTimers(std::string url, bool force)
 	CTimerd::TimerList timerlist;
 	timerlist.clear();
 	Timerd->getTimerList(timerlist);
-	CRecordManager::getInstance()->RemoveTimeshiftTimers(timerlist);
 	sort(timerlist.begin(), timerlist.end());
 
 	int pre = 0,post = 0;

@@ -685,7 +685,6 @@ static bool timers(std::string &result)
 {
 	CTimerd::TimerList list;
 	g_Timerd->getTimerList(list);
-	CRecordManager::getInstance()->RemoveTimeshiftTimers(list);
 	std::sort(list.begin(), list.end());
 	for (size_t i = 0; i < list.size(); i++)
 	{
@@ -866,7 +865,6 @@ static bool timer_remove(const Json::Value &input, std::string &result)
 	int id = input["id"].isInt() ? input["id"].asInt() : -1;
 	CTimerd::TimerList list;
 	g_Timerd->getTimerList(list);
-	CRecordManager::getInstance()->RemoveTimeshiftTimers(list);
 	for (size_t i = 0; i < list.size(); i++)
 	{
 		if (list[i].eventID != id)

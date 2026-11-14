@@ -1525,7 +1525,6 @@ bool timer_list(Call &c, CTimerd::TimerList &list)
 		problem(c.out, 503, "timer-list-unavailable", "the timer daemon does not answer");
 		return false;
 	}
-	CRecordManager::getInstance()->RemoveTimeshiftTimers(list);
 	return true;
 }
 

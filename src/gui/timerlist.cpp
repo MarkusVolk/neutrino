@@ -718,7 +718,6 @@ void CTimerList::updateEvents(void)
 {
 	timerlist.clear();
 	Timer->getTimerList(timerlist);
-	CRecordManager::getInstance()->RemoveTimeshiftTimers(timerlist);
 	RemoteBoxTimerList(timerlist);
 	sort(timerlist.begin(), timerlist.end());
 
@@ -1991,7 +1990,6 @@ CTimerd::TimerList timerConflicts(time_t start, time_t stop, t_channel_id channe
 
 	CTimerdClient Timer;
 	CTimerd::TimerList overlapping = Timer.getOverlappingTimers(start, stop);
-	CRecordManager::getInstance()->RemoveTimeshiftTimers(overlapping);
 	CTimerd::TimerList recordings;
 	for (CTimerd::TimerList::iterator i = overlapping.begin(); i != overlapping.end(); ++i) {
 		bool record = i->eventType == CTimerd::TIMER_RECORD || i->eventType == CTimerd::TIMER_IMMEDIATE_RECORD;

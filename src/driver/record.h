@@ -26,7 +26,6 @@
 #include <string>
 #include <map>
 #include <list>
-#include <set>
 
 #include <timerdclient/timerdtypes.h>
 
@@ -128,6 +127,7 @@ class CRecordInstance
 		record_error_msg_t MakeFileName(CZapitChannel * channel);
 		bool SaveXml();
 		time_t RecordingEnd(time_t now);
+		void AddTimer();
 		void RemoveTimeshiftName();
 		void WaitRecMsg(time_t StartTime, time_t WaitTime);
 		void MakeExtFileName(CZapitChannel * channel, std::string &FilenameTemplate);
@@ -185,9 +185,11 @@ class CRecordManager : public CMenuTarget /*, public CChangeObserver*/
 		bool		scriptStarted;
 		bool		restartTimeshift;
 		int		last_mode;
+		/* the timeshift: no recording, so not in recmap and without a
+		 * timer of timerd; shift_end_timer ends it after timeshift_hours */
+		CRecordInstance *shift;
 		uint32_t	shift_timer;
-		/* timers of ended timeshifts that timerd has not ended yet */
-		std::set<int>	ended_shift_timers;
+		uint32_t	shift_end_timer;
 		uint32_t	check_timer;
 		bool		error_display;
 		bool		warn_display;
@@ -205,6 +207,7 @@ class CRecordManager : public CMenuTarget /*, public CChangeObserver*/
 		bool StopTimeshiftLocked(bool remove_event = true);
 		void ArmTimeshift();
 		void EndTimeshiftOfLocked(t_channel_id channel_id);
+		void AddInstanceLocked(CRecordInstance * inst);
 		bool RecordingRunningLocked();
 		int RecordCountLocked();
 		void ShowRecordIcon();
@@ -240,7 +243,6 @@ class CRecordManager : public CMenuTarget /*, public CChangeObserver*/
 		bool StartAutoRecord(bool silent = false);
 		bool StopAutoRecord();
 		void StopAutoTimer();
-		bool CheckRecordingId_if_Timeshift(int recid);
 		recmap_t GetRecordMap()const{return recmap;}
 
 		MI_MOVIE_INFO * GetMovieInfo(const t_channel_id channel_id, bool timeshift = true);
@@ -263,7 +265,6 @@ class CRecordManager : public CMenuTarget /*, public CChangeObserver*/
 		bool InstanceStatus(const t_channel_id channel_id = 0);
 		CFrontend * GetRecordFrontend(const t_channel_id channel_id);
 		bool KeepTimeshift(const t_channel_id channel_id, bool from_start);
-		void RemoveTimeshiftTimers(CTimerd::TimerList &list);
 		bool SameTransponder(const t_channel_id channel_id);
 		int  handleMsg(const neutrino_msg_t _msg, neutrino_msg_data_t data);
 		int GetRecordCount();

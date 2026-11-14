@@ -720,14 +720,8 @@ CTimerd::CTimerEventTypes CEventList::isScheduled(t_channel_id channel_id, CChan
 		if(timer->channel_id == channel_id && (timer->eventType == CTimerd::TIMER_ZAPTO || timer->eventType == CTimerd::TIMER_RECORD || timer->eventType == CTimerd::TIMER_REMOTEBOX)) {
 			if(timer->epg_id == event->eventID) {
 				if(timer->epg_starttime == event->startTime) {
-					bool isTimeShiftTimer = false;
-					if( timer->eventType == CTimerd::TIMER_RECORD){
-						isTimeShiftTimer = CRecordManager::getInstance()->CheckRecordingId_if_Timeshift(timer->eventID);
-					}
 					if(tID)
 						*tID = timer->eventID;
-					if(isTimeShiftTimer)//skip TSHIFT RECORD
-						continue;
 
 					return timer->eventType;
 				}

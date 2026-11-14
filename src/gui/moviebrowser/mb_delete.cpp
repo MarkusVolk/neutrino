@@ -208,7 +208,10 @@ bool CMovieBrowser::onDelete(bool cursor_only)
 				if (ShowMsg(LOCALE_RECORDINGMENU_RECORD_IS_RUNNING, buf1,
 						CMsgBox::mbrNo, CMsgBox::mbYes | CMsgBox::mbNo, NULL, 450, 30, false) == CMsgBox::mbrNo)
 					toDelete = false;
-				else {
+				else if (inst->Timeshift()) {
+					CRecordManager::getInstance()->StopAutoRecord();
+					movieinfo->delAsk = false;
+				} else {
 					CTimerd::RecordingStopInfo recinfo;
 					recinfo.channel_id = inst->GetChannelId();
 					recinfo.eventID = inst->GetRecordingId();
