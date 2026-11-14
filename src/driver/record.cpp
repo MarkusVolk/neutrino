@@ -201,6 +201,9 @@ void recordingFailureHelper(void *data)
 {
 	CRecordInstance *inst = (CRecordInstance *) data;
 	inst->SetFailed();
+	/* a timeshift starts again by itself, nothing for the viewer to do */
+	if (inst->Timeshift())
+		return;
 	std::string errormsg = std::string(g_Locale->getText(LOCALE_RECORDING_FAILED)) + "\n" + std::string(inst->GetFileName());
 	CHintBox hintBox(LOCALE_MESSAGEBOX_INFO, errormsg.c_str());
 	hintBox.paint();
@@ -1862,6 +1865,17 @@ int CRecordManager::handleMsg(const neutrino_msg_t msg, neutrino_msg_data_t data
 						have_err |= it->second->GetStatus();
 					mutex.unlock();
 				}
+				/* A timeshift whose thread gave up, at the file size limit
+				   of the disk for one, ends and a fresh one follows. One
+				   that failed at once would fail again: it only ends. */
+				mutex.lock();
+				CRecordInstance * shift = FindTimeshift();
+				bool shift_failed = shift && shift->Failed();
+				if (shift_failed && shift->Age() > 60)
+					restartTimeshift = true;
+				mutex.unlock();
+				if (shift_failed)
+					StopAutoRecord();
 				//printf("%s: check status: show err %d warn %d have_err %d\n", __FUNCTION__, error_display, warn_display, have_err); //FIXME
 				if (have_err) {
 					if ((have_err & REC_STATUS_OVERFLOW) && error_display) {

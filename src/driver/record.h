@@ -150,6 +150,9 @@ class CRecordInstance
 		const char * GetFileName() { return filename; };
 		bool Timeshift() { return autoshift; };
 		void SetFailed() { failed = true; };
+		bool Failed() { return failed; };
+		/* seconds since it started */
+		time_t Age() { return time(NULL) - start_time; };
 		int tshift_mode;
 		void SetStopMessage(const char* text) {rec_stop_msg = text;} ;
 		int  GetStatus();
