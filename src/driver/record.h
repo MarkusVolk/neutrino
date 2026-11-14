@@ -36,6 +36,7 @@
 #include <hardware/record.h>
 
 #include <OpenThreads/Mutex>
+#include <OpenThreads/ReentrantMutex>
 #include <OpenThreads/Thread>
 
 #if 0
@@ -188,7 +189,9 @@ class CRecordManager : public CMenuTarget /*, public CChangeObserver*/
 		bool		error_display;
 		bool		warn_display;
 
-		OpenThreads::Mutex mutex;
+		/* taken again by the same thread: starting a recording changes the
+		 * mode, and the mode change asks for the timeshift to end */
+		OpenThreads::ReentrantMutex mutex;
 		static OpenThreads::Mutex sm;
 
 		bool CutBackNeutrino(const t_channel_id channel_id, CFrontend * &frontend, bool timeshift);
