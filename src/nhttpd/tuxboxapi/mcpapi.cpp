@@ -182,6 +182,23 @@ Json::Value CMcpAPI::toolsList()
 	return result;
 }
 
+static std::string base64(const std::string &data)
+{
+	static const char abc[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+	std::string out;
+	out.reserve((data.size() + 2) / 3 * 4);
+	for (size_t i = 0; i < data.size(); i += 3)
+	{
+		unsigned n = (unsigned char)data[i] << 16 | (i + 1 < data.size() ? (unsigned char)data[i + 1] << 8 : 0) |
+			     (i + 2 < data.size() ? (unsigned char)data[i + 2] : 0);
+		out += abc[n >> 18 & 63];
+		out += abc[n >> 12 & 63];
+		out += i + 1 < data.size() ? abc[n >> 6 & 63] : '=';
+		out += i + 2 < data.size() ? abc[n & 63] : '=';
+	}
+	return out;
+}
+
 Json::Value CMcpAPI::toolsCall(const Json::Value &params, int &code, std::string &message)
 {
 	std::string name = params["name"].asString();
@@ -192,6 +209,27 @@ Json::Value CMcpAPI::toolsCall(const Json::Value &params, int &code, std::string
 		return Json::Value();
 	}
 	Json::Value input = params["arguments"].isObject() ? params["arguments"] : Json::Value(Json::objectValue);
+
+	if (name == "tv_screenshot")
+	{
+		std::string jpeg;
+		Json::Value content(Json::objectValue);
+		if (CAssistantTools::screenshot(jpeg))
+		{
+			content["type"] = "image";
+			content["mimeType"] = "image/jpeg";
+			content["data"] = base64(jpeg);
+		}
+		else
+		{
+			content["type"] = "text";
+			content["text"] = "the screen could not be captured; read it with tv_screen";
+		}
+		Json::Value result(Json::objectValue);
+		result["content"].append(content);
+		result["isError"] = jpeg.empty();
+		return result;
+	}
 
 	bool ok = false;
 	std::string answer;

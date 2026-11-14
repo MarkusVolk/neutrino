@@ -41,6 +41,9 @@ class CAssistantTools
 		 * false when the box did not answer within timeout_ms, text says what was left */
 		static bool run(const std::string &name, const Json::Value &input, int timeout_ms,
 				bool &ok, std::string &text);
+		/* for a thread of the web server: the screen as a JPEG; false when it could
+		 * not be captured or shows a question for the viewer */
+		static bool screenshot(std::string &jpeg);
 		/* for CNeutrinoApp::handleMsg: zapit is through with a channel, which a client may wait for */
 		static void zapped(bool ok);
 		/* the local time and the channel, for the model to know what "tonight" and "here" mean */

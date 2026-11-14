@@ -29,6 +29,7 @@
 #include <driver/abstime.h>
 #include <driver/rcinput.h>
 #include <driver/record.h>
+#include <driver/screenshot.h>
 #include <eitd/sectionsd.h>
 #include <gui/channellist.h>
 #include <gui/hbbtv.h>
@@ -221,6 +222,11 @@ static const struct
 		"\"description\":\"seconds to wait for the screen to change\"}}}"
 	},
 	{
+		"tv_screenshot",
+		"A picture of what the TV shows, OSD and video, for what tv_screen cannot put into words.",
+		"{\"type\":\"object\",\"properties\":{}}"
+	},
+	{
 		"tv_select",
 		"Choose an entry of the open menu by its number or its name, like moving there and pressing OK, "
 		"or answer the open message box: yes, no, ok, cancel or back.",
@@ -277,7 +283,7 @@ static const struct
 /* tools that answer later, which the assistant on the screen cannot wait for */
 static bool remote_only(const char *name)
 {
-	return !strcmp(name, "tv_menu");
+	return !strcmp(name, "tv_menu") || !strcmp(name, "tv_screenshot");
 }
 
 void CAssistantTools::list(std::vector<llm_tool> &tools, bool remote)
@@ -1772,6 +1778,12 @@ void CAssistantTools::start(const std::string &name, const Json::Value &input, d
 		hbbtv_open(input, done);
 		return;
 	}
+	if (name == "tv_screenshot")
+	{
+		/* the MCP server sends the picture itself */
+		done(true, "GET /api/v1/osd/screenshot?format=jpeg is the picture");
+		return;
+	}
 	CRemoteUi *before = CRemoteUi::top();
 	std::string result;
 	bool ok = call(name, input, result);
@@ -1781,6 +1793,31 @@ void CAssistantTools::start(const std::string &name, const Json::Value &input, d
 		look(before, result, done, PAGE_OPEN_TIMEOUT);
 	else
 		done(ok, result);
+}
+
+bool CAssistantTools::screenshot(std::string &jpeg)
+{
+	static std::mutex one;
+	std::unique_lock<std::mutex> l(one, std::try_to_lock);
+	if (!l.owns_lock())
+		return false;
+	std::string file = "/tmp/tool-screenshot-" + to_string((int)getpid()) + ".jpg";
+	/* the job keeps the shot in case the main loop is late */
+	std::shared_ptr<CScreenShot> shot(new CScreenShot(file, CScreenShot::FORMAT_JPG));
+	std::shared_ptr<bool> taken(new bool(false));
+	/* a question for the viewer is not for a client's eyes either */
+	bool ok = main_call::run([shot, taken] { *taken = !CRemoteUi::viewerOnly() && shot->StartSync(); }, 20000) && *taken;
+	FILE *f = ok ? fopen(file.c_str(), "rb") : NULL;
+	if (f)
+	{
+		char buf[65536];
+		size_t n;
+		while ((n = fread(buf, 1, sizeof(buf), f)) > 0)
+			jpeg.append(buf, n);
+		fclose(f);
+	}
+	unlink(file.c_str());
+	return !jpeg.empty();
 }
 
 /* what tells one screen from another: the window on top with what it
