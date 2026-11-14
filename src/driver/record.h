@@ -204,7 +204,7 @@ class CRecordManager : public CMenuTarget /*, public CChangeObserver*/
 		void StartNextRecording();
 		void StopPostProcess();
 		void StopInstance(CRecordInstance * inst, bool remove_event = true);
-		bool StopTimeshiftLocked(bool remove_event = true);
+		bool StopTimeshiftLocked(bool play_out = false);
 		void ArmTimeshift();
 		void EndTimeshiftOfLocked(t_channel_id channel_id);
 		void AddInstanceLocked(CRecordInstance * inst);

@@ -1531,22 +1531,27 @@ void CRecordManager::ArmTimeshift()
 		shift_timer = g_RCInput->addTimer(g_settings.timeshift_auto*1000*1000, true);
 }
 
-/* the timeshift ends; the caller holds mutex. In the record path a
- * recording takes its tuner over, nothing else is to follow. */
-bool CRecordManager::StopTimeshiftLocked(bool remove_event)
+/* The timeshift ends, the one way for every path: the player leaves it
+ * and its file goes. With play_out it only stops writing, and the player
+ * plays what is there to its end. The caller holds mutex. In the record
+ * path a recording takes its tuner over, nothing else is to follow. */
+bool CRecordManager::StopTimeshiftLocked(bool play_out)
 {
 	g_RCInput->killTimer (shift_timer);
+	g_RCInput->killTimer (shift_end_timer);
 
-	CRecordInstance * inst = FindTimeshift();
+	CRecordInstance * inst = shift;
 	if (!inst)
 		return false;
 
 	std::string file = inst->GetFileName();
-	StopInstance(inst, remove_event);
-	CMoviePlayerGui::getInstance().stopTimeshift();
-	/* the player deletes only a timeshift it played; one that was
-	 * recorded but never watched would stay until the next start */
-	if (file.size() > 5 && file.compare(file.size() - 5, 5, "_temp") == 0) {
+	shift = NULL;
+	inst->Stop();
+	delete inst;
+	if (!play_out) {
+		CMoviePlayerGui::getInstance().stopTimeshift();
+		/* the player deletes only a timeshift it played; one that was
+		 * recorded but never watched would stay until the next start */
 		unlink((file + ".ts").c_str());
 		unlink((file + ".xml").c_str());
 	}
@@ -1669,18 +1674,19 @@ bool CRecordManager::SameTransponder(const t_channel_id channel_id)
 	return same;
 }
 
+/* ends what a stop key or a question chose: a recording, or the timeshift
+ * the way it always ends. The caller holds mutex. */
 void CRecordManager::StopInstance(CRecordInstance * inst, bool remove_event)
 {
 	if (inst == shift) {
-		shift = NULL;
-		g_RCInput->killTimer(shift_end_timer);
-	} else {
-		/* first erase - then stop, because Stop() reset recording_id to 0 */
-		recmap.erase(inst->GetRecordingId());
+		StopTimeshiftLocked();
+		return;
 	}
+	/* first erase - then stop, because Stop() reset recording_id to 0 */
+	recmap.erase(inst->GetRecordingId());
 	inst->Stop(remove_event);
 	/* the timeshift the recording of the live channel kept from starting */
-	if (!inst->Timeshift() && inst->GetChannelId() == CZapit::getInstance()->GetCurrentChannelID())
+	if (inst->GetChannelId() == CZapit::getInstance()->GetCurrentChannelID())
 		restartTimeshift = true;
 	delete inst;
 	ShowRecordIcon();
@@ -1859,8 +1865,8 @@ int CRecordManager::handleMsg(const neutrino_msg_t msg, neutrino_msg_data_t data
 			   out, and the zap back to live TV starts the next. */
 			shift_end_timer = 0;
 			mutex.lock();
-			if (shift && CMoviePlayerGui::getInstance().timeshift)
-				StopInstance(shift);
+			if (CMoviePlayerGui::getInstance().timeshift)
+				StopTimeshiftLocked(true);
 			else if (StopTimeshiftLocked())
 				restartTimeshift = true;
 			mutex.unlock();
