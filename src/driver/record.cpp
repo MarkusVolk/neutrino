@@ -33,6 +33,7 @@
 #include <sys/un.h>
 #include <sys/stat.h>
 #include <sys/vfs.h>
+#include <dirent.h>
 #include <errno.h>
 #include <math.h>
 
@@ -83,6 +84,9 @@ extern "C" {
 #else
 #define av_packet_unref	av_free_packet
 #endif
+
+/* beside a recording that goes on in the timeshift's file: its name to be */
+#define KEEP_NOTE ".keep"
 
 class CStreamRec : public CRecordInstance, OpenThreads::Thread
 {
@@ -988,6 +992,13 @@ bool CRecordInstance::KeepTimeshift(bool from_start)
 		final_name = filename;
 		strcpy(filename, tsname.c_str());
 		printf("%s: %s.ts becomes %s.ts when the recording ends\n", __func__, tsname.c_str(), final_name.c_str());
+		/* until then it has a timeshift's name: the note tells the
+		   clean-up after a crash that it is a recording, and its name */
+		FILE *note = fopen((tsname + KEEP_NOTE).c_str(), "w");
+		if (note) {
+			fprintf(note, "%s\n", final_name.c_str());
+			fclose(note);
+		}
 		SaveXml();
 		if (frontend)
 			CFEManager::getInstance()->lockFrontend(frontend, channel);
@@ -1015,12 +1026,51 @@ bool CRecordInstance::KeepTimeshift(bool from_start)
 	return true;
 }
 
+/* What the last run left in the timeshift directory: a timeshift goes, a
+ * recording kept under a timeshift's name gets the name it was to have. */
+void CRecordManager::CleanTimeshiftDirectory()
+{
+	std::vector<std::string> names;
+	DIR *d = opendir(TimeshiftDirectory.c_str());
+	if (!d)
+		return;
+	while (struct dirent *e = readdir(d))
+		names.push_back(e->d_name);
+	closedir(d);
+
+	const std::string note = KEEP_NOTE;
+	for (size_t i = 0; i < names.size(); i++) {
+		if (names[i].size() <= note.size() || names[i].compare(names[i].size() - note.size(), note.size(), note))
+			continue;
+		std::string from = TimeshiftDirectory + "/" + names[i].substr(0, names[i].size() - note.size());
+		char to[FILENAMEBUFFERSIZE] = "";
+		FILE *f = fopen((from + note).c_str(), "r");
+		if (f) {
+			if (fgets(to, sizeof(to), f))
+				to[strcspn(to, "\n")] = 0;
+			fclose(f);
+		}
+		if (*to && rename((from + ".ts").c_str(), (std::string(to) + ".ts").c_str()) == 0) {
+			rename((from + ".xml").c_str(), (std::string(to) + ".xml").c_str());
+			printf("%s: %s.ts was a recording, now %s.ts\n", __func__, from.c_str(), to);
+		}
+		unlink((from + note).c_str());
+	}
+	for (size_t i = 0; i < names.size(); i++) {
+		const std::string &name = names[i];
+		if ((name.size() > 8 && name.compare(name.size() - 8, 8, "_temp.ts") == 0) ||
+		    (name.size() > 9 && name.compare(name.size() - 9, 9, "_temp.xml") == 0))
+			remove((TimeshiftDirectory + "/" + name).c_str());
+	}
+}
+
 void CRecordInstance::RemoveTimeshiftName()
 {
 	if (!final_name.empty()) {
 		std::string from = filename;
 		if (rename((from + ".ts").c_str(), (final_name + ".ts").c_str()) == 0) {
 			rename((from + ".xml").c_str(), (final_name + ".xml").c_str());
+			unlink((from + KEEP_NOTE).c_str());
 			snprintf(filename, sizeof(filename), "%s", final_name.c_str());
 		} else
 			perror("[record] name the kept timeshift");

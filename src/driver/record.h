@@ -260,6 +260,7 @@ class CRecordManager : public CMenuTarget /*, public CChangeObserver*/
 		};
 		void SetDirectory(std::string directory) { Directory	= directory; };
 		void SetTimeshiftDirectory(std::string directory) { TimeshiftDirectory	= directory; };
+		void CleanTimeshiftDirectory();
 		bool RecordingStatus(const t_channel_id channel_id = 0);
 		bool TimeshiftStatus(const t_channel_id channel_id = 0);
 		bool InstanceStatus(const t_channel_id channel_id = 0);

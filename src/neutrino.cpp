@@ -950,22 +950,7 @@ int CNeutrinoApp::loadSetup(const char *fname)
 
 	CRecordManager::getInstance()->SetTimeshiftDirectory(timeshiftdir.c_str());
 
-	// remove timeshift recordings left over from the last run
-	DIR *d = opendir(timeshiftdir.c_str());
-	if (d)
-	{
-		while (struct dirent *e = readdir(d))
-		{
-			std::string filename = e->d_name;
-			if ((filename.find("_temp.ts") == filename.size() - 8) || (filename.find("_temp.xml") == filename.size() - 9))
-			{
-				std::string timeshiftdir_filename = timeshiftdir;
-				timeshiftdir_filename += "/" + filename;
-				remove(timeshiftdir_filename.c_str());
-			}
-		}
-		closedir(d);
-	}
+	CRecordManager::getInstance()->CleanTimeshiftDirectory();
 
 	// ntp server for sectionsd
 #if HAVE_GENERIC_HARDWARE
