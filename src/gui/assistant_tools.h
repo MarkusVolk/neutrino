@@ -41,6 +41,8 @@ class CAssistantTools
 		 * false when the box did not answer within timeout_ms, text says what was left */
 		static bool run(const std::string &name, const Json::Value &input, int timeout_ms,
 				bool &ok, std::string &text);
+		/* for CNeutrinoApp::handleMsg: zapit is through with a channel, which a client may wait for */
+		static void zapped(bool ok);
 		/* the local time and the channel, for the model to know what "tonight" and "here" mean */
 		static std::string context();
 		/* a channel of the mode the box is in has exactly this name or number */

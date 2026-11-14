@@ -70,6 +70,9 @@
 #include "gui/psisetup.h"
 #endif
 #include "gui/adzap.h"
+#ifdef ENABLE_ASSISTANT
+#include "gui/assistant_tools.h"
+#endif
 #include "gui/audiomute.h"
 #include "gui/audioplayer.h"
 #include "gui/bouquetlist.h"
@@ -4426,6 +4429,11 @@ int CNeutrinoApp::handleMsg(const neutrino_msg_t _msg, neutrino_msg_data_t data)
 		}
 		return messages_return::handled;
 	}
+#ifdef ENABLE_ASSISTANT
+	if (msg == NeutrinoMessages::EVT_ZAP_COMPLETE || msg == NeutrinoMessages::EVT_ZAP_ISNVOD ||
+	    msg == NeutrinoMessages::EVT_ZAP_FAILED)
+		CAssistantTools::zapped(msg != NeutrinoMessages::EVT_ZAP_FAILED);
+#endif
 	if (msg == NeutrinoMessages::EVT_ZAP_FAILED &&
 	    (mode == NeutrinoModes::mode_webtv || mode == NeutrinoModes::mode_webradio) &&
 	    data >= 4096 && CZapit::getInstance()->GetCurrentChannelID() == *(t_channel_id *) data &&

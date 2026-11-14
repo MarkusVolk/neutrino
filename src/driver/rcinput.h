@@ -294,6 +294,7 @@ class CRCInput
 		 * swallows it. data is 1 for a press, 2 for a repeat, 0 for a release */
 		typedef std::function<bool(neutrino_msg_t key, neutrino_msg_data_t data)> device_key_filter_t;
 		void setDeviceKeyFilter(device_key_filter_t filter) { device_key_filter = filter; }
+		bool hasDeviceKeyFilter() const { return (bool)device_key_filter; }
 	private:
 		device_key_filter_t device_key_filter;
 	public:

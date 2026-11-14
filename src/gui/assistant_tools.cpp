@@ -26,6 +26,7 @@
 
 #include <global.h>
 #include <neutrino.h>
+#include <driver/abstime.h>
 #include <driver/rcinput.h>
 #include <driver/record.h>
 #include <eitd/sectionsd.h>
@@ -52,11 +53,13 @@
 #include <sys/stat.h>
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <map>
 #include <memory>
 #include <mutex>
+#include <thread>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -211,8 +214,11 @@ static const struct
 		"tv_screen",
 		"What the TV shows on top: the open menu with its numbered entries and their values, a text input, "
 		"a message box with its answers, or else what plays. Menus of Neutrino and of plugins look alike. "
-		"Look again after each step, as the screen changes.",
-		"{\"type\":\"object\",\"properties\":{}}"
+		"The tools that operate the box answer a client in the network with the screen they left. "
+		"With wait, a client in the network gets the answer once the screen is another one.",
+		"{\"type\":\"object\",\"properties\":{"
+		"\"wait\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":15,"
+		"\"description\":\"seconds to wait for the screen to change\"}}}"
 	},
 	{
 		"tv_select",
@@ -256,10 +262,14 @@ static const struct
 		"tv_key",
 		"Press a key of the remote control, for what a menu does not offer: ok, exit, menu, up, down, left, "
 		"right, red, green, yellow, blue, info, epg, 0 to 9, play, pause, stop, forward, rewind, record, "
-		"volume_up, volume_down, mute, page_up, page_down, tv, radio, www, text, audio, help, favorites.",
+		"volume_up, volume_down, mute, page_up, page_down, tv, radio, www, text, audio, help, favorites. "
+		"A key does what the screen makes of it, so name the screen it is meant for with on. Repeated "
+		"presses stop when another window comes up or the viewer presses a key.",
 		"{\"type\":\"object\",\"properties\":{"
 		"\"key\":{\"type\":\"string\"},"
-		"\"times\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":20}},"
+		"\"times\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":20},"
+		"\"on\":{\"type\":\"string\",\"description\":\"a part of the first line tv_screen shows; "
+		"the key is not pressed when the screen is another one\"}},"
 		"\"required\":[\"key\"]}"
 	}
 };
@@ -547,7 +557,8 @@ static bool channels(const Json::Value &input, std::string &result)
 	return true;
 }
 
-static bool zap(const Json::Value &input, std::string &result)
+/* started says the channel is another one and zapit was asked for it */
+static bool zap(const Json::Value &input, std::string &result, bool *started = NULL)
 {
 	CNeutrinoApp *app = CNeutrinoApp::getInstance();
 	CZapitChannel *channel = find_channel(input["channel"].asString(), result);
@@ -574,6 +585,8 @@ static bool zap(const Json::Value &input, std::string &result)
 	{
 		CMoviePlayerGui::getInstance().stopPlayBack();
 		g_Zapit->zapTo_serviceID_NOWAIT(channel->getChannelID());
+		if (started)
+			*started = true;
 	}
 	result = std::string(tr(LOCALE_ASSISTANT_TOOL_SWITCHED)) + " " + channel->getName();
 	return true;
@@ -1272,6 +1285,8 @@ static bool remote_refused(std::string &result)
 	return true;
 }
 
+#define NO_HBBTV_APP	"the running channel has no HbbTV application"
+
 static bool hbbtv(const Json::Value &input, std::string &result)
 {
 	CAitApp shown;
@@ -1303,7 +1318,7 @@ static bool hbbtv(const Json::Value &input, std::string &result)
 	if (CNeutrinoApp::getInstance()->getMode() != NeutrinoModes::mode_tv || !channel ||
 	    !CZapit::getInstance()->GetAitApps(channel->getChannelID(), apps) || apps.empty())
 	{
-		result = "the running channel has no HbbTV application";
+		result = NO_HBBTV_APP;
 		return false;
 	}
 	std::string want = lower(input["app"].asString());
@@ -1325,8 +1340,34 @@ static bool hbbtv(const Json::Value &input, std::string &result)
 		result = "the box did not take it";
 		return false;
 	}
-	result = "opens " + (app->name.empty() ? url : app->name) + "; read it with tv_screen in a few seconds";
+	result = "opens " + (app->name.empty() ? url : app->name) + "; read it with tv_screen once it has loaded";
 	return true;
+}
+
+/* what is painted without a window a client can read: the infobar, a
+ * volume bar, a hint. Keys may go there first, so a client sees it */
+static std::string osd_state()
+{
+	CFrameBuffer *fb = CFrameBuffer::getInstance();
+	const fb_pixel_t *line = fb->getFrameBufferPointer();
+	if (!line || !fb->getActive())
+		return "";
+	int w = fb->getScreenWidth(true), h = fb->getScreenHeight(true);
+	int left = w, top = h, right = -1, bottom = -1;
+	for (int y = 0; y < h; y++, line += fb->getStride() / sizeof(fb_pixel_t))
+		for (int x = 0; x < w; x++)
+			if (line[x] >> 24)
+			{
+				left = std::min(left, x);
+				right = std::max(right, x);
+				top = std::min(top, y);
+				bottom = y;
+			}
+	if (right < 0)
+		return "The OSD is empty.\n";
+	return "The OSD shows something without a window to read, such as the infobar, a volume bar or a hint, at " +
+	       to_string(left) + "," + to_string(top) + " " + to_string(right - left + 1) + "x" + to_string(bottom - top + 1) +
+	       " of " + to_string(w) + "x" + to_string(h) + ".\n";
 }
 
 static bool screen(std::string &result)
@@ -1347,9 +1388,13 @@ static bool screen(std::string &result)
 	else if (CNeutrinoApp::getInstance()->getMode() == NeutrinoModes::mode_standby)
 		result = "The box is in standby.\n";
 	else if (CMoviePlayerGui::getInstance().Playing())
-		result = "A video plays, no menu is open; keys: play, pause, stop, forward, rewind, info.\n";
+		result = "A video plays, no menu is open; keys: play, pause, stop, forward, rewind, info.\n" + osd_state();
 	else
-		result = "No menu is open; live TV.\n" + status();
+	{
+		std::string ended = CHbbtv::ended(60);
+		result = "No menu is open; live TV.\n" + osd_state() +
+			 (ended.empty() ? "" : "HbbTV ended: " + ended + ".\n") + status();
+	}
 	return true;
 }
 
@@ -1385,7 +1430,8 @@ static bool input_text(const Json::Value &input, std::string &result)
 	return true;
 }
 
-static bool press_key(const Json::Value &input, std::string &result)
+/* in an HbbTV application back is its own key, exit ends it */
+static bool find_key(const std::string &name, neutrino_msg_t &key)
 {
 	static const struct { const char *name; neutrino_msg_t key; } keys[] = {
 		{ "ok", CRCInput::RC_ok }, { "exit", CRCInput::RC_home }, { "back", CRCInput::RC_home },
@@ -1403,25 +1449,36 @@ static bool press_key(const Json::Value &input, std::string &result)
 		{ "text", CRCInput::RC_text }, { "audio", CRCInput::RC_audio }, { "help", CRCInput::RC_help },
 		{ "favorites", CRCInput::RC_favorites },
 	};
+	std::string want = lower(name);
+	for (size_t i = 0; i < sizeof(keys) / sizeof(keys[0]); i++)
+		if (want == keys[i].name)
+		{
+			key = want == "back" && CHbbtv::open() ? (neutrino_msg_t)CRCInput::RC_back : keys[i].key;
+			return true;
+		}
+	return false;
+}
+
+static int key_times(const Json::Value &input)
+{
+	int times = input["times"].isIntegral() ? input["times"].asInt() : 1;
+	return times < 1 || times > 20 ? 1 : times;
+}
+
+static bool press_key(const Json::Value &input, std::string &result)
+{
+	neutrino_msg_t key;
 	if (remote_refused(result))
 		return false;
-	std::string want = lower(input["key"].asString());
-	int times = input["times"].isIntegral() ? input["times"].asInt() : 1;
-	if (times < 1 || times > 20)
-		times = 1;
-	for (size_t i = 0; i < sizeof(keys) / sizeof(keys[0]); i++)
+	if (!find_key(input["key"].asString(), key))
 	{
-		if (want != keys[i].name)
-			continue;
-		/* in an HbbTV application back is its own key, exit ends it */
-		neutrino_msg_t key = want == "back" && CHbbtv::open() ? (neutrino_msg_t)CRCInput::RC_back : keys[i].key;
-		for (int t = 0; t < times; t++)
-			g_RCInput->postMsg(key, 0, false);
-		result = "pressed; look with tv_screen";
-		return true;
+		result = "no key \"" + input["key"].asString() + "\"";
+		return false;
 	}
-	result = "no key \"" + input["key"].asString() + "\"";
-	return false;
+	for (int t = key_times(input); t > 0; t--)
+		g_RCInput->postMsg(key, 0, false);
+	result = "pressed; look with tv_screen";
+	return true;
 }
 
 bool CAssistantTools::call(const std::string &name, const Json::Value &input, std::string &result)
@@ -1506,6 +1563,193 @@ static void menu_walk(const Json::Value &input, CAssistantTools::done_fn done)
 		done(false, error);
 }
 
+//-----------------------------------------------------------------------------
+// what a client in the network does answers with the screen it left
+//-----------------------------------------------------------------------------
+/* A job posted behind a key runs once the key is handled, inside the loop
+ * of the dialog the key opened. A window that hands the key on to the one
+ * below it puts it behind the job, hence the job looks more than once. */
+#define LOOK_TRIES	3
+
+/* an HbbTV page takes its time for what a key began */
+#define PAGE_KEY_TIMEOUT	5000
+#define PAGE_OPEN_TIMEOUT	18000
+
+static void answer_with_screen(const std::string &said, CAssistantTools::done_fn done)
+{
+	std::string shown;
+	screen(shown);
+	done(true, said + "\n\n" + shown);
+}
+
+static void look(CRemoteUi *before, const std::string &said, CAssistantTools::done_fn done,
+		 int page_timeout = PAGE_KEY_TIMEOUT, int tries = LOOK_TRIES)
+{
+	if (CRemoteUi::top() == before && tries > 1 &&
+	    main_call::post([=] { look(before, said, done, page_timeout, tries - 1); }))
+		return;
+	if (!CHbbtv::whenSettled([said, done] { answer_with_screen(said, done); }, page_timeout))
+		answer_with_screen(said, done);
+}
+
+/* the application starts in a job of its own, which stays in its loop; the
+ * job behind it finds it open, or it did not start */
+static void hbbtv_open(const Json::Value &input, CAssistantTools::done_fn done)
+{
+	std::string result;
+	bool was_open = CHbbtv::open();
+	if (!hbbtv(input, result))
+	{
+		done(false, result);
+		return;
+	}
+	if (was_open)
+	{
+		/* closed */
+		look(CRemoteUi::top(), result, done);
+		return;
+	}
+	bool posted = main_call::post([done] {
+		if (!CHbbtv::whenSettled([done] { answer_with_screen("opened", done); }, PAGE_OPEN_TIMEOUT))
+			done(false, "the application did not start");
+	});
+	if (!posted)
+		done(false, "the box did not take it");
+}
+
+namespace
+{
+	struct key_presses
+	{
+		neutrino_msg_t key;
+		int times;
+		int pressed;
+		/* the window the keys are meant for, only compared */
+		CRemoteUi *on;
+		bool watching;
+		bool viewer_pressed;
+		CAssistantTools::done_fn done;
+	};
+
+	/* one client's presses at a time */
+	key_presses *presses = NULL;
+	unsigned int presses_id = 0;
+
+	/* the zap a client waits for */
+	struct
+	{
+		CAssistantTools::done_fn done;
+		std::string said;
+	} zapping;
+}
+
+static void presses_end(const std::string &said)
+{
+	key_presses *p = presses;
+	presses = NULL;
+	/* a key may have opened what took the filter for itself */
+	if (p->watching && !CHbbtv::open() && !remote_path::hidden())
+		g_RCInput->setDeviceKeyFilter(NULL);
+	/* the last key may still be on its way to the window below */
+	look(p->on, said, p->done);
+	delete p;
+}
+
+static void presses_step(unsigned int id)
+{
+	if (!presses || presses_id != id)
+		return;
+	std::string count = to_string(presses->pressed) + " of " + to_string(presses->times);
+	if (presses->pressed == presses->times)
+		presses_end("pressed");
+	else if (presses->pressed && CRemoteUi::top() != presses->on)
+		presses_end("pressed " + count + " times, then the screen changed");
+	else if (presses->viewer_pressed)
+		presses_end("pressed " + count + " times, then the viewer pressed a key");
+	else if (g_RCInput->postMsg(presses->key, 0, false) && main_call::post([id] { presses_step(id); }))
+		presses->pressed++;
+	else
+		presses_end("pressed " + count + " times, then the box took no more");
+}
+
+static void press_keys(const Json::Value &input, CAssistantTools::done_fn done)
+{
+	neutrino_msg_t key;
+	std::string result;
+	if (remote_refused(result))
+	{
+		done(false, result);
+		return;
+	}
+	if (!find_key(input["key"].asString(), key))
+	{
+		done(false, "no key \"" + input["key"].asString() + "\"");
+		return;
+	}
+	screen(result);
+	std::string on = lower(input["on"].asString());
+	if (!on.empty() && lower(result.substr(0, result.find('\n'))).find(on) == std::string::npos)
+	{
+		done(false, "not pressed, the screen is another one\n\n" + result);
+		return;
+	}
+	if (presses)
+	{
+		done(false, "another client presses keys");
+		return;
+	}
+	presses = new key_presses;
+	presses->key = key;
+	presses->times = key_times(input);
+	presses->pressed = 0;
+	presses->on = CRemoteUi::top();
+	presses->viewer_pressed = false;
+	presses->done = done;
+	/* the filter is taken while a hidden walk or an HbbTV window holds the viewer's keys */
+	presses->watching = presses->times > 1 && !g_RCInput->hasDeviceKeyFilter();
+	if (presses->watching)
+		g_RCInput->setDeviceKeyFilter([](neutrino_msg_t, neutrino_msg_data_t value) {
+			if (presses && value == 1)
+				presses->viewer_pressed = true;
+			return false;
+		});
+	presses_step(++presses_id);
+}
+
+/* a channel announces its applications a moment after the zap */
+static std::atomic<int64_t> zapped_at(0);
+#define AIT_WAIT	5000
+
+void CAssistantTools::zapped(bool ok)
+{
+	zapped_at = time_monotonic_ms();
+	if (!zapping.done)
+		return;
+	done_fn done = zapping.done;
+	zapping.done = NULL;
+	done(ok, (ok ? zapping.said : "the channel did not come") + "\n\n" + status());
+}
+
+static void zap_and_wait(const Json::Value &input, CAssistantTools::done_fn done)
+{
+	std::string result;
+	bool started = false;
+	if (!zap(input, result, &started))
+	{
+		done(false, result);
+		return;
+	}
+	if (!started)
+	{
+		done(true, result + "\n\n" + status());
+		return;
+	}
+	if (zapping.done)
+		zapping.done(false, "another zap followed");
+	zapping.done = done;
+	zapping.said = result;
+}
+
 void CAssistantTools::start(const std::string &name, const Json::Value &input, done_fn done)
 {
 	if (name == "tv_menu")
@@ -1513,14 +1757,67 @@ void CAssistantTools::start(const std::string &name, const Json::Value &input, d
 		menu_walk(input, done);
 		return;
 	}
+	if (name == "tv_key")
+	{
+		press_keys(input, done);
+		return;
+	}
+	if (name == "tv_zap")
+	{
+		zap_and_wait(input, done);
+		return;
+	}
+	if (name == "tv_hbbtv")
+	{
+		hbbtv_open(input, done);
+		return;
+	}
+	CRemoteUi *before = CRemoteUi::top();
 	std::string result;
 	bool ok = call(name, input, result);
-	done(ok, result);
+	if (ok && (name == "tv_select" || name == "tv_input"))
+		look(before, "done", done);
+	else if (ok && name == "tv_plugin_start")
+		look(before, result, done, PAGE_OPEN_TIMEOUT);
+	else
+		done(ok, result);
+}
+
+/* what tells one screen from another: the window on top with what it
+ * shows, or else what plays; the clock of the status does not count */
+static std::string screen_key()
+{
+	std::string key;
+	if (CRemoteUi::top())
+		screen(key);
+	else
+		key = to_string(CNeutrinoApp::getInstance()->getMode()) + " " +
+		      to_string((unsigned long long)CZapit::getInstance()->GetCurrentChannelID()) +
+		      (CMoviePlayerGui::getInstance().Playing() ? " plays " : " ") + osd_state();
+	return key;
+}
+
+/* in a thread of the web server: looks five times a second until the screen is another one */
+static void wait_for_screen(int seconds)
+{
+	std::chrono::steady_clock::time_point until = std::chrono::steady_clock::now() +
+		std::chrono::seconds(std::min(std::max(seconds, 1), 15));
+	std::shared_ptr<std::string> first = std::make_shared<std::string>(), now = std::make_shared<std::string>();
+	if (!main_call::run([first] { *first = screen_key(); }, 2000))
+		return;
+	while (std::chrono::steady_clock::now() < until)
+	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));
+		if (!main_call::run([now] { *now = screen_key(); }, 2000) || *now != *first)
+			return;
+	}
 }
 
 bool CAssistantTools::run(const std::string &name, const Json::Value &input, int timeout_ms,
 			  bool &ok, std::string &text)
 {
+	if (name == "tv_screen" && input["wait"].isIntegral())
+		wait_for_screen(input["wait"].asInt());
 	/* the main loop may run the tool after the caller gave up waiting */
 	struct outcome
 	{
@@ -1549,17 +1846,25 @@ bool CAssistantTools::run(const std::string &name, const Json::Value &input, int
 		return false;
 	}
 	std::unique_lock<std::mutex> l(out->lock);
+	if (out->cond.wait_until(l, until, [&] { return out->done; }) && !out->ok && out->text == NO_HBBTV_APP &&
+	    time_monotonic_ms() - zapped_at < AIT_WAIT)
+	{
+		l.unlock();
+		std::this_thread::sleep_for(std::chrono::milliseconds(300));
+		return run(name, input, timeout_ms, ok, text);
+	}
 	if (!out->cond.wait_until(l, until, [&] { return out->done; }))
 	{
 		/* one walk runs at a time, so an unfinished one is this one */
-		main_call::post([out] {
-			std::unique_lock<std::mutex> l2(out->lock);
-			bool finished = out->done;
-			l2.unlock();
-			if (!finished)
-				remote_path::cancel();
-		});
-		text = "the menus did not answer in time; look with tv_screen";
+		if (name == "tv_menu")
+			main_call::post([out] {
+				std::unique_lock<std::mutex> l2(out->lock);
+				bool finished = out->done;
+				l2.unlock();
+				if (!finished)
+					remote_path::cancel();
+			});
+		text = "the box did not answer in time; look with tv_screen";
 		return false;
 	}
 	ok = out->ok;
