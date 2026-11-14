@@ -1526,11 +1526,21 @@ void CRecordManager::EndTimeshiftOfLocked(t_channel_id channel_id)
 		StopTimeshiftLocked();
 }
 
+/* a timeshift is for live TV: not in standby, and not while the audio
+ * player, the pictures, UPnP or the AV input have the screen. The movie
+ * player may be playing the timeshift itself and is asked on its own. */
+static bool live_mode()
+{
+	int mode = CNeutrinoApp::getInstance()->getMode();
+	return mode == NeutrinoModes::mode_tv || mode == NeutrinoModes::mode_radio ||
+	       mode == NeutrinoModes::mode_webtv || mode == NeutrinoModes::mode_webradio;
+}
+
 /* the timer that starts the timeshift on the live channel */
 void CRecordManager::ArmTimeshift()
 {
 	g_RCInput->killTimer (shift_timer);
-	if (g_settings.timeshift_auto && CNeutrinoApp::getInstance()->getMode() != NeutrinoModes::mode_standby)
+	if (g_settings.timeshift_auto && live_mode())
 		shift_timer = g_RCInput->addTimer(g_settings.timeshift_auto*1000*1000, true);
 }
 
@@ -1798,9 +1808,7 @@ void CRecordManager::StopPostProcess()
 
 	/* in live TV only; the player, playing the recording perhaps, zaps
 	   when it ends and arms the timer then */
-	int mode = CNeutrinoApp::getInstance()->getMode();
-	if (restartTimeshift && (mode == NeutrinoModes::mode_tv || mode == NeutrinoModes::mode_radio ||
-			mode == NeutrinoModes::mode_webtv || mode == NeutrinoModes::mode_webradio))
+	if (restartTimeshift)
 		ArmTimeshift();
 	restartTimeshift = false;
 }
@@ -1849,8 +1857,7 @@ int CRecordManager::handleMsg(const neutrino_msg_t msg, neutrino_msg_data_t data
 			/* while a zap is under way zapit has still the channel left,
 			   and a recording would zap back to it; the end of the zap arms
 			   the timer again */
-			if (CNeutrinoApp::getInstance()->getMode() != NeutrinoModes::mode_standby &&
-			    !TimeshiftStatus(CZapit::getInstance()->GetCurrentChannelID()) &&
+			if (live_mode() && !TimeshiftStatus(CZapit::getInstance()->GetCurrentChannelID()) &&
 			    g_RemoteControl->current_channel_id == CZapit::getInstance()->GetCurrentChannelID())
 				StartAutoRecord(true);
 			return messages_return::handled;

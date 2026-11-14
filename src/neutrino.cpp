@@ -5166,6 +5166,10 @@ int CNeutrinoApp::handleMsg(const neutrino_msg_t _msg, neutrino_msg_data_t data)
 			lastMode=mode;
 			mode=NeutrinoModes::mode_pic;
 		}
+		/* nobody watches live TV there: the timeshift ends, the zap on
+		 * the way back starts the next */
+		if (mode == NeutrinoModes::mode_upnp || mode == NeutrinoModes::mode_audio || mode == NeutrinoModes::mode_pic)
+			CRecordManager::getInstance()->StopAutoRecord();
 		if((data & NeutrinoModes::mode_mask)== NeutrinoModes::mode_ts) {
 			if(mode == NeutrinoModes::mode_radio)
 				frameBuffer->stopFrame();
@@ -5722,6 +5726,7 @@ void CNeutrinoApp::AVInputMode(bool bOnOff)
 		CVFD::getInstance()->setMode(CVFD::MODE_AVINPUT);
 		lastMode = mode;
 		mode = NeutrinoModes::mode_avinput;
+		CRecordManager::getInstance()->StopAutoRecord();
 
 		videoDecoder->setAVInput(1);
 		audioDecoder->setAVInput(1);
