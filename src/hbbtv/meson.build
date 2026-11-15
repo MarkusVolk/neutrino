@@ -24,13 +24,20 @@ shared_library(hbbtv_backend, 'backend.c',
 	install : true,
 	install_dir : hbbtv_dir)
 
+hbbtv_browser_deps = [dependency('glib-2.0'), dependency('wpe-1.0'), dependency('wpe-webkit-2.0')]
+hbbtv_browser_args = [
+	'-DBACKEND_LIBRARY="' + hbbtv_dir / 'lib' + hbbtv_backend + '.so"',
+	'-DHBBTV_SCRIPT="' + datadir / 'neutrino-hbbtv' / 'hbbtv.js"',
+	'-DHBBTV_SITES="' + datadir / 'neutrino-hbbtv' / 'sites"',
+]
+if enable_xkbcommon
+	hbbtv_browser_deps += xkbcommon_dep
+	hbbtv_browser_args += '-DHBBTV_XKB'
+endif
+
 executable('neutrino-hbbtv', 'browser.c',
-	dependencies : [dependency('glib-2.0'), dependency('wpe-1.0'), dependency('wpe-webkit-2.0')],
-	c_args : [
-		'-DBACKEND_LIBRARY="' + hbbtv_dir / 'lib' + hbbtv_backend + '.so"',
-		'-DHBBTV_SCRIPT="' + datadir / 'neutrino-hbbtv' / 'hbbtv.js"',
-		'-DHBBTV_SITES="' + datadir / 'neutrino-hbbtv' / 'sites"',
-	],
+	dependencies : hbbtv_browser_deps,
+	c_args : hbbtv_browser_args,
 	install : true)
 
 install_data('hbbtv.js', install_dir : datadir / 'neutrino-hbbtv')

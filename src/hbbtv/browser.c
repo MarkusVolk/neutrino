@@ -29,6 +29,9 @@
 #include <string.h>
 #include <unistd.h>
 #include <wpe/webkit.h>
+#ifdef HBBTV_XKB
+#include <xkbcommon/xkbcommon.h>
+#endif
 
 #ifndef BACKEND_LIBRARY
 #define BACKEND_LIBRARY "libWPEBackend-neutrino.so"
@@ -156,6 +159,96 @@ static size_t key_of_device(unsigned code)
 	return G_N_ELEMENTS(keymap);
 }
 
+#ifdef HBBTV_XKB
+static struct xkb_state *xkb;
+
+static char *vconsole(const char *key)
+{
+	char *text = NULL, *value = NULL;
+
+	if (!g_file_get_contents("/etc/vconsole.conf", &text, NULL, NULL))
+		return NULL;
+	gchar **lines = g_strsplit(text, "\n", -1);
+	size_t len = strlen(key);
+	for (gchar **l = lines; *l; l++)
+		if (!strncmp(*l, key, len) && (*l)[len] == '=') {
+			g_free(value);
+			value = g_strdup(g_strstrip(*l + len + 1));
+			g_strdelimit(value, "\"'", ' ');
+			g_strstrip(value);
+		}
+	g_strfreev(lines);
+	g_free(text);
+	if (value && !*value) {
+		g_free(value);
+		value = NULL;
+	}
+	return value;
+}
+
+/* the layout of the console, as systemd keeps it in vconsole.conf */
+static void open_layout(void)
+{
+	struct xkb_context *context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+
+	if (!context)
+		return;
+	char *layout = vconsole("XKBLAYOUT"), *variant = vconsole("XKBVARIANT");
+	char *model = vconsole("XKBMODEL"), *options = vconsole("XKBOPTIONS");
+	if (!layout && (layout = vconsole("KEYMAP")))
+		layout[strcspn(layout, "-")] = '\0';
+	struct xkb_rule_names names = { .layout = layout, .variant = variant, .model = model, .options = options };
+	struct xkb_keymap *keymap = xkb_keymap_new_from_names(context, &names, XKB_KEYMAP_COMPILE_NO_FLAGS);
+	if (!keymap) {
+		struct xkb_rule_names none = { 0 };
+		keymap = xkb_keymap_new_from_names(context, &none, XKB_KEYMAP_COMPILE_NO_FLAGS);
+	}
+	if (keymap) {
+		xkb = xkb_state_new(keymap);
+		xkb_keymap_unref(keymap);
+	}
+	xkb_context_unref(context);
+	g_free(layout);
+	g_free(variant);
+	g_free(model);
+	g_free(options);
+}
+
+/* the other keys of a keyboard reach the page as they are labelled, so text
+ * can be typed into a search field */
+static void send_typed_key(unsigned code, gboolean pressed)
+{
+	static const struct {
+		const char *name;
+		uint32_t modifier;
+	} modifiers[] = {
+		{ XKB_MOD_NAME_SHIFT, wpe_input_keyboard_modifier_shift },
+		{ XKB_MOD_NAME_CTRL, wpe_input_keyboard_modifier_control },
+		{ XKB_MOD_NAME_ALT, wpe_input_keyboard_modifier_alt },
+	};
+
+	if (!xkb)
+		return;
+	xkb_keycode_t keycode = code + 8;
+	xkb_keysym_t sym = xkb_state_key_get_one_sym(xkb, keycode);
+	xkb_state_update_key(xkb, keycode, pressed ? XKB_KEY_DOWN : XKB_KEY_UP);
+	if (sym == XKB_KEY_NoSymbol)
+		return;
+	uint32_t active = 0;
+	for (size_t i = 0; i < G_N_ELEMENTS(modifiers); i++)
+		if (xkb_state_mod_name_is_active(xkb, modifiers[i].name, XKB_STATE_MODS_EFFECTIVE) > 0)
+			active |= modifiers[i].modifier;
+	struct wpe_input_keyboard_event event = {
+		.time = g_get_monotonic_time() / 1000,
+		.key_code = sym,
+		.hardware_key_code = keycode,
+		.pressed = pressed,
+		.modifiers = active,
+	};
+	wpe_view_backend_dispatch_keyboard_event(wpe_backend, &event);
+}
+#endif
+
 static void control_send(const char *line);
 
 /* ends the browser; Neutrino tells a remote client why */
@@ -187,6 +280,11 @@ static void device_key(unsigned code, int value)
 {
 	if (value == 1)
 		report_input();
+	/* keyboards and PC remote controls have Esc and a home page key */
+	if (code == KEY_ESC)
+		code = KEY_EXIT;
+	else if (code == KEY_HOMEPAGE)
+		code = KEY_HOME;
 	if (code == KEY_VOLUMEUP || code == KEY_VOLUMEDOWN) {
 		if (value)
 			control_send(code == KEY_VOLUMEUP ? "volume up" : "volume down");
@@ -213,8 +311,12 @@ static void device_key(unsigned code, int value)
 		return;
 	}
 	size_t i = key_of_device(code);
-	if (i == G_N_ELEMENTS(keymap))
+	if (i == G_N_ELEMENTS(keymap)) {
+#ifdef HBBTV_XKB
+		send_typed_key(code, value != 0);
+#endif
 		return;
+	}
 	if (debug)
 		fprintf(stderr, "neutrino-hbbtv: key %u %s -> %d%s\n", code, value ? "down" : "up",
 			keymap[i].code, keymap[i].sym ? " (key event)" : "");
@@ -650,8 +752,12 @@ int main(int argc, char **argv)
 
 	/* in a window of a desktop the keys are the compositor's: Neutrino
 	 * passes them on, and the input devices stay untouched */
-	if (g_strcmp0(g_getenv("NEUTRINO_HBBTV_KEYS"), "forward"))
+	if (g_strcmp0(g_getenv("NEUTRINO_HBBTV_KEYS"), "forward")) {
+#ifdef HBBTV_XKB
+		open_layout();
+#endif
 		open_inputs();
+	}
 	open_control();
 	if (debug)
 		g_timeout_add_seconds(5, dump, NULL);
