@@ -930,21 +930,13 @@ void CFrameBuffer::getIconSize(const char * const filename, int* width, int *hei
 		return;
 	}
 
-	std::map<std::string, rawIcon>::iterator it;
-
-
 	/* if code ask for size, lets cache it. assume we have enough ram for cache */
 	/* FIXME offset seems never used in code, always default = 1 ? */
-
-	it = icon_cache.find(filename);
-	if(it == icon_cache.end()) {
-		if(paintIcon(filename, 0, 0, 0, 1, false)) {
-			it = icon_cache.find(filename);
-		}
-	}
-	if(it != icon_cache.end()) {
-		*width = it->second.width;
-		*height = it->second.height;
+	rawIcon icon;
+	if (cachedIcon(filename, icon) ||
+	    (paintIcon(filename, 0, 0, 0, 1, false) && cachedIcon(filename, icon))) {
+		*width = icon.width;
+		*height = icon.height;
 	}
 }
 
@@ -1010,6 +1002,109 @@ bool CFrameBuffer::paintIcon8(const std::string & filename, const int x, const i
 	return true;
 }
 
+/* The screensaver, the hourglass's timer and the stream server's loading hint,
+   among others, paint icons off the box's loop, so the cache is looked at and
+   changed under its lock only. The pixels are not: they belong to the entry
+   and to whoever paints them, and go with the last of the two. */
+bool CFrameBuffer::cachedIcon(const std::string &filename, rawIcon &icon)
+{
+	std::lock_guard<std::mutex> lock(icon_cache_mutex);
+	std::map<std::string, rawIcon>::iterator it = icon_cache.find(filename);
+	if (it == icon_cache.end())
+		return false;
+	icon = it->second;
+	return true;
+}
+
+/* the pixels of an icon, read from its file; NULL when there is none to show */
+fb_pixel_t *CFrameBuffer::loadIcon(const std::string &filename, const unsigned char offset, int &width, int &height)
+{
+	std::string newname = getIconPath(filename);
+	//printf("CFrameBuffer::paintIcon: check for %s\n", newname.c_str());fflush(stdout);
+
+	fb_pixel_t *data = g_PicViewer->getIcon(newname, &width, &height);
+	if (width < 1 || height < 1)
+		return NULL;
+	if (data)
+		return data;
+
+	newname = getIconPath(filename, "raw");
+
+	int lfd = open(newname.c_str(), O_RDONLY);
+
+	if (lfd == -1) {
+		//printf("paintIcon: error while loading icon: %s\n", newname.c_str());
+		return NULL;
+	}
+
+	struct rawHeader header;
+	ssize_t s = read(lfd, &header, sizeof(struct rawHeader));
+	if (s < 0) {
+		perror("read");
+		close(lfd);
+		return NULL;
+	}
+
+	if (s < (ssize_t) sizeof(rawHeader)){
+		printf("paintIcon: error while loading icon: %s, header too small\n", newname.c_str());
+		close(lfd);
+		return NULL;
+	}
+
+	width  = (header.width_hi  << 8) | header.width_lo;
+	height = (header.height_hi << 8) | header.height_lo;
+	if (!width || !height) {
+		printf("paintIcon: error while loading icon: %s, wrong dimensions (%dHx%dW)\n", newname.c_str(), height, width);
+		close(lfd);
+		return NULL;
+	}
+
+	unsigned char pixbuf[768];
+	if ((width >> 1) > (int)sizeof(pixbuf)) {
+		printf("paintIcon: error while loading icon: %s, too wide (%d)\n", newname.c_str(), width);
+		close(lfd);
+		return NULL;
+	}
+
+	int dsize = width*height*sizeof(fb_pixel_t);
+
+	fb_pixel_t *pixels = (fb_pixel_t*) cs_malloc_uncached(dsize);
+	if (!pixels) {
+		printf("paintIcon: error while loading icon: %s, cs_malloc_uncached failed\n", newname.c_str());
+		close(lfd);
+		return NULL;
+	}
+	data = pixels;
+
+	for (int count = 0; count < height; count ++ ) {
+		s = read(lfd, &pixbuf[0], width >> 1 );
+		if(s < (width >> 1))
+		{
+			/* short read: do not blit uninitialised memory */
+			memset(data, 0, dsize - (data - pixels) * sizeof(fb_pixel_t));
+			break;
+		}
+		unsigned char *pixpos = &pixbuf[0];
+		for (int count2 = 0; count2 < width >> 1; count2 ++ ) {
+			unsigned char compressed = *pixpos;
+			unsigned char pix1 = (compressed & 0xf0) >> 4;
+			unsigned char pix2 = (compressed & 0x0f);
+			if (pix1 != header.transp)
+				*data++ = realcolor[pix1+offset];
+			else
+				*data++ = 0;
+			if (pix2 != header.transp)
+				*data++ = realcolor[pix2+offset];
+			else
+				*data++ = 0;
+			pixpos++;
+		}
+	}
+	close(lfd);
+
+	return pixels;
+}
+
 /* paint icon at position x/y,
    if height h is given, center vertically between y and y+h
    offset is a color offset (probably only useful with palette) */
@@ -1019,163 +1114,43 @@ bool CFrameBuffer::paintIcon(const std::string & filename, const int x, const in
 	if (!getActive())
 		return false;
 
-	struct rawHeader header;
-	int	 width = 0, height = 0;
-	fb_pixel_t * data;
-	struct rawIcon tmpIcon;
-	std::map<std::string, rawIcon>::iterator it;
-
-	int  yy = y;
-	bool freeicondata = false;
-	//printf("CFrameBuffer::paintIcon: load %s\n", filename.c_str());fflush(stdout);
-
 	/* we cache and check original name */
-	it = icon_cache.find(filename);
-	if(it == icon_cache.end()) {
-		std::string newname = getIconPath(filename);
-		//printf("CFrameBuffer::paintIcon: check for %s\n", newname.c_str());fflush(stdout);
-
-		data = g_PicViewer->getIcon(newname, &width, &height);
-		if (width < 1 || height < 1){
+	rawIcon icon;
+	if (!cachedIcon(filename, icon)) {
+		int width = 0, height = 0;
+		fb_pixel_t *pixels = loadIcon(filename, offset, width, height);
+		if (!pixels)
 			return false;
-		}
+		icon.width = width;
+		icon.height = height;
+		icon.transp = 0;
+		icon.data.reset(pixels, [](fb_pixel_t *d) { cs_free_uncached(d); });
 
-		if(data) { //TODO: intercepting of possible full icon cache, that could cause strange behavior while painting of uncached icons
-			int dsize = width*height*sizeof(fb_pixel_t);
-			//printf("CFrameBuffer::paintIcon: %s found, data %x size %d x %d\n", newname.c_str(), data, width, height);fflush(stdout);
-			if(cache_size+dsize < ICON_CACHE_SIZE) {
-				cache_size += dsize;
-				tmpIcon.width = width;
-				tmpIcon.height = height;
-				tmpIcon.data = data;
-				icon_cache.insert(std::pair <std::string, rawIcon> (filename, tmpIcon));
-				//printf("Cached %s, cache size %d\n", newname.c_str(), cache_size);
-			}else{
-				freeicondata = true;
-			}
-			goto _display;
-		}
-
-		newname = getIconPath(filename, "raw");
-
-		int lfd = open(newname.c_str(), O_RDONLY);
-
-		if (lfd == -1) {
-			//printf("paintIcon: error while loading icon: %s\n", newname.c_str());
-			return false;
-		}
-
-		ssize_t s = read(lfd, &header, sizeof(struct rawHeader));
-		if (s < 0) {
-			perror("read");
-			close(lfd);
-			return false;
-		}
-
-		if (s < (ssize_t) sizeof(rawHeader)){
-			printf("paintIcon: error while loading icon: %s, header too small\n", newname.c_str());
-			close(lfd);
-			return false;
-		}
-
-
-		tmpIcon.width = width  = (header.width_hi  << 8) | header.width_lo;
-		tmpIcon.height = height = (header.height_hi << 8) | header.height_lo;
-		if (!width || !height) {
-			printf("paintIcon: error while loading icon: %s, wrong dimensions (%dHx%dW)\n", newname.c_str(), height, width);
-			close(lfd);
-			return false;
-		}
-
-		unsigned char pixbuf[768];
-		if ((width >> 1) > (int)sizeof(pixbuf)) {
-			printf("paintIcon: error while loading icon: %s, too wide (%d)\n", newname.c_str(), width);
-			close(lfd);
-			return false;
-		}
-
+		/* an icon the cache has no room for is painted and forgotten */
+		//TODO: intercepting of possible full icon cache, that could cause strange behavior while painting of uncached icons
 		int dsize = width*height*sizeof(fb_pixel_t);
-
-		tmpIcon.data = (fb_pixel_t*) cs_malloc_uncached(dsize);
-		if (!tmpIcon.data) {
-			printf("paintIcon: error while loading icon: %s, cs_malloc_uncached failed\n", newname.c_str());
-			close(lfd);
-			return false;
-		}
-		data = tmpIcon.data;
-
-		for (int count = 0; count < height; count ++ ) {
-			s = read(lfd, &pixbuf[0], width >> 1 );
-			if(s < (width >> 1))
-			{
-				/* short read: do not blit uninitialised memory */
-				memset(data, 0, dsize - (data - tmpIcon.data) * sizeof(fb_pixel_t));
-				break;
-			}
-			unsigned char *pixpos = &pixbuf[0];
-			for (int count2 = 0; count2 < width >> 1; count2 ++ ) {
-				unsigned char compressed = *pixpos;
-				unsigned char pix1 = (compressed & 0xf0) >> 4;
-				unsigned char pix2 = (compressed & 0x0f);
-				if (pix1 != header.transp)
-					*data++ = realcolor[pix1+offset];
-				else
-					*data++ = 0;
-				if (pix2 != header.transp)
-					*data++ = realcolor[pix2+offset];
-				else
-					*data++ = 0;
-				pixpos++;
-			}
-		}
-		close(lfd);
-
-		data = tmpIcon.data;
-
-		if(cache_size+dsize < ICON_CACHE_SIZE) {
+		std::lock_guard<std::mutex> lock(icon_cache_mutex);
+		if (cache_size+dsize < ICON_CACHE_SIZE && icon_cache.insert(std::make_pair(filename, icon)).second)
 			cache_size += dsize;
-			icon_cache.insert(std::pair <std::string, rawIcon> (filename, tmpIcon));
-			//printf("Cached %s, cache size %d\n", newname.c_str(), cache_size);
-		}else{
-			freeicondata = true;
-		}
-	} else {
-		data = it->second.data;
-		width = it->second.width;
-		height = it->second.height;
-		//printf("paintIcon: already cached %s %d x %d\n", newname.c_str(), width, height);
 	}
-_display:
-	if(!paint){
-		if(freeicondata){
-			cs_free_uncached(data);
-			data = NULL;
-		}
+	if (!paint)
 		return true;
-	}
-	if (h != 0)
-		yy += (h - height) / 2;
 
-	checkFbArea(x, yy, width, height, true);
+	int yy = y;
+	if (h != 0)
+		yy += (h - icon.height) / 2;
+
+	checkFbArea(x, yy, icon.width, icon.height, true);
 	if (paintBg)
-		paintBoxRel(x, yy, width, height, colBg);
-	blit2FB(data, width, height, x, yy);
-	checkFbArea(x, yy, width, height, false);
-	if(freeicondata){
-		cs_free_uncached(data);
-		data = NULL;
-	}
+		paintBoxRel(x, yy, icon.width, icon.height, colBg);
+	blit2FB(icon.data.get(), icon.width, icon.height, x, yy);
+	checkFbArea(x, yy, icon.width, icon.height, false);
 	return true;
 }
 
 void CFrameBuffer::clearIconCache()
 {
-	std::map<std::string, rawIcon>::iterator it;
-
-	for(it = icon_cache.begin(); it != icon_cache.end(); ++it) {
-		/* printf("FB: delete cached icon %s: %x\n", it->first.c_str(), (int) it->second.data); */
-		cs_free_uncached(it->second.data);
-	}
+	std::lock_guard<std::mutex> lock(icon_cache_mutex);
 	icon_cache.clear();
 	/* The accounted bytes go with the entries. Without this the counter kept
 	 * the bytes of everything it had just freed, so it only ever climbed while

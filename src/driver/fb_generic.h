@@ -34,6 +34,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <OpenThreads/Mutex>
 #include <OpenThreads/ScopedLock>
@@ -117,7 +118,7 @@ class CFrameBuffer : public sigc::trackable
 			uint16_t width;
 			uint16_t height;
 			uint8_t transp;
-			fb_pixel_t * data;
+			std::shared_ptr<fb_pixel_t> data;
 		};
 
 		std::string     iconBasePath;
@@ -154,6 +155,9 @@ class CFrameBuffer : public sigc::trackable
 		bool display_handed_over;
 		std::map<std::string, rawIcon> icon_cache;
 		int cache_size;
+		std::mutex icon_cache_mutex;
+		bool cachedIcon(const std::string &filename, rawIcon &icon);
+		fb_pixel_t *loadIcon(const std::string &filename, const unsigned char offset, int &width, int &height);
 
 		int *q_circle;
 		bool corner_tl, corner_tr, corner_bl, corner_br;
