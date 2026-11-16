@@ -4130,7 +4130,7 @@ void CMoviePlayerGui::getCurrentAudioName(bool file_player, std::string &audiona
 			} else if (!language[count].empty()) {
 				audioname = language[count];
 				addAudioFormat(count, audioname, dumm);
-				if (!dumm && (count < numpida)) {
+				if (!dumm && count + 1 < numpida) {
 					currentapid = apids[count+1];
 					continue;
 				}
@@ -4140,7 +4140,7 @@ void CMoviePlayerGui::getCurrentAudioName(bool file_player, std::string &audiona
 			sprintf(apidnumber, "Stream %d %X", count + 1, apids[count]);
 			audioname = apidnumber;
 			addAudioFormat(count, audioname, dumm);
-			if (!dumm && (count < numpida)) {
+			if (!dumm && count + 1 < numpida) {
 				currentapid = apids[count+1];
 				continue;
 			}
@@ -4184,7 +4184,7 @@ void CMoviePlayerGui::selectAudioPid()
 			apidtitle = apidnumber;
 		}
 		addAudioFormat(count, apidtitle, enabled);
-		if (defpid && !enabled && (count < numpida)) {
+		if (defpid && !enabled && count + 1 < numpida) {
 			currentapid = apids[count+1];
 			defpid = false;
 		}
