@@ -4621,20 +4621,33 @@ int CNeutrinoApp::handleMsg(const neutrino_msg_t _msg, neutrino_msg_data_t data)
 					timeout = timeout1;
 				timeout += 500;
 
+				/* Only the key itself says how long it is held. What else
+				   arrives meanwhile - a timer, a recording about to start -
+				   neither decides that nor gets lost: it goes back on the
+				   queue afterwards, not before, or it would be read again
+				   right here. */
+				std::vector<std::pair<neutrino_msg_t, neutrino_msg_data_t> > others;
+				uint64_t timeoutEnd = CRCInput::calcTimeoutEnd_MS(timeout);
 				while (true) {
-					g_RCInput->getMsg_ms(&_msg_, &mdata, timeout);
+					g_RCInput->getMsgAbsoluteTimeout(&_msg_, &mdata, &timeoutEnd);
 					if (_msg_ == CRCInput::RC_timeout)
 						break;
+					if (_msg_ != CRCInput::RC_standby) {
+						others.push_back(std::make_pair(_msg_, mdata));
+						continue;
+					}
 					gettimeofday(&endtime, NULL);
 					seconds = endtime.tv_sec - standby_pressed_at.tv_sec;
 					if (endtime.tv_usec < standby_pressed_at.tv_usec)
 						seconds--;
 					if (seconds >= 1) {
-						if (_msg_ == CRCInput::RC_standby)
-							new_msg = NeutrinoMessages::SHUTDOWN;
+						new_msg = NeutrinoMessages::SHUTDOWN;
 						break;
 					}
+					timeoutEnd = CRCInput::calcTimeoutEnd_MS(timeout);
 				}
+				for (size_t i = 0; i < others.size(); i++)
+					g_RCInput->postMsg(others[i].first, others[i].second);
 				g_RCInput->postMsg(new_msg, 0);
 			} else {
 				/* Short press, no rcdelay: open power-off menu (or toggle standby in legacy mode) */
