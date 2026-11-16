@@ -757,7 +757,7 @@ int CFlashUpdate::exec(CMenuTarget *parent, const std::string &actionKey)
 		/* a whole image does not fit into the memory of the box */
 		struct statfs fs;
 		if (slotbox && statfs(g_settings.update_dir.c_str(), &fs) == 0 &&
-		    (fs.f_type == TMPFS_MAGIC || fs.f_type == RAMFS_MAGIC))
+		    ((unsigned long) fs.f_type == TMPFS_MAGIC || (unsigned long) fs.f_type == RAMFS_MAGIC))
 		{
 			hide();
 			DisplayErrorMessage(g_Locale->getText(LOCALE_FLASHUPDATE_UPDATE_DIR_RAM));
