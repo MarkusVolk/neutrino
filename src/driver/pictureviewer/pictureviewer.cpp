@@ -750,6 +750,84 @@ void CPictureViewer::shrinkLogo(const std::string &name)
 	free(resized);
 }
 
+bool CPictureViewer::WriteLogoPng(const std::string &name, const std::string &png, int w, int h)
+{
+#ifdef FBV_SUPPORT_PNG
+	int x = 0, y = 0;
+	CFormathandler *fh = fh_getsize(name.c_str(), &x, &y, INT_MAX, INT_MAX);
+	if (!fh || x < 1 || y < 1 || w < 1 || h < 1 || x > INT_MAX / 4 / y)
+		return false;
+	int dx = w;
+	int dy = std::max(1, (int)((int64_t)y * w / x));
+	if (dy > h) {
+		dy = h;
+		dx = std::max(1, (int)((int64_t)x * h / y));
+	}
+	unsigned char *buffer = NULL;
+	int bpp = 4;
+	bool svg = name.size() > 4 && name.compare(name.size() - 4, 4, ".svg") == 0;
+	if (svg) {
+		svg_load_resize(name.c_str(), &buffer, &x, &y, dx, dy);
+	} else {
+		size_t bufsize = (size_t)x * y * 4;
+		if (!checkfreemem(bufsize) || !(buffer = (unsigned char *) malloc(bufsize)))
+			return false;
+		int ret = FH_ERROR_FORMAT;
+		if (fh_png_id(name.c_str()))
+			ret = png_load_ext(name.c_str(), &buffer, &x, &y, &bpp);
+		else {
+			bpp = 3;
+			ret = fh->get_pic(name.c_str(), &buffer, &x, &y);
+		}
+		if (bpp != 4)
+			bpp = 3;
+		if (ret != FH_ERROR_OK) {
+			free(buffer);
+			return false;
+		}
+		if (x != dx || y != dy) {
+			unsigned char *resized = (bpp == 4) ? ResizeA(buffer, x, y, dx, dy) : Resize(buffer, x, y, dx, dy, COLOR);
+			if (resized == buffer) {
+				free(buffer);
+				return false;
+			}
+			buffer = resized;
+			x = dx;
+			y = dy;
+		}
+	}
+	if (!buffer || x < 1 || y < 1 || x > w || y > h) {
+		free(buffer);
+		return false;
+	}
+	unsigned char *canvas = (unsigned char *) calloc((size_t)w * h, 4);
+	if (!canvas) {
+		free(buffer);
+		return false;
+	}
+	int ox = (w - x) / 2, oy = (h - y) / 2;
+	for (int j = 0; j < y; j++) {
+		unsigned char *d = canvas + ((size_t)(oy + j) * w + ox) * 4;
+		const unsigned char *s = buffer + (size_t)j * x * bpp;
+		for (int i = 0; i < x; i++, d += 4, s += bpp) {
+			d[0] = s[0];
+			d[1] = s[1];
+			d[2] = s[2];
+			d[3] = (bpp == 4) ? s[3] : 0xff;
+		}
+	}
+	free(buffer);
+	std::string tmp = png + ".tmp";
+	bool ok = write_png(tmp, canvas, w, h, 4) && rename(tmp.c_str(), png.c_str()) == 0;
+	if (!ok)
+		unlink(tmp.c_str());
+	free(canvas);
+	return ok;
+#else
+	return false;
+#endif
+}
+
 bool CPictureViewer::GetLogoName(const uint64_t &ChannelID, const std::string &ChannelName, std::string &name, int *width, int *height, int enable_special_logo, bool enable_event_logo)
 {
 	std::string fileType[] = { ".svg", ".png", ".jpg", ".gif" };

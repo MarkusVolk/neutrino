@@ -120,7 +120,7 @@ extern CPictureViewer *g_PicViewer;
 #define WEATHER_ICON		LCD_DATADIR "weather_icon"
 
 #define FLAG_LCD4LINUX		"/tmp/.lcd4linux"
-#define PIDFILE			"/var/run/lcd4linux.pid"
+#define PIDFILE			"/run/lcd4linux.pid"
 #define PNGFILE			"/tmp/lcd4linux.png"
 
 CLCD4l::CLCD4l()
@@ -885,8 +885,20 @@ void CLCD4l::ParseInfo(uint64_t parseID, bool newID, bool firstRun)
 
 		if (m_Logo.compare(Logo))
 		{
-			WriteFile(LOGO, Logo);
 			m_Logo = Logo;
+			/* lcd4linux reads no SVG and draws a picture at its own size, over
+			   whatever lies below it; every logo is handed over as a PNG of one
+			   size, under a new name each time so it is read again */
+			if (Logo != LOGO_DUMMY)
+			{
+				static unsigned int serial;
+				std::string png = std::string(LCD_DATADIR "logo-") + to_string(++serial % 2) + ".png";
+				if (g_PicViewer->WriteLogoPng(Logo, png, 360, 216))
+					Logo = png;
+				else
+					Logo = LOGO_DUMMY;
+			}
+			WriteFile(LOGO, Logo);
 		}
 
 		if (Logo != LOGO_DUMMY)
