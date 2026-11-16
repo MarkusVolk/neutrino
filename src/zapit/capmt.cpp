@@ -220,16 +220,14 @@ bool CCamManager::SetMode(t_channel_id channel_id, enum runmode mode, bool start
 	int demux = DEMUX_SOURCE_0;
 	int source = DEMUX_SOURCE_0;
 
-	CZapitChannel * channel;
-	{
-		/* Given back before this manager's own lock, which never nests inside
-		   the channel lock anywhere; below, the channel lock is taken inside
-		   it. */
-		CServiceManager::ChannelGuard guard;
-		channel = CServiceManager::getInstance()->FindChannel(channel_id);
-	}
-
 	OpenThreads::ScopedLock<OpenThreads::Mutex> m_lock(mutex);
+
+	/* The channel, and those looked up at the end, are used until the
+	   function returns, so the channel lock is held that long. It is taken
+	   inside this manager's own, which never nests inside it anywhere, and
+	   nothing under it reaches back into the service manager. */
+	CServiceManager::ChannelGuard guard;
+	CZapitChannel * channel = CServiceManager::getInstance()->FindChannel(channel_id);
 
 	cammap_iterator_t it = channel_map.find(channel_id);
 	if (it != channel_map.end()) {
@@ -446,11 +444,6 @@ bool CCamManager::SetMode(t_channel_id channel_id, enum runmode mode, bool start
 		uint8_t list = CCam::CAPMT_ONLY;
 		if (channel_map.size() > 1)
 			list = CCam::CAPMT_ADD;
-
-		/* The channels looked up below are used until the end, so the lock
-		   is held that long, inside this manager's own. Nothing under it
-		   reaches back into the service manager. */
-		CServiceManager::ChannelGuard guard;
 
 #ifdef BOXMODEL_CST_HD2
 		int ci_use_count = 0;
