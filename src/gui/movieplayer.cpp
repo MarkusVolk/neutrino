@@ -2637,7 +2637,7 @@ bool CMoviePlayerGui::PlayBackgroundStart(const std::string &file, const std::st
 		(unsigned long long)chan,
 		(unsigned long long)request_generation,
 		restart_attempts,
-		file.c_str(),
+		webtvRedactUrlForLog(file).c_str(),
 		script.c_str(),
 		name.c_str());
 
