@@ -5082,6 +5082,13 @@ int CNeutrinoApp::handleMsg(const neutrino_msg_t _msg, neutrino_msg_data_t data)
 		powerMenu.exec(NULL, "");
 	}
 	else if (msg == NeutrinoMessages::EVT_POPUP || msg == NeutrinoMessages::EVT_EXTMSG) {
+		/* a message from outside replaces the one still shown instead of
+		   covering it: that one is closed, and this one comes again after */
+		static bool shown = false;
+		if (shown) {
+			g_RCInput->postMsg(msg, data);
+			return messages_return::cancel_all;
+		}
 		if (mode != NeutrinoModes::mode_avinput && mode != NeutrinoModes::mode_standby) {
 			int timeout = DEFAULT_TIMEOUT;
 			std::string text = (char*)data;
@@ -5101,10 +5108,12 @@ int CNeutrinoApp::handleMsg(const neutrino_msg_t _msg, neutrino_msg_data_t data)
 				timeout = atoi(tmp.c_str());
 			}
 
+			shown = true;
 			if (msg == NeutrinoMessages::EVT_POPUP)
 				ShowHint(LOCALE_MESSAGEBOX_INFO, text.c_str(), 0, timeout);
 			else if (msg == NeutrinoMessages::EVT_EXTMSG)
 				ShowMsg(LOCALE_MESSAGEBOX_INFO, text, CMsgBox::mbrBack, (CMsgBox::button_define_t) buttons, NEUTRINO_ICON_INFO, 500, timeout);
+			shown = false;
 		}
 		delete[] (unsigned char*) data;
 		return messages_return::handled;
