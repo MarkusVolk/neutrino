@@ -5592,9 +5592,12 @@ void CNeutrinoApp::saveEpg(int _mode)
 
 		neutrino_msg_t msg;
 		neutrino_msg_data_t data;
+		/* two minutes for all of it: the timers that tick meanwhile would
+		   start a wait per message over and over */
+		uint64_t timeoutEnd = CRCInput::calcTimeoutEnd(120);
 		while(true)
 		{
-			g_RCInput->getMsg(&msg, &data, 1200); // 120 secs..
+			g_RCInput->getMsgAbsoluteTimeout(&msg, &data, &timeoutEnd);
 			if ((msg == CRCInput::RC_timeout) || (msg == NeutrinoMessages::EVT_SI_FINISHED))
 			{
 				//printf("Msg %x timeout %d EVT_SI_FINISHED %x\n", msg, CRCInput::RC_timeout, NeutrinoMessages::EVT_SI_FINISHED);
