@@ -531,8 +531,12 @@ static void target_frame_rendered(void *data)
 	struct gbm_bo *bo = target->surface ? gbm_surface_lock_front_buffer(target->surface) : NULL;
 	char text[96];
 
+	/* without Neutrino nobody paces the frames either: this one is not
+	 * reported complete, and the page stays as it is */
 	if (!bo || target->display < 0) {
 		g_warning("nothing to show the page with");
+		if (bo)
+			gbm_surface_release_buffer(target->surface, bo);
 		return;
 	}
 	if (!target->frame_source) {
