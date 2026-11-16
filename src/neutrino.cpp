@@ -5307,7 +5307,8 @@ static void clear_exit_action(void)
 	unlink(exit_action_file());
 }
 
-static void write_exit_action(int exit_code)
+/* true when the start script finds the action in the file */
+static bool write_exit_action(int exit_code)
 {
 	const char *action = exit_action_name(exit_code);
 	if (action == NULL)
@@ -5315,17 +5316,21 @@ static void write_exit_action(int exit_code)
 		/* EXIT_ERROR or an unknown code: request no action and leave no
 		 * stale file behind that a later run could act on. */
 		clear_exit_action();
-		return;
+		return false;
 	}
 	const char *path = exit_action_file();
-	FILE *f = fopen(path, "w");
-	if (f == NULL)
+	const std::string line = std::string(action) + "\n";
+	/* never through a link that somebody else left under this name */
+	int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW | O_CLOEXEC, 0644);
+	bool ok = fd >= 0 && write(fd, line.c_str(), line.size()) == (ssize_t) line.size();
+	if (fd >= 0 && close(fd) < 0)
+		ok = false;
+	if (!ok)
 	{
 		perror(path);
-		return;
+		clear_exit_action();
 	}
-	fprintf(f, "%s\n", action);
-	fclose(f);
+	return ok;
 }
 
 /*
@@ -5524,11 +5529,11 @@ void CNeutrinoApp::ExitRun(int exit_code, bool ask)
 	Cleanup();
 
 	/* Hand the follow-up action to the start script through the action file. In
-	 * posix mode a clean shutdown then returns 0; a real error (EXIT_ERROR) or an
-	 * unknown code keeps its non-zero status in both modes. */
-	write_exit_action(exit_code);
+	 * posix mode a clean shutdown then returns 0; a real error (EXIT_ERROR), an
+	 * unknown code or an action that could not be written keeps its non-zero
+	 * status in both modes. */
 	int status = exit_code;
-	if (!legacy_exit_codes() && exit_action_name(exit_code) != NULL)
+	if (write_exit_action(exit_code) && !legacy_exit_codes())
 		status = CNeutrinoApp::EXIT_NORMAL;
 
 	const char *action = exit_action_name(exit_code);
