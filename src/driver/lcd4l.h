@@ -31,6 +31,7 @@
 #ifndef __lcd4l__
 #define __lcd4l__
 
+#include <mutex>
 #include <string>
 #include <thread>
 #include <sigc++/signal.h>
@@ -76,6 +77,12 @@ class CLCD4l
 
 		void	ResetParseID() { m_ParseID = 0; }
 
+		/* what an HbbTV application or a media library shows while it has the
+		   screen, in place of the channel: its name, the highlighted entry or
+		   the video that plays, and where that video is (ms, 0 if unknown) */
+		void	SetExternal(const std::string &service, const std::string &event, bool playing, bool paused, int position, int duration);
+		void	ClearExternal();
+
 		static void lcd4linux(int run);
 		enum
 		{
@@ -117,6 +124,19 @@ class CLCD4l
 
 		void		SetWaitStatus(bool wait) { wait4daemon = wait; }
 		bool		GetWaitStatus() { return wait4daemon; }
+
+		struct external_info
+		{
+			bool active;
+			std::string service;
+			std::string event;
+			bool playing;
+			bool paused;
+			int position;
+			int duration;
+		};
+		std::mutex	m_ExternalLock;
+		external_info	m_External;
 
 		// Variables
 		std::string m_ActionKey;

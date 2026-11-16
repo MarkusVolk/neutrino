@@ -62,6 +62,9 @@
 #include <gui/osd_helpers.h>
 #include <driver/abstime.h>
 #include <driver/framebuffer.h>
+#ifdef ENABLE_LCD4LINUX
+#include <driver/lcd4l.h>
+#endif
 #include <driver/rcinput.h>
 #include <driver/record.h>
 #include <driver/shutdown_count.h>
@@ -255,6 +258,28 @@ class CHbbtvControl
 		std::string drm_certificate;
 		/* a stream with Widevine came while it is switched off */
 		bool widevine_off;
+		/* for an external display: the page, what it highlights, the video
+		 * that plays and where it is */
+		std::string page_title;
+		std::string highlighted;
+		std::string heading;
+		std::string play_title;
+		int play_position;
+		int play_duration;
+		int64_t next_display;
+		int64_t next_describe;
+		/* after a key: once the page reacted, and once more for a slow one */
+		int64_t quick_describe[2];
+		bool displayed;
+
+		static std::string screen_line(const std::string &text, const std::string &key)
+		{
+			size_t pos = text.compare(0, key.size(), key) == 0 ? 0 : text.find("\n" + key);
+			if (pos == std::string::npos)
+				return "";
+			pos += (pos ? 1 : 0) + key.size();
+			return text.substr(pos, text.find('\n', pos) - pos);
+		}
 
 		void send(const std::string &line)
 		{
@@ -281,6 +306,10 @@ class CHbbtvControl
 			printf("[hbbtv] play %s\n", url.c_str());
 			playback->Open(PLAYMODE_FILE);
 			loaded = true;
+			/* what was highlighted when the video was asked for is its title,
+			 * unless that is a button: then the page's heading is */
+			play_title = highlighted.size() <= 20 && !heading.empty() ? heading : highlighted;
+			play_position = play_duration = 0;
 			if (!drm_license.empty())
 			{
 				std::string license, certificate;
@@ -448,6 +477,17 @@ class CHbbtvControl
 						screen_text += args[i];
 				}
 				screen_new = true;
+				page_title = screen_line(screen_text, "Page: ");
+				std::string marked = screen_line(screen_text, "Highlighted: ");
+				highlighted = marked.substr(0, marked.find(" | "));
+				heading = screen_line(screen_text, "Heading: ");
+				next_display = 0;
+			}
+			else if (cmd == "pressed")
+			{
+				int64_t now = time_monotonic_ms();
+				quick_describe[0] = now + 300;
+				quick_describe[1] = now + 1500;
 			}
 			else if (cmd == "load")
 			{
@@ -509,8 +549,9 @@ class CHbbtvControl
 	public:
 		CHbbtvControl(int control, const CHbbtvPage *page) : fd(control), active(false), paused(false), next_report(0), screen_new(false),
 			page_loading(true), loaded(false), keep(page != NULL), resolver(page ? page->resolver : ""), resolving(0), resolving_fd(-1), resolve_plays(false), skip_last(-1),
-			widevine_off(false)
+			widevine_off(false), play_position(0), play_duration(0), next_display(0), next_describe(0), displayed(false)
 		{
+			quick_describe[0] = quick_describe[1] = 0;
 			if (keep)
 				claim();
 		}
@@ -518,6 +559,10 @@ class CHbbtvControl
 		{
 			keep = false;
 			stop();
+#ifdef ENABLE_LCD4LINUX
+			if (displayed)
+				CLCD4l::getInstance()->ClearExternal();
+#endif
 		}
 
 		bool widevineOff() const
@@ -671,7 +716,55 @@ class CHbbtvControl
 				return;
 			}
 			skip(position);
+			play_position = position;
+			play_duration = duration;
 			send("position " + to_string(position) + " " + to_string(duration) + (paused ? " paused" : " playing"));
+		}
+
+		/* an external display shows the application in place of the channel
+		 * where it has the screen: an ordinary page, or an application that
+		 * plays a video of its own; the highlighted entry is asked for every
+		 * few seconds, and only where such a display is in use */
+		void display(const std::string &name)
+		{
+#ifdef ENABLE_LCD4LINUX
+			if (!g_settings.lcd4l_support || (!keep && !loaded))
+			{
+				if (displayed)
+					CLCD4l::getInstance()->ClearExternal();
+				displayed = false;
+				return;
+			}
+			int64_t now = time_monotonic_ms();
+			if (!loaded && !page_loading)
+			{
+				bool due = now >= next_describe;
+				for (int i = 0; i < 2; i++)
+					if (quick_describe[i] && now >= quick_describe[i])
+					{
+						quick_describe[i] = 0;
+						due = true;
+					}
+				if (due)
+				{
+					next_describe = now + 3000;
+					send("describe");
+				}
+			}
+			if (now < next_display)
+				return;
+			next_display = now + 1000;
+			std::string title = loaded ? play_title : highlighted;
+			/* a menu the application was started from is hidden behind it */
+			if (!displayed)
+				CLCD4l::getInstance()->RemoveMenuFile();
+			CLCD4l::getInstance()->SetExternal(name.empty() ? page_title : name,
+							   title.empty() && loaded ? page_title : title,
+							   loaded, paused, play_position, play_duration);
+			displayed = true;
+#else
+			(void)name;
+#endif
 		}
 };
 
@@ -862,6 +955,7 @@ void CHbbtv::run(const CAitApp &ait_app, t_channel_id id, const std::string &cha
 			break;
 		link.report();
 		link.settle();
+		link.display(ait_app.name);
 		g_RCInput->getMsg_ms(&msg, &data, 50);
 		if (msg == CRCInput::RC_timeout)
 			continue;

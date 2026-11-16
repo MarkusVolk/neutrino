@@ -278,8 +278,11 @@ static void report_input(void)
  * value 1 down, 2 held, 0 up, as the input devices give it */
 static void device_key(unsigned code, int value)
 {
-	if (value == 1)
+	if (value == 1) {
 		report_input();
+		/* Neutrino looks at what the page highlights after a key */
+		control_send("pressed");
+	}
 	/* keyboards and PC remote controls have Esc and a home page key */
 	if (code == KEY_ESC)
 		code = KEY_EXIT;

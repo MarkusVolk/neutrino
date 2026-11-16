@@ -687,6 +687,21 @@
 		}
 		if (marked.length)
 			out.push('Highlighted: ' + marked.join(' | '));
+		/* the largest heading names what a detail page is about */
+		var heading = '', size = 0;
+		var heads = document.querySelectorAll('h1, h2, h3, [class*="title"], [class*="Title"], [class*="headline"], [class*="Headline"]');
+		for (var h = 0; h < heads.length; h++) {
+			var e = heads[h], t2 = text(e);
+			if (t2.length < 3 || t2.length > 120 || !e.getClientRects().length)
+				continue;
+			var fs = parseFloat(getComputedStyle(e).fontSize) || 0;
+			if (fs > size) {
+				size = fs;
+				heading = t2;
+			}
+		}
+		if (heading)
+			out.push('Heading: ' + heading);
 		var body = document.body ? document.body.innerText.replace(/[ \t]+/g, ' ').replace(/\s*\n\s*/g, '\n').trim() : '';
 		if (body.length > 2000)
 			body = body.substr(0, 2000) + ' ...';

@@ -37,6 +37,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <iomanip>
+#include <algorithm>
 #include <system/set_threadname.h>
 
 #include <global.h>
@@ -127,6 +128,43 @@ CLCD4l::CLCD4l()
 {
 	thrLCD4l = NULL;
 	exit_proc = false;
+	m_External.active = false;
+	m_External.playing = false;
+	m_External.paused = false;
+	m_External.position = 0;
+	m_External.duration = 0;
+}
+
+void CLCD4l::SetExternal(const std::string &service, const std::string &event, bool playing, bool paused, int position, int duration)
+{
+	bool changed;
+	{
+		std::lock_guard<std::mutex> lock(m_ExternalLock);
+		changed = !m_External.active || m_External.service != service || m_External.event != event ||
+			  m_External.playing != playing || m_External.paused != paused;
+		m_External.active = true;
+		m_External.service = service;
+		m_External.event = event;
+		m_External.playing = playing;
+		m_External.paused = paused;
+		m_External.position = position;
+		m_External.duration = duration;
+	}
+	/* the display thread writes a change at once, not in its next round */
+	if (changed)
+		ResetParseID();
+}
+
+void CLCD4l::ClearExternal()
+{
+	{
+		std::lock_guard<std::mutex> lock(m_ExternalLock);
+		if (!m_External.active)
+			return;
+		m_External.active = false;
+	}
+	/* the channel's data are written anew */
+	ResetParseID();
 }
 
 CLCD4l::~CLCD4l()
@@ -404,6 +442,12 @@ void CLCD4l::ParseInfo(uint64_t parseID, bool newID, bool firstRun)
 
 	std::string EOL = "\n";
 	struct tm tm_buf;
+
+	external_info external;
+	{
+		std::lock_guard<std::mutex> lock(m_ExternalLock);
+		external = m_External;
+	}
 
 	/* Copied under the lock, because this runs on the display's own thread and
 	   the box's loop assigns to the same members from a screen. */
@@ -748,7 +792,7 @@ void CLCD4l::ParseInfo(uint64_t parseID, bool newID, bool firstRun)
 
 	/* ----------------------------------------------------------------- */
 
-	if (firstRun || newID || parseID == NeutrinoModes::mode_audio || parseID == NeutrinoModes::mode_ts || !m_ActionKey.empty())
+	if (firstRun || newID || parseID == NeutrinoModes::mode_audio || parseID == NeutrinoModes::mode_ts || !m_ActionKey.empty() || external.active)
 	{
 		std::string Service = "";
 		int ChannelNr = 0;
@@ -758,7 +802,20 @@ void CLCD4l::ParseInfo(uint64_t parseID, bool newID, bool firstRun)
 
 		int ModeStandby = 0;
 
-		if (m_ActionKey == "moviebrowser")
+		if (external.active)
+		{
+			Service = external.service;
+			/* the logo of the media library by its name, paused the pause
+			   symbol, playing without a logo the play symbol */
+			std::string found;
+			if (external.playing && external.paused)
+				Logo = std::string(ICONSDIR "/") + NEUTRINO_ICON_PAUSE + ".svg";
+			else if (g_PicViewer->GetLogoName(0, Service, found, &dummy, &dummy, CPictureViewer::LCD4LINUX, false))
+				Logo = found;
+			else if (external.playing)
+				Logo = std::string(ICONSDIR "/") + NEUTRINO_ICON_PLAY + ".svg";
+		}
+		else if (m_ActionKey == "moviebrowser")
 		{
 			Service = g_Locale->getText(LOCALE_MOVIEBROWSER_HEAD);
 			g_PicViewer->GetLogoName(0, "Moviebrowser", Logo, &dummy, &dummy, CPictureViewer::LCD4LINUX, true);
@@ -1035,7 +1092,29 @@ void CLCD4l::ParseInfo(uint64_t parseID, bool newID, bool firstRun)
 
 	bool writeEvent = true;
 
-	if (m_ActionKey == "moviebrowser")
+	if (external.active)
+	{
+		Event = external.event;
+		if (external.duration > 0)
+		{
+			int total = external.duration / 1000;
+			int done = std::min(std::max(external.position / 1000, 0), total);
+			Progress = (int)((int64_t)done * 100 / total);
+			snprintf(Duration, sizeof(Duration), "%d/%d\n%d\n%d\n%d",
+				done / 60, total / 60,
+				done / 60,
+				(total - done) / 60,
+				total / 60);
+			time_t now = time(NULL);
+			time_t sTime = now - done;
+			tm_struct = localtime_r(&sTime, &tm_buf);
+			snprintf(Start, sizeof(Start), "%02d:%02d", tm_struct->tm_hour, tm_struct->tm_min);
+			time_t eTime = now + total - done;
+			tm_struct = localtime_r(&eTime, &tm_buf);
+			snprintf(End, sizeof(End), "%02d:%02d", tm_struct->tm_hour, tm_struct->tm_min);
+		}
+	}
+	else if (m_ActionKey == "moviebrowser")
 	{
 		// do nothing; Event is processed in moviebrowser
 		writeEvent = false;
