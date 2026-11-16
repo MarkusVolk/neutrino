@@ -7363,20 +7363,21 @@ void CNeutrinoApp::migrateConfig(const char *fname)
 	 * "new entry created" flag */
 	CConfigFile migconf('\t', false);
 	migconf.loadConfig(fname);
-	/* here we do a simple rename of config file keys */
+	/* here we do a simple rename of config file keys; the value moves as the
+	   text it is, so that a PIN keeps its leading zeros */
 	int magic = -424242; /* obviously a value that does not appear in real cases */
 	int i;
 	for (i = 0; key_rename[i].from != NULL; i++) {
 		const char *from = key_rename[i].from;
 		const char *to   = key_rename[i].to;
-		int tmp = migconf.getInt32(from, magic);
-		if (tmp == magic)	/* old key does not exist */
+		if (!migconf.hasKey(from))	/* old key does not exist */
 			continue;
 		/* only set new key to old value if the new key does not yet exist */
-		if (configfile.getInt32(to, magic) == magic)
-			configfile.setInt32(to, tmp);
+		if (!configfile.hasKey(to))
+			configfile.setString(to, migconf.getString(from, ""));
 		/* always remove old key */
 		configfile.deleteKey(from);
+		configfile.setUnknownKeyQueryedFlag(true); // force saving config
 	}
 	/* The OSD had two sizes with margins of their own. It takes the size of the
 	   output now and keeps one set for 1280x720: a set made for 1920x1080, the
