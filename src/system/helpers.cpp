@@ -808,6 +808,12 @@ bool exec_initscript(std::string script, std::string command, std::string system
 				return false;
 			}
 		}
+		/* a system run by systemd may come without the service wrapper */
+		else if (access("/run/systemd/system", F_OK) == 0 && !find_executable("systemctl").empty())
+		{
+			sys_command = "systemctl";
+			use_systemd = true;
+		}
 		else
 		{
 			return false;
