@@ -257,6 +257,7 @@ public:
 	void standbyToStandby(void);
 	bool hasPendingRecording(void);
 	void tryDeferredDeepStandby(void);
+	void cancelDeferredDeepStandby(void);
 	void lockPlayBack();
 	void unlockPlayBack(bool start = true);
 	void stopPlayBack(bool lock = false);

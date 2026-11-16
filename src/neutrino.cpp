@@ -4210,12 +4210,19 @@ void CNeutrinoApp::tryDeferredDeepStandby(void)
 		CStreamManager::getInstance()->StreamStatus();
 	if (alive || hasPendingRecording())
 		return;
+	cancelDeferredDeepStandby();
+	g_RCInput->postMsg(NeutrinoMessages::SHUTDOWN, 0);
+}
+
+/* Whatever takes the box out of standby - the user, a zap timer - also ends
+   the wait for the deep-standby; the next standby is no power-off. */
+void CNeutrinoApp::cancelDeferredDeepStandby(void)
+{
 	deferred_deepstandby = false;
 	if (deferred_recheck_timer) {
 		g_RCInput->killTimer(deferred_recheck_timer);
 		deferred_recheck_timer = 0;
 	}
-	g_RCInput->postMsg(NeutrinoMessages::SHUTDOWN, 0);
 }
 
 void CNeutrinoApp::standbyToStandby(void)
@@ -5014,12 +5021,8 @@ int CNeutrinoApp::handleMsg(const neutrino_msg_t _msg, neutrino_msg_data_t data)
 		if( mode == NeutrinoModes::mode_standby ) {
 			standbyMode( false );
 		}
-		// user woke the box -> cancel a deferred deep-standby
-		deferred_deepstandby = false;
-		if (deferred_recheck_timer) {
-			g_RCInput->killTimer(deferred_recheck_timer);
-			deferred_recheck_timer = 0;
-		}
+		/* also when a mode change took the box out of standby before */
+		cancelDeferredDeepStandby();
 		g_RCInput->clearRCMsg();
 		return messages_return::handled;
 	}
@@ -5858,6 +5861,7 @@ void CNeutrinoApp::standbyMode(bool bOnOff, bool fromDeepStandby)
 		if (mode != NeutrinoModes::mode_standby) {
 			INFO("woken to %s while the guide was being written, standby dropped",
 				neutrinoMode_to_string(mode));
+			cancelDeferredDeepStandby();
 #if BOXMODEL_E4HDULTRA
 			videoDecoder->SetControl(VIDEO_CONTROL_ZAPPING_MODE, g_settings.zappingmode);
 #endif
@@ -5908,6 +5912,7 @@ void CNeutrinoApp::standbyMode(bool bOnOff, bool fromDeepStandby)
 		if (scansettings.fst_update)
 			fst_timer = g_RCInput->addTimer(30*1000*1000, true);
 	} else {
+		cancelDeferredDeepStandby();
 		// Active standby off
 		powerManager->SetStandby(false, false);
 		CVFD::getInstance()->setMode(CVFD::MODE_TVRADIO);
