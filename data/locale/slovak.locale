@@ -790,9 +790,7 @@ flashupdate.cantopenfile Otvorenie súboru nemožné
 flashupdate.cantopenmtd Otvorenie MTD-zariadenia nemožné
 flashupdate.checkupdate_internet Kontrola aktualizácie cez sieť
 flashupdate.checkupdate_local Lokálna aktualizácia
-flashupdate.choose_partition Výber partície
 flashupdate.copy_image Kopíruje sa Image do hlavnej pamäte
-flashupdate.copy_settings Kopírovať nastavenia do nového Image ?
 flashupdate.createimage Uložiť Image
 flashupdate.createimage_add_env Pridať "env"
 flashupdate.createimage_add_kernel Pridať "kernel"
@@ -863,8 +861,6 @@ flashupdate.reallyflashmtd Naozaj vykonať programovanie?\n\nV prípade výskytu
 flashupdate.savesuccess IMAGE bol úspešne uložený \nako %s.
 flashupdate.selectimage Dostupné verzie / súbory
 flashupdate.settings Aktualizácia nastavení
-flashupdate.start_ofgwrite Spustenie OFG zapisovania ...
-flashupdate.start_selected_partition Spustiť vybranú partíciu?
 flashupdate.titlereadflash Načítavanie pamäte FLASH
 flashupdate.titlewriteflash Zapisovanie pamäte FLASH
 flashupdate.type_addon Doplnok

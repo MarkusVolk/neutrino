@@ -790,9 +790,7 @@ flashupdate.cantopenfile Kan het bestand niet openen
 flashupdate.cantopenmtd Kan MTD niet openen
 flashupdate.checkupdate_internet Online updates zoeken
 flashupdate.checkupdate_local Lokaal updaten
-flashupdate.choose_partition Partitie kiezen
 flashupdate.copy_image Image naar het hoofdgeheugen kopiëren
-flashupdate.copy_settings Instellingen naar de nieuwe image kopiëren?
 flashupdate.createimage Bewaar image
 flashupdate.createimage_add_env Voeg 'env' toe aan image
 flashupdate.createimage_add_kernel Voeg 'kernel' toe aan image
@@ -863,8 +861,6 @@ flashupdate.reallyflashmtd Weet u zeker dat u wilt updaten?\nIndien er zich een 
 flashupdate.savesuccess De Firmware is succesvol opgeslagen \n onder %s.
 flashupdate.selectimage Beschikbare firmware/bestanden
 flashupdate.settings Update instellingen
-flashupdate.start_ofgwrite ofgwrite wordt gestart ...
-flashupdate.start_selected_partition Gekozen partitie starten?
 flashupdate.titlereadflash Flash wordt gelezen
 flashupdate.titlewriteflash Flash schrijven
 flashupdate.type_addon Add-on

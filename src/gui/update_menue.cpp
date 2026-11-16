@@ -129,7 +129,7 @@ int CSoftwareUpdate::showSoftwareUpdate()
 	// expert-functions
 	CMenuWidget mtdexpert(LOCALE_FLASHUPDATE_EXPERTFUNCTIONS, NEUTRINO_ICON_UPDATE, width, MN_WIDGET_ID_MTDEXPERT);
 	/* an eMMC box has no MTD partitions to read or write */
-	if (!g_info.hw_caps->can_ofgwrite && !slotbox)
+	if (!slotbox)
 	{
 		softUpdate.addItem(GenericMenuSeparatorLine);
 		showSoftwareUpdateExpert(&mtdexpert);

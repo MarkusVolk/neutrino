@@ -796,10 +796,8 @@ flashupdate.cantopenfile kann Datei nicht öffnen
 flashupdate.cantopenmtd kann MTD nicht öffnen
 flashupdate.checkupdate_internet Online-Update
 flashupdate.checkupdate_local Lokales Update
-flashupdate.choose_partition Partition wählen
 flashupdate.choose_slot Slot wählen
 flashupdate.copy_image Kopiere Image in den Arbeitsspeicher
-flashupdate.copy_settings Einstellungen ins neue Image übernehmen?
 flashupdate.createimage Image speichern
 flashupdate.createimage_add_env 'env' hinzufügen
 flashupdate.createimage_add_kernel 'kernel' hinzufügen
@@ -848,11 +846,7 @@ flashupdate.namemode2_default <Partition>+<Zeit>.img
 flashupdate.namemode2_hostname_time <Partition>+<Zeit>+<Hostname>.img
 flashupdate.new_found Updates verfügbar!
 flashupdate.new_notfound Keine Updates verfügbar!
-flashupdate.no_room Partition %d hat keinen Platz für dieses Image. Es wurde nichts geschrieben.
 flashupdate.noversion Die Versionsüberprüfung ist nur bei Online-Aktualisierungen möglich.\nTrotzdem fortfahren?
-flashupdate.ofgwrite_failed ofgwrite konnte das Image nicht schreiben. Die Box startet weiter die laufende Partition.
-flashupdate.overwrite_partition Partition %d wird überschrieben.\n\nFortfahren?
-flashupdate.own_partition Die laufende Partition wird geschrieben. Neutrino wird dafür beendet, und die Box startet danach mit dem neuen Image.\n\nFortfahren?
 flashupdate.programmingflash programmiere Flash
 flashupdate.proxypassword Passwort
 flashupdate.proxypassword_hint1 Geben sie das Proxy-Passwort ein
@@ -894,8 +888,6 @@ flashupdate.slot_step_rootfs Das Dateisystem wird geschrieben
 flashupdate.slot_step_unzip Das Image wird entpackt
 flashupdate.slot_unknown unbekanntes Image
 flashupdate.slot_written Slot %d ist geschrieben.
-flashupdate.start_ofgwrite Starte ofgwrite ...
-flashupdate.start_selected_partition Starte ausgewählte Partition?
 flashupdate.titlereadflash Flash auslesen
 flashupdate.titlewriteflash Flash schreiben
 flashupdate.type_addon Erweiterung

@@ -96,13 +96,11 @@ extern cVideo *videoDecoder;
 
 #define LIST_OF_UPDATES_LOCAL_FILENAME "update.list"
 
-/* a box flashed with ofgwrite takes a whole image as tgz, the others write a partition */
-#define FILEBROWSER_UPDATE_FILTER	(g_info.hw_caps->can_ofgwrite ? "tgz" : "img")
-#define MTD_OF_WHOLE_IMAGE		(g_info.hw_caps->can_ofgwrite ? 999 : 0)
+#define MTD_OF_WHOLE_IMAGE		0
 #ifdef BOXMODEL_CST_HD2
 #define MTD_DEVICE_OF_UPDATE_PART	"/dev/mtd0"
 #else
-#define MTD_DEVICE_OF_UPDATE_PART	(g_info.hw_caps->can_ofgwrite ? "/dev/mtd999" : "/dev/mtd3")
+#define MTD_DEVICE_OF_UPDATE_PART	"/dev/mtd3"
 #endif
 
 int pinghost(const std::string &hostname, std::string *ip = NULL);
@@ -585,11 +583,6 @@ bool CFlashUpdate::selectHttpImage(void)
 		}
 	}
 #endif
-	if (g_info.hw_caps->can_ofgwrite && gotImage && (filename.substr(filename.find_last_of(".") + 1) == "tgz" || filename.substr(filename.find_last_of(".") + 1) == "zip"))
-	{
-		// manipulate fileType for tgz- or zip-packages
-		fileType = 'Z';
-	}
 	dprintf(DEBUG_NORMAL, "[update] filename %s type %c newVersion %s md5 %s\n", filename.c_str(), fileType, newVersion.c_str(), file_md5.c_str());
 
 	return true;
@@ -653,11 +646,7 @@ bool CFlashUpdate::checkVersion4Update()
 			UpdatesFilter.addFilter("zip");
 		else
 		{
-			UpdatesFilter.addFilter(FILEBROWSER_UPDATE_FILTER);
-			if (g_info.hw_caps->can_ofgwrite)
-				UpdatesFilter.addFilter("zip");
-
-			std::string filters[] = {"bin", "txt"};
+			std::string filters[] = {"img", "bin", "txt"};
 			for (size_t i = 0; i < sizeof(filters) / sizeof(filters[0]) ; i++)
 				UpdatesFilter.addFilter(filters[i]);
 		}
@@ -699,10 +688,6 @@ bool CFlashUpdate::checkVersion4Update()
 				fileType = 'A';
 			else if (!strcmp(ptr, "txt"))
 				fileType = 'T';
-			else if (!strcmp(ptr, "tgz"))
-				fileType = 'Z';
-			else if (!strcmp(ptr, "zip"))
-				fileType = 'Z';
 			else
 				fileType = 0;
 			dprintf(DEBUG_NORMAL, "[update] manual file type: %s %c\n", ptr, fileType);
@@ -836,130 +821,6 @@ int CFlashUpdate::exec(CMenuTarget *parent, const std::string &actionKey)
 		ShowHint(LOCALE_MESSAGEBOX_INFO, LOCALE_FLASHUPDATE_FLASHREADYREBOOT);
 		sleep(2);
 		ft.reboot();
-	}
-	else if (fileType == 'Z' && g_info.hw_caps->can_ofgwrite) // flashing image with ofgwrite
-	{
-		bool flashing = false;
-		showGlobalStatus(100);
-
-		if (CRecordManager::getInstance()->RecordingStatus())
-		{
-			hide();
-			DisplayErrorMessage(g_Locale->getText(LOCALE_FLASHUPDATE_RECORDING_RUNNING));
-			return menu_return::RETURN_REPAINT;
-		}
-
-		int copy_settings = ShowMsg(LOCALE_MESSAGEBOX_INFO, LOCALE_FLASHUPDATE_COPY_SETTINGS, CMsgBox::mbrYes, CMsgBox::mbYes | CMsgBox::mbNo, NEUTRINO_ICON_UPDATE);
-
-		// get active partition
-		char c[12] = {0};
-		snprintf(c, sizeof(c), "%d", getActivePartition());
-
-		// select partition
-		int selected = 0;
-		CMenuSelectorTarget *selector = new CMenuSelectorTarget(&selected);
-
-		CMenuWidget m(LOCALE_FLASHUPDATE_CHOOSE_PARTITION, NEUTRINO_ICON_SETTINGS);
-		m.setDigitKeys(CMenuWidget::DIGITS_OWN);
-		m.addItem(GenericMenuSeparator);
-		CMenuForwarder *mf;
-
-		for (int i = 1; i < 4 + 1; i++)
-		{
-			bool active = !strcmp(c, to_string(i).c_str());
-			bool enable = true;
-			std::string m_title = "Partition " + to_string(i);
-			// own partition blocked, because fix needed for flashing own partition
-			if (active && g_info.hw_caps->multiboot_first_partition)
-				enable = false;
-			mf = new CMenuForwarder(m_title, enable, NULL, selector, to_string(i).c_str(), CRCInput::convertDigitToKey(i));
-			mf->iconName_Info_right = active ? NEUTRINO_ICON_MARKER_DIALOG_OK : NULL;
-			m.addItem(mf, active);
-		}
-
-		m.enableSaveScreen(true);
-		m.exec(NULL, "");
-
-		delete selector;
-
-		dprintf(DEBUG_NORMAL, "[update] Flash into partition %d\n", selected);
-
-		int restart = CMsgBox::mbNo;
-
-		bool own = selected > 0 && strcmp(c, to_string(selected).c_str()) == 0;
-		std::string startup_new = std::string("/boot/") + g_info.hw_caps->startup_file + "_" + to_string(selected);
-		if (selected > 0)
-		{
-			/* the last chance to keep the partition; for the own one ofgwrite
-			   ends Neutrino and restarts the box when it is done */
-			char question[256];
-			snprintf(question, sizeof(question), g_Locale->getText(LOCALE_FLASHUPDATE_OVERWRITE_PARTITION), selected);
-			flashing = ShowMsg(LOCALE_MESSAGEBOX_INFO, own ? g_Locale->getText(LOCALE_FLASHUPDATE_OWN_PARTITION) : question,
-					   CMsgBox::mbrNo, CMsgBox::mbYes | CMsgBox::mbNo, NEUTRINO_ICON_UPDATE) == CMsgBox::mbrYes;
-		}
-		if (flashing && !own)
-			restart = ShowMsg(LOCALE_MESSAGEBOX_INFO, LOCALE_FLASHUPDATE_START_SELECTED_PARTITION, CMsgBox::mbrYes, CMsgBox::mbYes | CMsgBox::mbNo, NEUTRINO_ICON_UPDATE);
-		if (flashing)
-			ShowHint(LOCALE_MESSAGEBOX_INFO, LOCALE_FLASHUPDATE_START_OFGWRITE);
-		hide();
-
-		/* where ofgwrite_caller unpacks without slot directories: /tmp in RAM is too small */
-		std::string unpack_dir = getPathName(filename);
-		std::string ofgwrite_caller = find_executable("ofgwrite_caller");
-		/* the settings are kept beside the slot directory, the new image puts them back at its first start */
-		const char *settings = copy_settings == CMsgBox::mbrYes ? "settings" : "";
-		dprintf(DEBUG_NORMAL, "[update] calling %s %s %s %d %s %s\n", ofgwrite_caller.c_str(), unpack_dir.c_str(), filename.c_str(), selected, startup_new.c_str(), settings);
-#ifndef DRYRUN
-		if (flashing)
-		{
-			if (FILE *f = fopen("/tmp/.flash.start", "w"))
-				fclose(f);
-
-			/* a timeshift writing to the same drive slows the unpacking down */
-			CRecordManager::getInstance()->StopAutoTimer();
-			CRecordManager::getInstance()->StopAutoRecord();
-
-			CVFD::getInstance()->setMode(CVFD::MODE_MENU_UTF8);
-			CVFD::getInstance()->showMenuText(0, "ofgwrite Flashing Tool", -1, true);
-			/* ofgwrite draws its progress itself; Neutrino must not paint over it */
-			CFrameBuffer *fb = CFrameBuffer::getInstance();
-			unsigned int xres = fb->getScreenWidth(true), yres = fb->getScreenHeight(true);
-			fb->setDisplayHandedOver(true);
-			int ret = my_system(6, ofgwrite_caller.c_str(), unpack_dir.c_str(), filename.c_str(), to_string(selected).c_str(), startup_new.c_str(), settings);
-			fb->setDisplayHandedOver(false);
-			fb->setMode(xres, yres, 32);
-			if (ret != 0)
-			{
-				dprintf(DEBUG_NORMAL, "[update] %s failed\n", ofgwrite_caller.c_str());
-				if (ret == 2) {
-					char msg[256];
-					snprintf(msg, sizeof(msg), g_Locale->getText(LOCALE_FLASHUPDATE_NO_ROOM), selected);
-					DisplayErrorMessage(msg);
-				} else
-					DisplayErrorMessage(g_Locale->getText(LOCALE_FLASHUPDATE_OFGWRITE_FAILED));
-				return menu_return::RETURN_REPAINT;
-			}
-		}
-
-		/*
-		   TODO: fix osd-flickering
-		   Neutrino is clearing framebuffer, so ofgwrite's gui is cleared too.
-		*/
-
-		dprintf(DEBUG_NORMAL, "[update] %s done\n", ofgwrite_caller.c_str());
-
-		/* the box starts the partition only once it is written */
-		if (restart == CMsgBox::mbrYes)
-		{
-			if (g_settings.hdmi_cec_standby)
-				videoDecoder->SetCECMode((VIDEO_HDMI_CEC_MODE)0);
-			dprintf(DEBUG_NORMAL, "[update] Start selected partition %d (%s)\n", selected, startup_new.c_str());
-			CFileHelpers fh;
-			fh.copyFile(startup_new.c_str(), "/boot/STARTUP");
-			CNeutrinoApp::getInstance()->exec(NULL, "reboot");
-		}
-#endif
-		return menu_return::RETURN_EXIT_ALL;
 	}
 	else if (fileType == 'T') // not image, display file contents
 	{
