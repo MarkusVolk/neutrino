@@ -33,6 +33,7 @@
 #include <driver/fb_generic.h>
 #include <driver/fb_accel.h>
 
+#include <algorithm>
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -827,7 +828,7 @@ void CFrameBuffer::paintVLineRel(int x, int y, int dy, const fb_pixel_t col)
 		return;
 
 	paintVLineRelInternal(x, y, dy, col);
-	mark(x, y, x, y + dy);
+	mark(x, y, x + 1, y + dy);
 }
 
 void CFrameBuffer::paintHLineRelInternal(int x, int dx, int y, const fb_pixel_t col)
@@ -859,7 +860,7 @@ void CFrameBuffer::paintHLineRel(int x, int dx, int y, const fb_pixel_t col)
 		return;
 
 	paintHLineRelInternal(x, dx, y, col);
-	mark(x, y, x + dx, y);
+	mark(x, y, x + dx, y + 1);
 }
 
 void CFrameBuffer::setIconBasePath(const std::string & iconPath)
@@ -1483,7 +1484,7 @@ void CFrameBuffer::paintLine(int xa, int ya, int xb, int yb, const fb_pixel_t co
 			*(fbp + swidth * y + x) = col;
 		}
 	}
-	mark(xa, ya, xb, yb);
+	mark(std::min(xa, xb), std::min(ya, yb), std::max(xa, xb) + 1, std::max(ya, yb) + 1);
 }
 #if 0
 //never used
