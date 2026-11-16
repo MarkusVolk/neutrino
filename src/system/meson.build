@@ -19,6 +19,7 @@ libneutrino_system_sources = [
 	'recordings.cpp',
 	'secrets.cpp',
 	'settings.cpp',
+	'slots.cpp',
 	'stacktrace.cpp',
 	'storage.cpp',
 	'supportinfo.cpp',

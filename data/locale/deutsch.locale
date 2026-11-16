@@ -791,11 +791,13 @@ flashupdate.actionreadflash lese Flash
 flashupdate.apply_settings Sollen die aktuellen Einstellungen in das neue Image übernommen werden?
 flashupdate.autocheck Auf Flash-Updates prüfen
 flashupdate.autocheck_packages Auf Paket-Updates prüfen
+flashupdate.boot_slot Startslot
 flashupdate.cantopenfile kann Datei nicht öffnen
 flashupdate.cantopenmtd kann MTD nicht öffnen
 flashupdate.checkupdate_internet Online-Update
 flashupdate.checkupdate_local Lokales Update
 flashupdate.choose_partition Partition wählen
+flashupdate.choose_slot Slot wählen
 flashupdate.copy_image Kopiere Image in den Arbeitsspeicher
 flashupdate.copy_settings Einstellungen ins neue Image übernehmen?
 flashupdate.createimage Image speichern
@@ -873,6 +875,25 @@ flashupdate.recording_running Eine Aufnahme läuft. Das Image bitte erst nach ih
 flashupdate.savesuccess Das Image wurde erfolgreich unter dem\nDateinamen %s gespeichert.
 flashupdate.selectimage Verfügbare Images und Updates
 flashupdate.settings Update-Einstellungen
+flashupdate.slot Slot %d
+flashupdate.slot_empty leer
+flashupdate.slot_failed Das Image konnte nicht geschrieben werden:\n%s
+flashupdate.slot_keep Slot %d wieder als Startslot setzen?
+flashupdate.slot_next startet als nächstes
+flashupdate.slot_no_room Slot %d hat keinen Platz für dieses Image. Es wurde nichts geschrieben.
+flashupdate.slot_overwrite Slot %d wird überschrieben.\n\nFortfahren?
+flashupdate.slot_own Der laufende Slot %d wird geschrieben. Die Box startet dafür neu und danach mit dem neuen Image.\n\nFortfahren?
+flashupdate.slot_restart Die Box startet neu.
+flashupdate.slot_running läuft
+flashupdate.slot_start Die Box mit Slot %d neu starten?
+flashupdate.slot_start_after Slot %d starten, wenn er geschrieben ist?
+flashupdate.slot_start_failed Slot %d konnte nicht gestartet werden:\n%s
+flashupdate.slot_step_kernel Der Kernel wird geschrieben
+flashupdate.slot_step_prepare Das Update wird vorbereitet
+flashupdate.slot_step_rootfs Das Dateisystem wird geschrieben
+flashupdate.slot_step_unzip Das Image wird entpackt
+flashupdate.slot_unknown unbekanntes Image
+flashupdate.slot_written Slot %d ist geschrieben.
 flashupdate.start_ofgwrite Starte ofgwrite ...
 flashupdate.start_selected_partition Starte ausgewählte Partition?
 flashupdate.titlereadflash Flash auslesen
@@ -887,6 +908,7 @@ flashupdate.type_settings Einstellungen
 flashupdate.type_text Text
 flashupdate.type_unknown Unbekannt
 flashupdate.type_update Aktualisierung
+flashupdate.update_dir_ram Das Verzeichnis für Updates liegt im Arbeitsspeicher, der für ein Image zu klein ist. Bitte in den Einstellungen der Aktualisierung ein Verzeichnis auf einem Datenträger wählen.
 flashupdate.update_with_settings_del_skipped Ordner [%s] kann nicht gelöscht werden. Eintrag wird übersprungen.
 flashupdate.update_with_settings_error Error Flashspeicher!\n \nIm neuen Image sind nur noch %ld KB (von %ld KB) frei,\ndas ist zu wenig, um einen sicheren Betrieb zu gewährleisten.\n \nDer Vorgang wird abgebrochen!
 flashupdate.update_with_settings_processed Image wird bearbeitet ...
@@ -1441,6 +1463,7 @@ menu.hint_bluetooth_disconnect Dieses Gerät trennen
 menu.hint_bluetooth_pair Dieses Gerät koppeln und verbinden
 menu.hint_bluetooth_power Den Bluetooth-Adapter ein- oder ausschalten
 menu.hint_bluetooth_scan Nach Geräten suchen, die im Kopplungsmodus sind
+menu.hint_boot_slot Wählt das Image, mit dem die Box startet
 menu.hint_buildinfo Informationen über Compiler, Compilerflags, Kernel
 menu.hint_ca_init Konfiguration der CA-Systemhardware, CA-Modul und Kartenschächte
 menu.hint_cache_txt Startet das Zwischenspeichern des Videotextes nach einem Kanalwechsel

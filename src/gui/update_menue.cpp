@@ -48,6 +48,7 @@
 #include <system/debug.h>
 #include <system/flashtool.h>
 #include <system/helpers.h>
+#include <system/slots.h>
 
 CSoftwareUpdate::CSoftwareUpdate()
 {
@@ -109,6 +110,16 @@ int CSoftwareUpdate::showSoftwareUpdate()
 	update_item->setHint("", LOCALE_MENU_HINT_SOFTUPDATE_CHECK_LOCAL);
 	softUpdate.addItem(update_item);
 
+	// the slot the box starts, where it has several
+	CBootSlots boot_slots;
+	bool slotbox = slots::available();
+	if (slotbox)
+	{
+		mf = new CMenuForwarder(LOCALE_FLASHUPDATE_BOOT_SLOT, true, NULL, &boot_slots, NULL, CRCInput::RC_blue);
+		mf->setHint("", LOCALE_MENU_HINT_BOOT_SLOT);
+		softUpdate.addItem(mf);
+	}
+
 	// settings
 	CUpdateSettings update_settings;
 	mf = new CMenuForwarder(LOCALE_FLASHUPDATE_SETTINGS, true, NULL, &update_settings, NULL, CRCInput::RC_yellow);
@@ -117,7 +128,8 @@ int CSoftwareUpdate::showSoftwareUpdate()
 
 	// expert-functions
 	CMenuWidget mtdexpert(LOCALE_FLASHUPDATE_EXPERTFUNCTIONS, NEUTRINO_ICON_UPDATE, width, MN_WIDGET_ID_MTDEXPERT);
-	if (!g_info.hw_caps->can_ofgwrite)
+	/* an eMMC box has no MTD partitions to read or write */
+	if (!g_info.hw_caps->can_ofgwrite && !slotbox)
 	{
 		softUpdate.addItem(GenericMenuSeparatorLine);
 		showSoftwareUpdateExpert(&mtdexpert);

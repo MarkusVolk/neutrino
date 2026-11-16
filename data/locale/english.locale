@@ -791,11 +791,13 @@ flashupdate.actionreadflash reading
 flashupdate.apply_settings Import current settings into new image?
 flashupdate.autocheck Check for flash updates
 flashupdate.autocheck_packages Check for package updates
+flashupdate.boot_slot Boot slot
 flashupdate.cantopenfile can't open file
 flashupdate.cantopenmtd can't open MTD
 flashupdate.checkupdate_internet Online update
 flashupdate.checkupdate_local Local update
 flashupdate.choose_partition Choose partition
+flashupdate.choose_slot Choose slot
 flashupdate.copy_image Copy Image to main memory
 flashupdate.copy_settings Copy settings to new image?
 flashupdate.createimage Save image
@@ -873,6 +875,25 @@ flashupdate.recording_running A recording is running. Please update the image af
 flashupdate.savesuccess The image was successfully saved \nunder %s.
 flashupdate.selectimage Available images and updates
 flashupdate.settings Update settings
+flashupdate.slot Slot %d
+flashupdate.slot_empty empty
+flashupdate.slot_failed The image could not be written:\n%s
+flashupdate.slot_keep Make slot %d the boot slot again?
+flashupdate.slot_next starts next
+flashupdate.slot_no_room Slot %d has no room for this image. Nothing was written.
+flashupdate.slot_overwrite Slot %d is overwritten.\n\nContinue?
+flashupdate.slot_own The running slot %d is written. The box restarts for it and then starts the new image.\n\nContinue?
+flashupdate.slot_restart The box restarts.
+flashupdate.slot_running running
+flashupdate.slot_start Restart the box with slot %d?
+flashupdate.slot_start_after Start slot %d when it is written?
+flashupdate.slot_start_failed Slot %d could not be started:\n%s
+flashupdate.slot_step_kernel Writing the kernel
+flashupdate.slot_step_prepare Preparing the update
+flashupdate.slot_step_rootfs Writing the file system
+flashupdate.slot_step_unzip Unpacking the image
+flashupdate.slot_unknown unknown image
+flashupdate.slot_written Slot %d is written.
 flashupdate.start_ofgwrite Starting ofgwrite ...
 flashupdate.start_selected_partition Start chosen partition?
 flashupdate.titlereadflash Reading Flash
@@ -887,6 +908,7 @@ flashupdate.type_settings Settings
 flashupdate.type_text Text
 flashupdate.type_unknown Unknown
 flashupdate.type_update Update
+flashupdate.update_dir_ram The update directory is in the memory of the box, which is too small for an image. Please choose a directory on a disk in the update settings.
 flashupdate.update_with_settings_del_skipped Folder [%s] can not be deleted. Entry is skipped.
 flashupdate.update_with_settings_error Flash Error!\n \nNew Image only has %ld KB (out of %ld KB) left. Not\nenough space to complete this operation.\n \nCanceling operation!
 flashupdate.update_with_settings_processed Image is being processed ...
@@ -1441,6 +1463,7 @@ menu.hint_bluetooth_disconnect Disconnect this device
 menu.hint_bluetooth_pair Pair and connect this device
 menu.hint_bluetooth_power Switch the Bluetooth adapter on or off
 menu.hint_bluetooth_scan Search for devices that are in pairing mode
+menu.hint_boot_slot Chooses the image the box starts
 menu.hint_buildinfo Information about compilers, compiler flags, kernel
 menu.hint_ca_init Configuration of CA-system hardware, CA-module and card slots
 menu.hint_cache_txt Start teletext caching after channel switch

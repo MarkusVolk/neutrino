@@ -59,16 +59,27 @@ class CFlashUpdate : public CProgressWindow
 		int menu_ret;
 		int softupdate_mode;
 
+		/* the box has multiboot slots that slot-update writes */
+		bool slotbox;
+
 		void update_php(std::string &url, const char *type);
 		bool selectHttpImage(void);
 		bool getUpdateImage(const std::string &version);
 		bool checkVersion4Update();
+		int writeSlot();
 
 	public:
 		CFlashUpdate();
 		int exec(CMenuTarget *parent, const std::string &actionKey);
 		bool checkOnlineVersion();
 		void enableNotify(bool enable) { notify = enable; }
+};
+
+/* chooses the slot the box starts */
+class CBootSlots : public CMenuTarget
+{
+	public:
+		int exec(CMenuTarget *parent, const std::string &actionKey);
 };
 
 class CFlashExpert : public CProgressWindow

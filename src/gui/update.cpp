@@ -55,6 +55,8 @@
 #include <system/flashtool.h>
 #include <system/httptool.h>
 #include <system/helpers.h>
+#include <system/slots.h>
+#include <gui/widget/remote_ui.h>
 #include <driver/record.h>
 #include <system/debug.h>
 
@@ -84,6 +86,8 @@ extern cVideo *videoDecoder;
 #endif
 
 #include <sys/stat.h>
+#include <sys/vfs.h>
+#include <linux/magic.h>
 
 //#define DRYRUN
 
@@ -121,6 +125,204 @@ CFlashUpdate::CFlashUpdate() : CProgressWindow()
 	dprintf(DEBUG_NORMAL, "[update] mtd partition to update: %s\n", sysfs.c_str());
 	notify = true;
 	gotImage = false; // NOTE: local update can't set gotImage variable!
+	slotbox = false;
+}
+
+static std::string slotTitle(int number)
+{
+	char title[64];
+	snprintf(title, sizeof(title), g_Locale->getText(LOCALE_FLASHUPDATE_SLOT), number);
+	return title;
+}
+
+/* the build date of the image a slot holds, and whether it runs or starts next */
+static std::string slotInfo(const slots::Slot &slot)
+{
+	std::string info;
+	if (slot.state == slots::Slot::EMPTY)
+		info = g_Locale->getText(LOCALE_FLASHUPDATE_SLOT_EMPTY);
+	else if (!slot.version.empty())
+	{
+		CFlashVersionInfo version(slot.version);
+		info = std::string(version.getDate()) + " " + version.getTime();
+	}
+	else
+		info = g_Locale->getText(LOCALE_FLASHUPDATE_SLOT_UNKNOWN);
+	if (slot.state == slots::Slot::RUNNING)
+		info += std::string(", ") + g_Locale->getText(LOCALE_FLASHUPDATE_SLOT_RUNNING);
+	if (slot.next && slot.state != slots::Slot::RUNNING)
+		info += std::string(", ") + g_Locale->getText(LOCALE_FLASHUPDATE_SLOT_NEXT);
+	return info;
+}
+
+/* the number of the slot chosen, 0 for none */
+static int chooseSlot(const std::vector<slots::Slot> &list, neutrino_locale_t title, bool empty_ones)
+{
+	int selected = 0;
+	CMenuSelectorTarget selector(&selected);
+	CMenuWidget m(title, NEUTRINO_ICON_UPDATE);
+	m.setDigitKeys(CMenuWidget::DIGITS_OWN);
+	m.addIntroItems();
+	/* the entries show these, they do not copy them */
+	std::vector<std::string> infos;
+	for (size_t i = 0; i < list.size(); i++)
+		infos.push_back(slotInfo(list[i]));
+	for (size_t i = 0; i < list.size(); i++)
+	{
+		const slots::Slot &slot = list[i];
+		bool enable = empty_ones || slot.state != slots::Slot::EMPTY;
+		CMenuForwarder *mf = new CMenuForwarder(slotTitle(slot.number), enable, infos[i], &selector,
+							to_string(slot.number).c_str(), CRCInput::convertDigitToKey(slot.number));
+		mf->iconName_Info_right = slot.state == slots::Slot::RUNNING ? NEUTRINO_ICON_MARKER_DIALOG_OK : NULL;
+		m.addItem(mf, slot.next);
+	}
+	m.exec(NULL, "");
+	return selected;
+}
+
+static const slots::Slot *findSlot(const std::vector<slots::Slot> &list, int number)
+{
+	for (size_t i = 0; i < list.size(); i++)
+		if (list[i].number == number)
+			return &list[i];
+	return NULL;
+}
+
+/* the television stays on while the box restarts into another image */
+static void cecForRestart(bool restart)
+{
+	if (!g_settings.hdmi_cec_standby)
+		return;
+	videoDecoder->SetCECMode(restart ? (VIDEO_HDMI_CEC_MODE)0 : (VIDEO_HDMI_CEC_MODE)g_settings.hdmi_cec_mode);
+}
+
+int CBootSlots::exec(CMenuTarget *parent, const std::string &)
+{
+	if (parent)
+		parent->hide();
+
+	std::vector<slots::Slot> list = slots::list();
+	int number = chooseSlot(list, LOCALE_FLASHUPDATE_BOOT_SLOT, false);
+	const slots::Slot *slot = findSlot(list, number);
+	if (!slot || (slot->state == slots::Slot::RUNNING && slot->next))
+		return menu_return::RETURN_REPAINT;
+
+	bool running = slot->state == slots::Slot::RUNNING;
+	char question[256];
+	snprintf(question, sizeof(question), g_Locale->getText(running ? LOCALE_FLASHUPDATE_SLOT_KEEP : LOCALE_FLASHUPDATE_SLOT_START), number);
+	{
+		/* a restart into another image is the viewer's decision */
+		CRemoteUi::ViewerOnly viewer;
+		if (ShowMsg(LOCALE_FLASHUPDATE_BOOT_SLOT, question, CMsgBox::mbrNo, CMsgBox::mbYes | CMsgBox::mbNo, NEUTRINO_ICON_UPDATE) != CMsgBox::mbrYes)
+			return menu_return::RETURN_REPAINT;
+	}
+
+	if (!running)
+		cecForRestart(true);
+	std::string error;
+	if (!slots::start(number, error))
+	{
+		cecForRestart(false);
+		char msg[512];
+		snprintf(msg, sizeof(msg), g_Locale->getText(LOCALE_FLASHUPDATE_SLOT_START_FAILED), number, error.c_str());
+		DisplayErrorMessage(msg);
+		return menu_return::RETURN_REPAINT;
+	}
+	/* slot-update restarts the box into another slot */
+	return running ? menu_return::RETURN_REPAINT : menu_return::RETURN_EXIT_ALL;
+}
+
+static const char *slotStep(const std::string &step)
+{
+	if (step == "prepare")
+		return g_Locale->getText(LOCALE_FLASHUPDATE_SLOT_STEP_PREPARE);
+	if (step == "unzip")
+		return g_Locale->getText(LOCALE_FLASHUPDATE_SLOT_STEP_UNZIP);
+	if (step == "kernel")
+		return g_Locale->getText(LOCALE_FLASHUPDATE_SLOT_STEP_KERNEL);
+	return g_Locale->getText(LOCALE_FLASHUPDATE_SLOT_STEP_ROOTFS);
+}
+
+/* writes the image chosen into a slot with slot-update */
+int CFlashUpdate::writeSlot()
+{
+	if (CRecordManager::getInstance()->RecordingStatus())
+	{
+		hide();
+		DisplayErrorMessage(g_Locale->getText(LOCALE_FLASHUPDATE_RECORDING_RUNNING));
+		return menu_return::RETURN_REPAINT;
+	}
+	hide();
+
+	std::vector<slots::Slot> list = slots::list();
+	int number = chooseSlot(list, LOCALE_FLASHUPDATE_CHOOSE_SLOT, true);
+	const slots::Slot *slot = findSlot(list, number);
+	if (!slot)
+		return menu_return::RETURN_REPAINT;
+
+	bool own = slot->state == slots::Slot::RUNNING;
+	bool boot = false;
+	{
+		CRemoteUi::ViewerOnly viewer;
+		char question[512];
+		snprintf(question, sizeof(question), g_Locale->getText(own ? LOCALE_FLASHUPDATE_SLOT_OWN : LOCALE_FLASHUPDATE_SLOT_OVERWRITE), number);
+		if (ShowMsg(LOCALE_FLASHUPDATE_HEAD, question, CMsgBox::mbrNo, CMsgBox::mbYes | CMsgBox::mbNo, NEUTRINO_ICON_UPDATE) != CMsgBox::mbrYes)
+			return menu_return::RETURN_REPAINT;
+		if (!own)
+		{
+			snprintf(question, sizeof(question), g_Locale->getText(LOCALE_FLASHUPDATE_SLOT_START_AFTER), number);
+			boot = ShowMsg(LOCALE_FLASHUPDATE_HEAD, question, CMsgBox::mbrNo, CMsgBox::mbYes | CMsgBox::mbNo, NEUTRINO_ICON_UPDATE) == CMsgBox::mbrYes;
+		}
+	}
+
+	/* a timeshift writing to the same drive slows the unpacking down */
+	CRecordManager::getInstance()->StopAutoTimer();
+	CRecordManager::getInstance()->StopAutoRecord();
+
+	setTitle(slotTitle(number));
+	paint();
+	showGlobalStatus(0);
+	std::string status = slotStep("prepare");
+	showStatusMessageUTF(status);
+	CRemoteView remote_view(slotTitle(number), [&status] { return status; }, true);
+	if (own || boot)
+		cecForRestart(true);
+	std::string error;
+	slots::Result result = slots::write(filename, number, boot, [this, &status](int percent, const std::string &step) {
+		showGlobalStatus(percent);
+		status = slotStep(step);
+		showStatusMessageUTF(status);
+	}, error);
+	hide();
+
+	/* a downloaded image has done its work once it is written or staged */
+	if (softupdate_mode == 1 && (result == slots::DONE || result == slots::RESTART))
+		unlink(filename.c_str());
+
+	char msg[512];
+	switch (result)
+	{
+		case slots::RESTART:
+			/* slot-update has asked for the restart that writes the slot or starts it */
+			ShowHint(LOCALE_FLASHUPDATE_HEAD, LOCALE_FLASHUPDATE_SLOT_RESTART);
+			return menu_return::RETURN_EXIT_ALL;
+		case slots::DONE:
+			cecForRestart(false);
+			snprintf(msg, sizeof(msg), g_Locale->getText(LOCALE_FLASHUPDATE_SLOT_WRITTEN), number);
+			ShowMsg(LOCALE_FLASHUPDATE_HEAD, msg, CMsgBox::mbrOk, CMsgBox::mbOk, NEUTRINO_ICON_INFO);
+			break;
+		case slots::NO_ROOM:
+			cecForRestart(false);
+			snprintf(msg, sizeof(msg), g_Locale->getText(LOCALE_FLASHUPDATE_SLOT_NO_ROOM), number);
+			DisplayErrorMessage(msg);
+			break;
+		case slots::FAILED:
+			cecForRestart(false);
+			snprintf(msg, sizeof(msg), g_Locale->getText(LOCALE_FLASHUPDATE_SLOT_FAILED), error.c_str());
+			DisplayErrorMessage(msg);
+			break;
+	}
+	return menu_return::RETURN_REPAINT;
 }
 
 class CUpdateMenuTarget : public CMenuTarget
@@ -278,6 +480,8 @@ bool CFlashUpdate::selectHttpImage(void)
 	{
 		std::string::size_type startpos, endpos;
 		dprintf(DEBUG_NORMAL, "[update] url %s\n", url.c_str());
+		/* an entry without a host lies beside the list */
+		const std::string list_dir = url.substr(0, url.rfind('/') + 1);
 
 		// extract domain name
 		startpos = url.find("//");
@@ -301,6 +505,8 @@ bool CFlashUpdate::selectHttpImage(void)
 			CMenuForwarder *mf;
 			while (in >> url >> version >> md5 >> std::ws)
 			{
+				if (url.find("://") == std::string::npos)
+					url = list_dir + url;
 				urls.push_back(url);
 				versions.push_back(version);
 				std::getline(in, name);
@@ -429,7 +635,7 @@ bool CFlashUpdate::checkVersion4Update()
 		CFlashVersionInfo versionInfo(newVersion);
 		snprintf(msg, sizeof(msg), g_Locale->getText(LOCALE_FLASHUPDATE_MSGBOX), versionInfo.getType(true), versionInfo.getVersionString(), versionInfo.getDate(), versionInfo.getTime());
 
-		if (gotImage)
+		if (gotImage && !slotbox)
 		{
 			if ((fileType != '0' /*Release*/) &&
 				(ShowMsg(LOCALE_MESSAGEBOX_INFO, LOCALE_FLASHUPDATE_EXPERIMENTALIMAGE, CMsgBox::mbrYes, CMsgBox::mbYes | CMsgBox::mbNo, NEUTRINO_ICON_UPDATE) != CMsgBox::mbrYes))
@@ -443,13 +649,18 @@ bool CFlashUpdate::checkVersion4Update()
 		CFileBrowser UpdatesBrowser;
 		CFileFilter UpdatesFilter;
 
-		UpdatesFilter.addFilter(FILEBROWSER_UPDATE_FILTER);
-		if (g_info.hw_caps->can_ofgwrite)
+		if (slotbox)
 			UpdatesFilter.addFilter("zip");
+		else
+		{
+			UpdatesFilter.addFilter(FILEBROWSER_UPDATE_FILTER);
+			if (g_info.hw_caps->can_ofgwrite)
+				UpdatesFilter.addFilter("zip");
 
-		std::string filters[] = {"bin", "txt"};
-		for (size_t i = 0; i < sizeof(filters) / sizeof(filters[0]) ; i++)
-			UpdatesFilter.addFilter(filters[i]);
+			std::string filters[] = {"bin", "txt"};
+			for (size_t i = 0; i < sizeof(filters) / sizeof(filters[0]) ; i++)
+				UpdatesFilter.addFilter(filters[i]);
+		}
 
 		UpdatesBrowser.Filter = &UpdatesFilter;
 
@@ -514,9 +725,11 @@ int CFlashUpdate::exec(CMenuTarget *parent, const std::string &actionKey)
 		parent->hide();
 
 	menu_ret = menu_return::RETURN_REPAINT;
+	slotbox = slots::available();
+	setTitle(LOCALE_FLASHUPDATE_HEAD);
 	paint();
 
-	if (sysfs.size() < 8)
+	if (!slotbox && sysfs.size() < 8)
 	{
 		DisplayErrorMessage(g_Locale->getText(LOCALE_FLASHUPDATE_CANTOPENMTD));
 		hide();
@@ -541,6 +754,15 @@ int CFlashUpdate::exec(CMenuTarget *parent, const std::string &actionKey)
 		char const *fname = rindex(filename.c_str(), '/') + 1;
 		char fullname[255];
 
+		/* a whole image does not fit into the memory of the box */
+		struct statfs fs;
+		if (slotbox && statfs(g_settings.update_dir.c_str(), &fs) == 0 &&
+		    (fs.f_type == TMPFS_MAGIC || fs.f_type == RAMFS_MAGIC))
+		{
+			hide();
+			DisplayErrorMessage(g_Locale->getText(LOCALE_FLASHUPDATE_UPDATE_DIR_RAM));
+			return menu_return::RETURN_REPAINT;
+		}
 		if (!getUpdateImage(newVersion))
 		{
 			hide();
@@ -576,6 +798,9 @@ int CFlashUpdate::exec(CMenuTarget *parent, const std::string &actionKey)
 	showGlobalStatus(60);
 
 	dprintf(DEBUG_NORMAL, "[update] flash/install filename %s type %c\n", filename.c_str(), fileType);
+
+	if (slotbox && filename.size() > 4 && filename.compare(filename.size() - 4, 4, ".zip") == 0)
+		return writeSlot();
 
 	if (fileType <= '9') // flashing image
 	{
