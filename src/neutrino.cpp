@@ -6340,8 +6340,12 @@ int CNeutrinoApp::exec(CMenuTarget* parent, const std::string & actionKey)
 			carryWaitingSettings();
 			saveSetup(NEUTRINO_SETTINGS_FILE);
 
+			/* a signal from here on finds the teardown running, as in ExitRun() */
+			shutdown_in_progress = 1;
+
 			/* this is an ugly mess :-( */
 			delete g_RCInput;
+			g_RCInput = NULL;
 			delete g_Sectionsd;
 			delete g_RemoteControl;
 			delete g_fontRenderer;
