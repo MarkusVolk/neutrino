@@ -414,6 +414,7 @@ void CFbAccelMIPS::run()
 void CFbAccelMIPS::blit()
 {
 	//printf(LOGTAG "blit\n");
+	CFrameBuffer::blit();
 	blit_mutex.lock();
 	blit_cond.signal();
 	blit_mutex.unlock();

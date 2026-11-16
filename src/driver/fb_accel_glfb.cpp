@@ -177,6 +177,7 @@ void CFbAccelGLFB::run()
 
 void CFbAccelGLFB::blit()
 {
+	CFrameBuffer::blit();
 	blit_mutex.lock();
 	blit_wanted = true;
 	blit_cond.signal();
