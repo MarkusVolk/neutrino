@@ -30,6 +30,7 @@
 #include <driver/audiodec/basedec.h>
 #include <driver/audiofile.h>
 #include <driver/audiometadata.h>
+#include <mutex>
 #include <string>
 
 class CAudioPlayer
@@ -39,6 +40,8 @@ private:
 	int  m_sc_buffered;
 	pthread_t	thrPlay;
 	CBaseDec::State state;
+	/* for the changes of state that depend on the one before */
+	std::mutex state_mutex;
 	static void* PlayThread(void*);
 #if HAVE_GENERIC_HARDWARE
 	/* the file or stream played by libmpv instead of the decoders */

@@ -50,7 +50,10 @@
 
 void CAudioPlayer::stop()
 {
-	state = CBaseDec::STOP_REQ;
+	{
+		std::lock_guard<std::mutex> lock(state_mutex);
+		state = CBaseDec::STOP_REQ;
+	}
 	if(thrPlay)
 		pthread_join(thrPlay,NULL);
 	thrPlay = 0;
@@ -58,6 +61,7 @@ void CAudioPlayer::stop()
 }
 void CAudioPlayer::pause()
 {
+   std::lock_guard<std::mutex> lock(state_mutex);
    if(state==CBaseDec::PLAY || state==CBaseDec::FF || state==CBaseDec::REV)
       state=CBaseDec::PAUSE;
    else if(state==CBaseDec::PAUSE)
@@ -65,6 +69,7 @@ void CAudioPlayer::pause()
 }
 void CAudioPlayer::ff(unsigned int seconds)
 {
+	std::lock_guard<std::mutex> lock(state_mutex);
 	m_SecondsToSkip = seconds;
 	if(state==CBaseDec::PLAY || state==CBaseDec::PAUSE || state==CBaseDec::REV)
 		state=CBaseDec::FF;
@@ -73,6 +78,7 @@ void CAudioPlayer::ff(unsigned int seconds)
 }
 void CAudioPlayer::rev(unsigned int seconds)
 {
+	std::lock_guard<std::mutex> lock(state_mutex);
 	m_SecondsToSkip = seconds;
 	if(state==CBaseDec::PLAY || state==CBaseDec::PAUSE || state==CBaseDec::FF)
 		state=CBaseDec::REV;
@@ -164,7 +170,12 @@ CBaseDec::RetCode CAudioPlayer::playMpv()
 	int ticks = 0, title_tick = 0;
 	while (state != CBaseDec::STOP_REQ)
 	{
-		CBaseDec::State now = state;
+		state_mutex.lock();
+		const CBaseDec::State now = state;
+		const int jump = m_SecondsToSkip;
+		if (now == CBaseDec::FF || now == CBaseDec::REV)
+			m_SecondsToSkip = 0;
+		state_mutex.unlock();
 		if (now == CBaseDec::PAUSE && shown != CBaseDec::PAUSE)
 			playback->SetSpeed(0);
 		else if (now != CBaseDec::PAUSE && shown == CBaseDec::PAUSE)
@@ -172,16 +183,20 @@ CBaseDec::RetCode CAudioPlayer::playMpv()
 		shown = now;
 
 		/* a number of seconds is one jump, without one the player skips on
-		 * as the decoders did, a second every quarter of a second */
+		 * as the decoders did, a second every quarter of a second - back
+		 * a quarter more, for the time that passes while playing on */
 		if (!is_stream && (now == CBaseDec::FF || now == CBaseDec::REV))
 		{
-			int seconds = m_SecondsToSkip ? (int)m_SecondsToSkip : 1;
-			playback->SetPosition((now == CBaseDec::FF ? 1000 : -1250) * seconds, false);
-			if (m_SecondsToSkip)
+			if (jump)
 			{
-				m_SecondsToSkip = 0;
-				state = CBaseDec::PLAY;
+				playback->SetPosition((now == CBaseDec::FF ? 1000 : -1000) * jump, false);
+				/* a stop or a pause asked for during the jump stays */
+				std::lock_guard<std::mutex> lock(state_mutex);
+				if (state == now)
+					state = CBaseDec::PLAY;
 			}
+			else
+				playback->SetPosition(now == CBaseDec::FF ? 1000 : -1250, false);
 		}
 
 		int position = 0, duration = 0;
@@ -226,8 +241,8 @@ CBaseDec::RetCode CAudioPlayer::playMpv()
 
 bool CAudioPlayer::play(const CAudiofile* file, const bool highPrio)
 {
-	if (state != CBaseDec::STOP)
-		stop();
+	/* also the thread of a title that came to its end is joined here */
+	stop();
 	getInstance()->clearFileData();
 
 	/* + transfer information from CAudiofile to member variable,
