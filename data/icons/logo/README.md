@@ -3,7 +3,9 @@
 One SVG per brand (`<brand>.svg`); the files named by channel id
 (`channel_id & 0xFFFFFFFFFFFF`, hex) link to it. All logos sit on a 300×100
 canvas with about the same visible area and are coloured for a dark background.
-Adult and chat channels have no logo here.
+Adult and chat channels have no logo here. Media libraries and web applications
+are found by their name the same way (`ard-mediathek.svg` for "ARD Mediathek"),
+mostly as a link to their broadcaster's logo.
 
 Licences:
 

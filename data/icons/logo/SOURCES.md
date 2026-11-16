@@ -229,6 +229,7 @@ stays under that licence; the author is named in the table.
 | jamfm.svg | [Commons: Jam FM Logo 2014.svg](https://commons.wikimedia.org/wiki/File:Jam_FM_Logo_2014.svg) | Public domain (Skyline Medien GmbH), trademark of its owner |
 | jazzradio.svg | own wordmark | CC0-1.0 |
 | jone.svg | [fr.wikipedia: J-One.svg](https://fr.wikipedia.org/wiki/File:J-One.svg) | marque déposée (Viacom - Mathieu Lemonnier), trademark of its owner |
+| joyn.svg | [de.wikipedia: Joyn (Streaminganbieter) logo.svg](https://de.wikipedia.org/wiki/Datei:Joyn_(Streaminganbieter)_logo.svg) | Public domain (below the threshold of originality), trademark of its owner |
 | jukebox.svg | own wordmark | CC0-1.0 |
 | justcooking.svg | own wordmark | CC0-1.0 |
 | justfishing.svg | own wordmark | CC0-1.0 |
@@ -560,6 +561,7 @@ stays under that licence; the author is named in the table.
 | xplore.svg | own wordmark | CC0-1.0 |
 | xxl.svg | own wordmark | CC0-1.0 |
 | youfm.svg | [Commons: You FM Logo 2020.svg](https://commons.wikimedia.org/wiki/File:You_FM_Logo_2020.svg) | Public domain (Hessischer Rundfunk (HR)), trademark of its owner |
+| youtube.svg | own wordmark | CC0-1.0 |
 | zdf.svg | own wordmark | CC0-1.0 |
 | zdfinfo.svg | own wordmark | CC0-1.0 |
 | zdfneo.svg | own wordmark | CC0-1.0 |
