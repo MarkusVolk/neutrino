@@ -53,98 +53,6 @@ namespace
 
 typedef std::function<void(const std::string &)> output_fn;
 
-/* runs argv without a shell; stdout and stderr go to out in pieces split at
-   newlines and backspaces, as the progress of mke2fs comes. Returns the exit
-   code, -1 when the tool could not run or was killed. */
-int run(const std::vector<std::string> &argv, const output_fn &out = output_fn(), const std::string &input = "",
-	bool log = true)
-{
-	std::string cmd;
-	for (size_t i = 0; i < argv.size(); i++)
-		cmd += " " + argv[i];
-	if (log)
-		printf("[storage] run:%s\n", cmd.c_str());
-
-	int outp[2], inp[2] = { -1, -1 };
-	if (pipe2(outp, O_CLOEXEC))
-		return -1;
-	if (!input.empty() && pipe2(inp, O_CLOEXEC)) {
-		close(outp[0]);
-		close(outp[1]);
-		return -1;
-	}
-	pid_t pid = fork();
-	if (pid < 0) {
-		close(outp[0]);
-		close(outp[1]);
-		if (inp[0] >= 0) {
-			close(inp[0]);
-			close(inp[1]);
-		}
-		return -1;
-	}
-	if (pid == 0) {
-		int in = inp[0] >= 0 ? inp[0] : open("/dev/null", O_RDONLY);
-		dup2(in, STDIN_FILENO);
-		dup2(outp[1], STDOUT_FILENO);
-		dup2(outp[1], STDERR_FILENO);
-		int maxfd = getdtablesize();
-		for (int fd = 3; fd < maxfd; fd++)
-			close(fd);
-		std::vector<char *> args;
-		for (size_t i = 0; i < argv.size(); i++)
-			args.push_back(const_cast<char *>(argv[i].c_str()));
-		args.push_back(NULL);
-		execvp(args[0], args.data());
-		_exit(127);
-	}
-	close(outp[1]);
-	if (inp[0] >= 0) {
-		close(inp[0]);
-		if (write(inp[1], input.data(), input.size()) != (ssize_t) input.size())
-			perror("[storage] write");
-		close(inp[1]);
-	}
-
-	std::string piece;
-	char buf[256];
-	ssize_t n;
-	while ((n = read(outp[0], buf, sizeof(buf))) != 0) {
-		if (n < 0) {
-			if (errno == EINTR)
-				continue;
-			break;
-		}
-		for (ssize_t i = 0; i < n; i++) {
-			if (buf[i] != '\n' && buf[i] != '\b') {
-				piece += buf[i];
-				continue;
-			}
-			/* not the thousands of progress lines of a check */
-			if (log && buf[i] == '\n' && !piece.empty() && !isdigit((unsigned char) piece[0]))
-				printf("[storage] %s\n", piece.c_str());
-			if (out)
-				out(piece);
-			piece.clear();
-		}
-	}
-	if (!piece.empty()) {
-		if (log)
-			printf("[storage] %s\n", piece.c_str());
-		if (out)
-			out(piece);
-	}
-	close(outp[0]);
-
-	int status;
-	while (waitpid(pid, &status, 0) < 0 && errno == EINTR)
-		;
-	int ret = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
-	if (ret)
-		printf("[storage]%s: exit %d\n", cmd.c_str(), ret);
-	return ret;
-}
-
 std::string str(const Json::Value &v)
 {
 	if (v.isString()) {
@@ -283,8 +191,8 @@ bool scan(std::vector<Device> &devices)
 	if (lsblk.empty())
 		return false;
 	std::string out;
-	int ret = run({ lsblk, "-J", "-l", "-b", "-o", "KNAME,PKNAME,PATH,TYPE,FSTYPE,LABEL,UUID,SIZE,VENDOR,MODEL,TRAN,RM,MOUNTPOINTS" },
-		[&out](const std::string &line) { out += line + "\n"; }, "", false);
+	int ret = run_program({ lsblk, "-J", "-l", "-b", "-o", "KNAME,PKNAME,PATH,TYPE,FSTYPE,LABEL,UUID,SIZE,VENDOR,MODEL,TRAN,RM,MOUNTPOINTS" },
+		[&out](const std::string &line) { out += line + "\n"; }, "", NULL);
 	Json::Value root;
 	std::string error;
 	if (ret || !parseJsonFromString(out, &root, &error)) {
@@ -380,7 +288,7 @@ bool foreignFs(const std::string &fs)
 bool mount(const std::string &name, const std::string &dir)
 {
 	safe_mkdir(dir.c_str());
-	if (run({ "mount", "-o", "noatime", "/dev/" + name, dir }) == 0)
+	if (run_program({ "mount", "-o", "noatime", "/dev/" + name, dir }) == 0)
 		return true;
 	rmdir(dir.c_str());
 	return false;
@@ -480,7 +388,7 @@ bool format(const std::string &disk, const Filesystem &fs, const std::string &la
 	   to, would survive the new table and be found again */
 	progress(5, -1, "wipefs /dev/" + disk);
 	for (size_t i = devices.size(); i-- > 0;)
-		if (devices[i].disk == disk && run({ "wipefs", "-a", "-q", devices[i].path })) {
+		if (devices[i].disk == disk && run_program({ "wipefs", "-a", "-q", devices[i].path })) {
 			error = "wipefs " + devices[i].path + " failed";
 			return false;
 		}
@@ -494,14 +402,14 @@ bool format(const std::string &disk, const Filesystem &fs, const std::string &la
 		table = "label: dos\n,,7\n";
 	else
 		table = "label: gpt\n,,L\n";
-	if (run({ "sfdisk", "-q", "--wipe", "always", "--wipe-partitions", "always", "/dev/" + disk }, output_fn(), table)) {
+	if (run_program({ "sfdisk", "-q", "--wipe", "always", "--wipe-partitions", "always", "/dev/" + disk }, output_fn(), table)) {
 		error = "sfdisk /dev/" + disk + " failed";
 		return false;
 	}
 
 	/* the new partition and its node */
 	if (!tool("udevadm").empty())
-		run({ "udevadm", "settle", "--timeout=10" });
+		run_program({ "udevadm", "settle", "--timeout=10" });
 	std::string path;
 	for (int i = 0; i < 20 && path.empty(); i++) {
 		if (scan(devices))
@@ -528,7 +436,7 @@ bool format(const std::string &disk, const Filesystem &fs, const std::string &la
 	argv.push_back(path);
 	progress(20, 0, std::string(fs.mkfs) + " " + path);
 	/* only mke2fs tells how far it is */
-	int ret = run(argv, [&progress](const std::string &piece) {
+	int ret = run_program(argv, [&progress](const std::string &piece) {
 		int n, t;
 		if (piece.find("Writing inode tables") != std::string::npos)
 			progress(20, 0, piece);
@@ -544,7 +452,7 @@ bool format(const std::string &disk, const Filesystem &fs, const std::string &la
 		return false;
 	}
 	if (!tool("udevadm").empty())
-		run({ "udevadm", "settle", "--timeout=10" });
+		run_program({ "udevadm", "settle", "--timeout=10" });
 	progress(100, 100, "");
 	return true;
 }
@@ -561,7 +469,7 @@ int check(const std::string &name, const std::string &fsname, progress_fn progre
 	argv.push_back(path);
 	progress(0, 0, std::string(fs->fsck) + " " + path);
 	/* e2fsck -C 1 prints "pass step total" */
-	int ret = run(argv, [&progress](const std::string &line) {
+	int ret = run_program(argv, [&progress](const std::string &line) {
 		int pass, step, total;
 		if (sscanf(line.c_str(), "%d %d %d", &pass, &step, &total) == 3 && total > 0)
 			progress(pass > 0 ? (pass - 1) * 20 : 0, 100 * step / total, "");

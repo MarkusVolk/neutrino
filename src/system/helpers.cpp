@@ -588,6 +588,96 @@ int run_pty(pid_t &pid, const char *cmdstring)
 	return master;
 }
 
+int run_program(const std::vector<std::string> &argv, const std::function<void(const std::string &)> &out,
+		const std::string &input, const char *tag)
+{
+	const bool log = tag != NULL;
+	std::string cmd;
+	for (size_t i = 0; i < argv.size(); i++)
+		cmd += " " + argv[i];
+	if (log)
+		printf("[%s] run:%s\n", tag, cmd.c_str());
+
+	int outp[2], inp[2] = { -1, -1 };
+	if (pipe2(outp, O_CLOEXEC))
+		return -1;
+	if (!input.empty() && pipe2(inp, O_CLOEXEC)) {
+		close(outp[0]);
+		close(outp[1]);
+		return -1;
+	}
+	pid_t pid = fork();
+	if (pid < 0) {
+		close(outp[0]);
+		close(outp[1]);
+		if (inp[0] >= 0) {
+			close(inp[0]);
+			close(inp[1]);
+		}
+		return -1;
+	}
+	if (pid == 0) {
+		int in = inp[0] >= 0 ? inp[0] : open("/dev/null", O_RDONLY);
+		dup2(in, STDIN_FILENO);
+		dup2(outp[1], STDOUT_FILENO);
+		dup2(outp[1], STDERR_FILENO);
+		int maxfd = getdtablesize();
+		for (int fd = 3; fd < maxfd; fd++)
+			close(fd);
+		std::vector<char *> args;
+		for (size_t i = 0; i < argv.size(); i++)
+			args.push_back(const_cast<char *>(argv[i].c_str()));
+		args.push_back(NULL);
+		execvp(args[0], args.data());
+		_exit(127);
+	}
+	close(outp[1]);
+	if (inp[0] >= 0) {
+		close(inp[0]);
+		if (write(inp[1], input.data(), input.size()) != (ssize_t) input.size())
+			perror("run_program: write");
+		close(inp[1]);
+	}
+
+	std::string piece;
+	char buf[256];
+	ssize_t n;
+	while ((n = read(outp[0], buf, sizeof(buf))) != 0) {
+		if (n < 0) {
+			if (errno == EINTR)
+				continue;
+			break;
+		}
+		for (ssize_t i = 0; i < n; i++) {
+			if (buf[i] != '\n' && buf[i] != '\b') {
+				piece += buf[i];
+				continue;
+			}
+			/* not the thousands of progress lines of a check */
+			if (log && buf[i] == '\n' && !piece.empty() && !isdigit((unsigned char) piece[0]))
+				printf("[%s] %s\n", tag, piece.c_str());
+			if (out)
+				out(piece);
+			piece.clear();
+		}
+	}
+	if (!piece.empty()) {
+		if (log)
+			printf("[%s] %s\n", tag, piece.c_str());
+		if (out)
+			out(piece);
+	}
+	close(outp[0]);
+
+	int status;
+	while (waitpid(pid, &status, 0) < 0 && errno == EINTR)
+		;
+	int ret = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+	if (ret)
+		printf("[%s]%s: exit %d\n", tag ? tag : "run", cmd.c_str(), ret);
+	return ret;
+}
+
 #if 0
 int mkdirhier(const char *pathname, mode_t mode)
 {

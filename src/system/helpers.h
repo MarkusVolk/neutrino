@@ -28,6 +28,7 @@
 #include <string.h>
 #include <string>
 #include <sstream>
+#include <functional>
 #include <vector>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -48,6 +49,13 @@ bool wake_on_lan(const std::string &mac);
 
 FILE *my_popen(pid_t &pid, const char *cmdstring, const char *type);
 int run_pty(pid_t &pid, const char *cmdstring);
+/* runs argv without a shell; stdout and stderr go to out in pieces split at
+   newlines and backspaces, as the progress of mke2fs comes. Returns the exit
+   code, -1 when the program could not run or was killed. tag names it in the
+   log, NULL logs nothing. */
+int run_program(const std::vector<std::string> &argv,
+		const std::function<void(const std::string &)> &out = std::function<void(const std::string &)>(),
+		const std::string &input = "", const char *tag = "run");
 
 void safe_strncpy(char *dest, const char *src, size_t num);
 int safe_mkdir(const char *path);
