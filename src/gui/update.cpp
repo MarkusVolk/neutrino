@@ -627,8 +627,8 @@ int CFlashUpdate::exec(CMenuTarget *parent, const std::string &actionKey)
 		int copy_settings = ShowMsg(LOCALE_MESSAGEBOX_INFO, LOCALE_FLASHUPDATE_COPY_SETTINGS, CMsgBox::mbrYes, CMsgBox::mbYes | CMsgBox::mbNo, NEUTRINO_ICON_UPDATE);
 
 		// get active partition
-		char c[2] = {0};
-		sprintf(c, "%d", getActivePartition());
+		char c[12] = {0};
+		snprintf(c, sizeof(c), "%d", getActivePartition());
 
 		// select partition
 		int selected = 0;
