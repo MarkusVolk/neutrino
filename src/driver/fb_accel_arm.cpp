@@ -235,20 +235,19 @@ void bcm_accel_fill(
 
 static int exec_list(void)
 {
-	int ret;
 	struct
 	{
 		void *ptr;
 		int len;
 	} l;
 
-	if (fb_fd < 0) return -1;
-
 	l.ptr = displaylist;
 	l.len = ptr;
-	ret = ioctl(fb_fd, FBIO_ACCEL, &l);
+	/* the list starts anew, whether or not this one could be run */
 	ptr = 0;
-	return ret;
+	if (fb_fd < 0) return -1;
+
+	return ioctl(fb_fd, FBIO_ACCEL, &l);
 }
 
 CFbAccelARM::CFbAccelARM()
@@ -435,7 +434,7 @@ void CFbAccelARM::paintRect(const int x, const int y, const int dx, const int dy
 	// Use hardware fill only for very large areas to
 	// avoid conflicts with subsequently drawn icons.
 	// Here we only accelerate full-screen clears.
-	if (fix.smem_start != 0 && x <= 0 && y <= 0 && dx >= (int)xRes && dy >= (int)yRes)
+	if (fb_fd >= 0 && fix.smem_start != 0 && x <= 0 && y <= 0 && dx >= (int)xRes && dy >= (int)yRes)
 	{
 		// Align hardware fill to the same buffer as the CPU code:
 		fb_pixel_t *dest_base = getFrameBufferPointer();
@@ -450,29 +449,7 @@ void CFbAccelARM::paintRect(const int x, const int y, const int dx, const int dy
 		}
 	}
 
-	// clip to visible framebuffer area to avoid out-of-bounds writes
-	int x0 = x, x1 = x + dx;
-	int y0 = y, y1 = y + dy;
-	if (x0 < 0)
-		x0 = 0;
-	if (y0 < 0)
-		y0 = 0;
-	if (x1 > (int)xRes)
-		x1 = (int)xRes;
-	if (y1 > (int)yRes)
-		y1 = (int)yRes;
-	if (x0 < x1 && y0 < y1)
-	{
-		/* fill the first line, then replicate it */
-		fb_pixel_t *fbp = getFrameBufferPointer() + (swidth * y0);
-		fb_pixel_t *first = fbp + x0;
-		size_t len = (x1 - x0) * sizeof(fb_pixel_t);
-		for (int pos = x0; pos < x1; pos++)
-			*(fbp + pos) = col;
-		fbp += swidth;
-		for (int line = y0 + 1; line < y1; line++, fbp += swidth)
-			memcpy(fbp + x0, first, len);
-	}
+	fillRect(x, y, dx, dy, col);
 	mark(x, y, x+dx, y+dy);
 }
 #endif

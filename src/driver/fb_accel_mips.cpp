@@ -235,20 +235,19 @@ void bcm_accel_fill(
 
 static int exec_list(void)
 {
-	int ret;
 	struct
 	{
 		void *ptr;
 		int len;
 	} l;
 
-	if (fb_fd < 0) return -1;
-
 	l.ptr = displaylist;
 	l.len = ptr;
-	ret = ioctl(fb_fd, FBIO_ACCEL, &l);
+	/* the list starts anew, whether or not this one could be run */
 	ptr = 0;
-	return ret;
+	if (fb_fd < 0) return -1;
+
+	return ioctl(fb_fd, FBIO_ACCEL, &l);
 }
 
 CFbAccelMIPS::CFbAccelMIPS()
@@ -432,20 +431,10 @@ void CFbAccelMIPS::paintRect(const int x, const int y, const int dx, const int d
 		return;
 
 	// do not accelerate small areas
-        if (fix.smem_start != 0 && dx > 25 && dy > 25)
+	if (fb_fd >= 0 && fix.smem_start != 0 && dx > 25 && dy > 25)
 		bcm_accel_fill(fix.smem_start, screeninfo.xres, screeninfo.yres, stride,x, y, dx, dy,col);
 
-	int line = 0;
-	fb_pixel_t *fbp = getFrameBufferPointer() + (swidth * y);
-	int pos;
-	while (line < dy)
-	{
-		for (pos = x; pos < x + dx; pos++)
-			*(fbp + pos) = col;
-		fbp += swidth;
-		line++;
-	}
-
+	fillRect(x, y, dx, dy, col);
 	mark(x, y, x+dx, y+dy);
 	//blit();
 }

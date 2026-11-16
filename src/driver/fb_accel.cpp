@@ -29,6 +29,9 @@
 #include <driver/fb_generic.h>
 #include <driver/fb_accel.h>
 
+#include <algorithm>
+#include <cstring>
+
 CFbAccel::CFbAccel()
 {
 };
@@ -79,18 +82,28 @@ void CFbAccel::paintBoxRel(const int x, const int y, const int dx, const int dy,
 	mark(x, y, x+dx, y+dy);
 }
 
+/* the part of the rectangle that is on the screen, filled by the CPU */
+void CFbAccel::fillRect(const int x, const int y, const int dx, const int dy, const fb_pixel_t col)
+{
+	const int x0 = std::max(x, 0), x1 = std::min(x + dx, (int)xRes);
+	const int y0 = std::max(y, 0), y1 = std::min(y + dy, (int)yRes);
+	if (x0 >= x1 || y0 >= y1)
+		return;
+
+	/* fill the first line, then replicate it */
+	fb_pixel_t *first = getFrameBufferPointer() + swidth * y0 + x0;
+	std::fill(first, first + (x1 - x0), col);
+	fb_pixel_t *fbp = first + swidth;
+	for (int line = y0 + 1; line < y1; line++, fbp += swidth)
+		memcpy(fbp, first, (x1 - x0) * sizeof(fb_pixel_t));
+}
+
 void CFbAccel::paintRect(const int x, const int y, const int dx, const int dy, const fb_pixel_t col)
 {
-	int line = 0;
-	fb_pixel_t *fbp = getFrameBufferPointer() + (swidth * y);
-	int pos;
-	while (line < dy)
-	{
-		for (pos = x; pos < x + dx; pos++)
-			*(fbp + pos) = col;
-		fbp += swidth;
-		line++;
-	}
+	if (dx < 1 || dy < 1)
+		return;
+
+	fillRect(x, y, dx, dy, col);
 	mark(x, y, x+dx, y+dy);
 	blit();
 }

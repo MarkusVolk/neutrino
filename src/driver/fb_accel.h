@@ -39,6 +39,8 @@ class CFbAccel
 		~CFbAccel();
 		void paintBoxRel(const int x, const int y, const int dx, const int dy, const fb_pixel_t col, int radius, int type);
 		virtual void paintRect(const int x, const int y, const int dx, const int dy, const fb_pixel_t col);
+	protected:
+		void fillRect(const int x, const int y, const int dx, const int dy, const fb_pixel_t col);
 };
 
 class CFbAccelSTi
