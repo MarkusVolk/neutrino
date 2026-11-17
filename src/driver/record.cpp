@@ -49,6 +49,7 @@
 #include <daemonc/remotecontrol.h>
 #include <system/setting_helpers.h>
 #include <system/fsmounter.h>
+#include <system/recording_cover.h>
 #include <system/helpers.h>
 
 #include <driver/display.h>
@@ -839,6 +840,18 @@ void CRecordInstance::FilterPids(APIDList & apid_list)
         }
 }
 
+/* the year a film was made, as the EPG names it; 0 if it does not */
+static int productionYear(const CEPGData &epg)
+{
+	for (size_t i = 0; i < epg.itemDescriptions.size() && i < epg.items.size(); i++)
+		if (epg.itemDescriptions[i] == "Year of production" || epg.itemDescriptions[i] == "Produktionsjahr") {
+			int year = atoi(epg.items[i].c_str());
+			if (year > 1900 && year < 2200)
+				return year;
+		}
+	return 0;
+}
+
 void CRecordInstance::FillMovieInfo(CZapitChannel * channel, APIDList & apid_list)
 {
 	std::string info1, info2;
@@ -880,6 +893,7 @@ void CRecordInstance::FillMovieInfo(CZapitChannel * channel, APIDList & apid_lis
 #endif
 
 			recMovieInfo->length = epgdata.epg_times.dauer	/ 60;
+			recMovieInfo->productionDate = productionYear(epgdata);
 
 			printf("fsk:%d, Genre:%d, Dauer: %d\r\n",recMovieInfo->parentalLockAge,recMovieInfo->genreMajor,recMovieInfo->length);
 		} else if (!epgTitle.empty()) {//if old epg_id removed
@@ -1742,6 +1756,15 @@ void CRecordManager::StopInstance(CRecordInstance * inst, bool remove_event)
 	/* first erase - then stop, because Stop() reset recording_id to 0 */
 	recmap.erase(inst->GetRecordingId());
 	inst->Stop(remove_event);
+	if (g_settings.auto_cover && !inst->Timeshift() && !inst->Failed()) {
+		MI_MOVIE_INFO *mi = inst->GetMovieInfo();
+		recording_cover::job j;
+		j.ts = std::string(inst->GetFileName()) + ".ts";
+		j.title = mi->epgTitle;
+		j.year = mi->productionDate;
+		j.length = mi->length;
+		recording_cover::queue(j);
+	}
 	/* the timeshift the recording of the live channel kept from starting */
 	if (inst->GetChannelId() == CZapit::getInstance()->GetCurrentChannelID())
 		restartTimeshift = true;
