@@ -59,6 +59,7 @@ option('xmltv-xz', type : 'boolean', value : false, description : 'Read XMLTV fi
 option('netshares', type : 'boolean', value : false, description : 'List the shares of NFS and SMB servers (libnfs, libsmb2)')
 option('assistant', type : 'boolean', value : false, description : 'Ask a language model that operates the box')
 option('assistant-voice', type : 'boolean', value : false, description : 'Ask the assistant by voice')
+option('speech', type : 'boolean', value : false, description : 'Read menus, lists and messages aloud with eSpeak NG')
 option('webp', type : 'boolean', value : false, description : 'Show WebP pictures')
 option('heif', type : 'boolean', value : false, description : 'Show HEIF, HEIC and AVIF pictures')
 option('jxl', type : 'boolean', value : false, description : 'Show JPEG XL pictures')

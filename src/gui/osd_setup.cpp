@@ -1215,6 +1215,17 @@ void COsdSetup::showOsdMenusSetup(CMenuWidget *menu_menus)
 	mc = new CMenuOptionChooser(LOCALE_SETTINGS_MENU_NUMBERS, &g_settings.menu_numbers, OPTIONS_OFF0_ON1_OPTIONS, OPTIONS_OFF0_ON1_OPTION_COUNT, true, this);
 	mc->setHint("", LOCALE_MENU_HINT_MENU_NUMBERS);
 	submenu_menus->addItem(mc);
+
+#ifdef ENABLE_SPEECH
+	submenu_menus->addItem(GenericMenuSeparatorLine);
+	mc = new CMenuOptionChooser(LOCALE_SETTINGS_SPEECH, &g_settings.speech_enabled, OPTIONS_OFF0_ON1_OPTIONS, OPTIONS_OFF0_ON1_OPTION_COUNT, true);
+	mc->setHint("", LOCALE_MENU_HINT_SPEECH);
+	submenu_menus->addItem(mc);
+
+	CMenuOptionNumberChooser *nc = new CMenuOptionNumberChooser(LOCALE_SETTINGS_SPEECH_RATE, &g_settings.speech_rate, true, 1, 10);
+	nc->setHint("", LOCALE_MENU_HINT_SPEECH_RATE);
+	submenu_menus->addItem(nc);
+#endif
 }
 
 #define HDD_STATFS_OPTION_COUNT 3

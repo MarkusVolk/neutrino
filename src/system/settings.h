@@ -1139,6 +1139,9 @@ struct SNeutrinoSettings
 	int menu_pos;
 	int show_menu_hints;
 	int menu_numbers;
+	int speech_enabled;
+	/* 1 slow .. 10 fast */
+	int speech_rate;
 	// int show_menu_hints_line;
 
 	// epgview

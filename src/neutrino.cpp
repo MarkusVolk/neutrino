@@ -60,6 +60,9 @@
 #include <driver/record.h>
 #include <driver/screenshot.h>
 #include <driver/volume.h>
+#ifdef ENABLE_SPEECH
+#include <driver/speech.h>
+#endif
 #include <driver/streamts.h>
 #include <system/boxdiscovery.h>
 #include <driver/display.h>
@@ -420,6 +423,9 @@ void CNeutrinoApp::loadLanguage()
 	usermenuTitles(false);
 	g_Locale->loadLocale(g_settings.language.c_str());
 	usermenuTitles(true);
+#ifdef ENABLE_SPEECH
+	CSpeech::getInstance()->languageChanged();
+#endif
 }
 
 static void clearUsermenuConfig()
@@ -1371,6 +1377,8 @@ int CNeutrinoApp::loadSetup(const char *fname)
 	g_settings.menu_pos = configfile.getInt32("menu_pos", CMenuWidget::MENU_POS_CENTER);
 	g_settings.show_menu_hints = configfile.getBool("show_menu_hints", true);
 	g_settings.menu_numbers = configfile.getBool("menu_numbers", true);
+	g_settings.speech_enabled = configfile.getBool("speech_enabled", false);
+	g_settings.speech_rate = configfile.getInt32("speech_rate", 2);
 // 	g_settings.show_menu_hints_line = configfile.getBool("show_menu_hints_line", false);
 
 	// epgview
@@ -2277,6 +2285,8 @@ void CNeutrinoApp::saveSetup(const char *fname)
 	configfile.setInt32("menu_pos", g_settings.menu_pos);
 	configfile.setBool("show_menu_hints", g_settings.show_menu_hints);
 	configfile.setBool("menu_numbers", g_settings.menu_numbers);
+	configfile.setBool("speech_enabled", g_settings.speech_enabled);
+	configfile.setInt32("speech_rate", g_settings.speech_rate);
 // 	configfile.setBool("show_menu_hints_line", g_settings.show_menu_hints_line);
 
 	// epgview
@@ -4452,6 +4462,10 @@ int CNeutrinoApp::handleMsg(const neutrino_msg_t _msg, neutrino_msg_data_t data)
 	if (msg == NeutrinoMessages::EVT_ZAP_COMPLETE || msg == NeutrinoMessages::EVT_ZAP_ISNVOD ||
 	    msg == NeutrinoMessages::EVT_ZAP_FAILED)
 		CAssistantTools::zapped(msg != NeutrinoMessages::EVT_ZAP_FAILED);
+#endif
+#ifdef ENABLE_SPEECH
+	if (msg == NeutrinoMessages::EVT_ZAP_COMPLETE)
+		CSpeech::getInstance()->zapped();
 #endif
 	if (msg == NeutrinoMessages::EVT_ZAP_FAILED &&
 	    (mode == NeutrinoModes::mode_webtv || mode == NeutrinoModes::mode_webradio) &&

@@ -43,6 +43,9 @@ endif
 if enable_lcd4linux
 	libneutrino_driver_sources += 'lcd4l.cpp'
 endif
+if enable_speech
+	libneutrino_driver_sources += 'speech.cpp'
+endif
 
 libneutrino_driver = static_library('neutrino_driver',
 	libneutrino_driver_sources,

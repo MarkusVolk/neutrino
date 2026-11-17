@@ -42,6 +42,9 @@
 #include <driver/display.h>
 #include <gui/audiomute.h>
 #include <gui/mediaplayer.h>
+#ifdef ENABLE_SPEECH
+#include <driver/speech.h>
+#endif
 #include <zapit/zapit.h>
 
 // VOLUME_SCRIPT should be handled as a controlscript
@@ -201,6 +204,10 @@ void CVolume::setVolume(const neutrino_msg_t key)
 
 			if (do_vol)
 				setvol(g_settings.current_volume);
+#ifdef ENABLE_SPEECH
+			if (!CNeutrinoApp::getInstance()->isMuted())
+				CSpeech::getInstance()->volume(g_settings.current_volume);
+#endif
 
 			timeoutEnd = CRCInput::calcTimeoutEnd(g_settings.timing[SNeutrinoSettings::TIMING_VOLUMEBAR]);
 		}

@@ -103,6 +103,7 @@ enable_xmltv_xz = get_option('xmltv-xz')
 enable_netshares = get_option('netshares')
 enable_assistant = get_option('assistant')
 enable_assistant_voice = get_option('assistant-voice')
+enable_speech = get_option('speech')
 enable_webp = get_option('webp')
 enable_heif = get_option('heif')
 enable_jxl = get_option('jxl')
@@ -227,6 +228,7 @@ foreach def : [
 	['ENABLE_NETSHARES', enable_netshares],
 	['ENABLE_ASSISTANT', enable_assistant],
 	['ENABLE_ASSISTANT_VOICE', enable_assistant_voice],
+	['ENABLE_SPEECH', enable_speech],
 	['ENABLE_FREESATEPG', get_option('freesatepg')],
 	['ENABLE_VIASATEPG', get_option('viasatepg')],
 	['ENABLE_FASTSCAN', enable_fastscan],
@@ -328,7 +330,8 @@ libsecret_dep = enable_libsecret ? dependency('libsecret-1') : []
 lzma_dep = enable_xmltv_xz ? dependency('liblzma') : []
 nfs_dep = enable_netshares ? dependency('libnfs') : []
 smb2_dep = enable_netshares ? dependency('libsmb2') : []
-alsa_dep = enable_assistant_voice ? dependency('alsa') : []
+alsa_dep = enable_assistant_voice or enable_speech ? dependency('alsa') : []
+espeak_dep = enable_speech ? dependency('espeak-ng') : []
 # the certificates of the HTTPS server and the hashes of its sign-ins
 crypto_dep = dependency('libcrypto')
 # the code a phone scans to pair with the web interface
@@ -358,6 +361,7 @@ nt_deps = [
 	nfs_dep,
 	smb2_dep,
 	alsa_dep,
+	espeak_dep,
 	crypto_dep,
 	qrencode_dep,
 	webp_dep,

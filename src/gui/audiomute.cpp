@@ -39,6 +39,9 @@
 #include <driver/display.h>
 
 #include <system/helpers.h>
+#ifdef ENABLE_SPEECH
+#include <driver/speech.h>
+#endif
 
 CAudioMute::CAudioMute():CComponentsPicture(0, 0, NEUTRINO_ICON_MUTED)
 {
@@ -69,6 +72,10 @@ void CAudioMute::AudioMute(int newValue, bool isEvent)
 		cGLCD::unlockIcon(cGLCD::MUTE);
 #endif
 	neutrino->setCurrentMuted(newValue);
+#ifdef ENABLE_SPEECH
+	if (doInit && isEvent)
+		CSpeech::getInstance()->muted(newValue);
+#endif
 #if !HAVE_CST_HARDWARE
 	if (g_settings.hdmi_cec_volume)
 		hdmi_cec::getInstance()->toggle_mute();

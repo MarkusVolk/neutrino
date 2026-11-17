@@ -63,6 +63,13 @@
 #include <timerdclient/timerdclient.h>
 #include <sectionsdclient/sectionsdclient.h>
 #include <cs_api.h>
+#ifdef ENABLE_SPEECH
+#include <driver/speech.h>
+
+/* how long help is held to switch the speech output */
+#define SPEECH_TOGGLE_MS	1500
+static bool speech_toggled = false;
+#endif
 
 //#define RCDEBUG
 
@@ -625,7 +632,22 @@ bool CRCInput::mayRepeat(uint32_t key, bool bAllowRepeatLR)
 	return false;
 }
 
+/* Every loop waits for its next message here. Waiting again means the key
+ * before is done with and the screen settled: the speech output says what
+ * changed; a key cuts off what it is saying. */
 void CRCInput::getMsg_us(neutrino_msg_t * msg, neutrino_msg_data_t * data, uint64_t Timeout, bool bAllowRepeatLR)
+{
+#ifdef ENABLE_SPEECH
+	CSpeech::getInstance()->settled();
+#endif
+	waitMsg_us(msg, data, Timeout, bAllowRepeatLR);
+#ifdef ENABLE_SPEECH
+	if (*msg <= RC_MaxRC)
+		CSpeech::getInstance()->key();
+#endif
+}
+
+void CRCInput::waitMsg_us(neutrino_msg_t * msg, neutrino_msg_data_t * data, uint64_t Timeout, bool bAllowRepeatLR)
 {
 	static uint64_t last_keypress = 0ULL;
 	//uint64_t getKeyBegin;
@@ -1406,9 +1428,21 @@ void CRCInput::getMsg_us(neutrino_msg_t * msg, neutrino_msg_data_t * data, uint6
 				if (device_key_filter && device_key_filter(trkey, ev.value))
 					continue;
 
-				if (g_settings.longkeypress_duration > LONGKEYPRESS_OFF) {
+				int longpress = g_settings.longkeypress_duration;
+#ifdef ENABLE_SPEECH
+				/* holding help switches the speech output, with long presses off as well */
+				bool speech_key = trkey == RC_help;
+				if (longpress <= LONGKEYPRESS_OFF && (speech_key || longPressEnd))
+					longpress = SPEECH_TOGGLE_MS;
+#else
+				bool speech_key = false;
+#endif
+				if (longpress > LONGKEYPRESS_OFF) {
 					uint64_t longPressNow = time_monotonic_us();
 					if (ev.value == 0 && longPressEnd) {
+#ifdef ENABLE_SPEECH
+						speech_toggled = false;
+#endif
 						if (longPressNow < longPressEnd) {
 							// Key was a potential long press, but wasn't pressed long enough
 							longPressEnd = 0;
@@ -1418,14 +1452,24 @@ void CRCInput::getMsg_us(neutrino_msg_t * msg, neutrino_msg_data_t * data, uint6
 							longPressEnd = 0;
 							continue;
 						}
-					} else if (ev.value == 1 && mayLongPress(trkey, bAllowRepeatLR)) {
+					} else if (ev.value == 1 && (speech_key || mayLongPress(trkey, bAllowRepeatLR))) {
 						// A long-press may start here.
-						longPressEnd = longPressNow + 1000 * g_settings.longkeypress_duration;
+						longPressEnd = longPressNow + 1000 * longpress;
 						rc_last_key = KEY_MAX;
 						continue;
 					} else if (ev.value == 2 && longPressEnd) {
 						if (longPressEnd < longPressNow) {
 							// Key was pressed long enough.
+#ifdef ENABLE_SPEECH
+							if (speech_key) {
+								/* once per press; the release is swallowed as after any long press */
+								if (!speech_toggled) {
+									speech_toggled = true;
+									CSpeech::getInstance()->toggle();
+								}
+								continue;
+							}
+#endif
 							ev.value = 1;
 							trkey |= RC_Repeat;
 						} else {
