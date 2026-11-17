@@ -1130,7 +1130,6 @@ hdd_label_hint2 Nur bei "%s" (Aufnahme-Medium) werden die nötigen Verzeichnisse
 hdd_manage Datenträger verwalten
 hdd_middle Mittel
 hdd_mount Mount
-hdd_mount_failed Fehler! Bitte Datenträgereinstellungen überprüfen.
 hdd_mount_ok Datenträger bereit
 hdd_mount_umount Mount/Unmount
 hdd_noise Akustikkontrolle (AAM)
@@ -1730,14 +1729,12 @@ menu.hint_net_ntp Ändern Sie den Zeitserver für die Zeitsynchronisation via In
 menu.hint_net_ntpenable Aktiviert die Zeitsynchronisierung via NTP.\nWenn das NTP nicht erfolgreich ist, verwenden Sie DVB
 menu.hint_net_ntprefresh Stellen Sie den Interval zur Zeitsynchronisation ein
 menu.hint_net_ntpserver Geben Sie den NTP-Server ein
-menu.hint_net_pass Geben Sie das Passwort ein (WPA-PSK)
 menu.hint_net_proxy Konfigurieren Sie einen Proxy-Server für den Zugriff auf das Internet
 menu.hint_net_proxypass Geben Sie ihr Passwort für den Proxy-Server ein, wenn es erforderlich ist
 menu.hint_net_proxyserver Geben Sie den Namen des Proxy-Servers ein
 menu.hint_net_proxyuser Geben Sie ihren Benutzernamen für den Proxy-Server ein, wenn es erforderlich ist
 menu.hint_net_services Konfigurieren Sie Netzwerk-Dienste wie Telnet, FTP und UPnP
 menu.hint_net_show Zeigen Ihnen die aktuellen Netzwerkeinstellungen
-menu.hint_net_ssid Geben Sie die SSID des WLAN ein, mit dem Sie eine Verbindung herstellen möchten
 menu.hint_net_ssid_scan Nach verfügbaren WLAN-Netzwerken suchen
 menu.hint_net_telnet Aktiviert Telnet auf Ihrer Box
 menu.hint_net_test Testet die Netzwerkverbindung:\nPing auf Gateway, Name-Server und externe IP-Adressen

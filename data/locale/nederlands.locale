@@ -1100,7 +1100,6 @@ hdd_label_hint2 Alleen met "%s" (opnamemedium) worden de benodigde mappen op het
 hdd_manage Beheer hardeschijven
 hdd_middle Gemiddeld
 hdd_mount Mount
-hdd_mount_failed Mount is mislukt.
 hdd_mount_ok Device Klaar voor gebruik.
 hdd_mount_umount Mount/Unmount
 hdd_noise Akoestisch beheer (AAM)
@@ -1689,14 +1688,12 @@ menu.hint_net_ntp Configureer tijd synchronisatie
 menu.hint_net_ntpenable Tijd synchronisatie inschakelen (NTP protocol) \nIndien NTP synchronisatie niet succesvol is zal DVB worden gebruikt.
 menu.hint_net_ntprefresh Tijd synchronisatie interval
 menu.hint_net_ntpserver NTP servernaam invoeren
-menu.hint_net_pass Wachtwoord invoeren (WPA-PSK)
 menu.hint_net_proxy Configureer hier uw proxy server indien u hier gebruik van maakt.
 menu.hint_net_proxypass Proxy wachtwoord\n(indien autorisatie vereist is)
 menu.hint_net_proxyserver Proxy servernaam
 menu.hint_net_proxyuser Proxy gebruikersnaam\n(indien autorisatie vereist is)
 menu.hint_net_services Configureer netwerkdiensten\n(Telnet, FTP, uPNP)
 menu.hint_net_show Netwerk instellingen weergeven
-menu.hint_net_ssid SSID van draadloos netwerk waarmee u \nverbinding wilt maken invoeren
 menu.hint_net_ssid_scan Zoek beschikbare WLAN netwerken
 menu.hint_net_telnet Telnet login op uw ontvanger inschakelen
 menu.hint_net_test Test netwerk verbinding: Ping gateway,\nnaamserver en extern IP adres

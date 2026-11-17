@@ -1130,7 +1130,6 @@ hdd_label_hint2 Only with "%s" (recording medium) the necessary folders will be 
 hdd_manage Manage device
 hdd_middle Mid
 hdd_mount Mount
-hdd_mount_failed Failed to mount.
 hdd_mount_ok Device ready to use.
 hdd_mount_umount Mount/Unmount
 hdd_noise Acoustic-control (AAM)
@@ -1730,14 +1729,12 @@ menu.hint_net_ntp Configure time sync
 menu.hint_net_ntpenable Enable time sync using NTP protocol\nIf NTP sync not successfull, DVB will be used
 menu.hint_net_ntprefresh Time sync interval
 menu.hint_net_ntpserver Enter NTP server name
-menu.hint_net_pass Enter passkey (WPA-PSK)
 menu.hint_net_proxy If you use proxy to access internet\nconfigure it here for online software update
 menu.hint_net_proxypass Proxy user password\nif authorization required
 menu.hint_net_proxyserver Proxy server name
 menu.hint_net_proxyuser Proxy user name\nif authorization required
 menu.hint_net_services Configure network services:\nTelnet, ftp, uPnp
 menu.hint_net_show Show current network settings
-menu.hint_net_ssid Enter SSID of wireless network\nyou want to connect to
 menu.hint_net_ssid_scan Scan for available WLAN networks
 menu.hint_net_telnet Enable telnet login to your box
 menu.hint_net_test Test network connection: ping gateway,\n name server and external IP

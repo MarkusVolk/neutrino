@@ -1100,7 +1100,6 @@ hdd_label_hint2 Iba na "%s" (záznamové médium) sa potrebné priečinky zapí�
 hdd_manage Spravovanie HDD
 hdd_middle Stredne
 hdd_mount Pripojenie
-hdd_mount_failed Chyba pripojenia.
 hdd_mount_ok Zariadenie pripravené k používaniu.
 hdd_mount_umount Pripojenie/Odpojenie
 hdd_noise Hlučnosť (AAM)
@@ -1690,14 +1689,12 @@ menu.hint_net_ntp Konfigurácia synchronizácie času / hodín
 menu.hint_net_ntpenable Použije synchronizáciu času pomocou NTP protokolu\nAk nebude NTP synchronizácia úspešná, použije sa sychronicácia cez DVB.
 menu.hint_net_ntprefresh Časový interval synchronizácie
 menu.hint_net_ntpserver Vloženie názvu NTP servera
-menu.hint_net_pass Vloženie kryptovacieho kľúča (WPA-PSK)
 menu.hint_net_proxy Ak používate proxy prístup k internetu\nnastavte tu on-line aktualizáciu softvéru
 menu.hint_net_proxypass Proxy užívateľské heslo\nak vyžaduje autorizáciu
 menu.hint_net_proxyserver Názov proxy servera
 menu.hint_net_proxyuser Proxy užívateľský názov\nak vyžaduje autorizáciu
 menu.hint_net_services Konfigurácia sieťových služieb:\nftp, Telnet, uPnp
 menu.hint_net_show Zobrazenie aktuálneho sieťového nastavenia
-menu.hint_net_ssid Zadanie SSID wireless siete\npre pripojenie sa k
 menu.hint_net_ssid_scan Vyhľadanie dostupných WLAN sietí
 menu.hint_net_telnet Použitie telnet prihlásenia do vášho prijímača
 menu.hint_net_test Test sieťového pripojenia: ping brány,\n názov servera a externé IP
