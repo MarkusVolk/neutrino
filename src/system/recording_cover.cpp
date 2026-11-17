@@ -166,6 +166,94 @@ bool ardPicture(const std::string &title, std::string &picture)
 	return best > 0;
 }
 
+/* letters and digits only, lower case: "Schweigen (2024)" against
+   "Schweigen" needs the year cut off first */
+std::string plain(const std::string &s)
+{
+	std::string out;
+	for (size_t i = 0; i < s.size(); i++) {
+		unsigned char ch = s[i];
+		if (ch >= 0x80 || isalnum(ch))
+			out += (char) tolower(ch);
+	}
+	return out;
+}
+
+/* "Narrentanz (2026)", "Narrentanz (2026) (Audiodeskription)": the title alone */
+std::string episodeTitle(std::string t)
+{
+	size_t open = t.find(" (");
+	return open == std::string::npos ? t : t.substr(0, open);
+}
+
+/* a picture address of the ARD image service at a width */
+std::string ardImage(std::string src, const char *width)
+{
+	size_t w = src.find("{width}");
+	if (w != std::string::npos)
+		return src.replace(w, 7, width);
+	if (src.find("w=") == std::string::npos)
+		src += std::string(src.find('?') == std::string::npos ? "?" : (src[src.size() - 1] == '&' ? "" : "&")) + "w=" + width;
+	return src;
+}
+
+/* the picture of one episode of an ARD series: the upright poster its
+   editorial page shows (the one of Tatort has one for each film), else the
+   wide picture of the episode the search finds */
+bool ardEpisodePicture(const std::string &series, const std::string &episode, std::string &picture)
+{
+	std::string slug;
+	for (size_t i = 0; i < series.size(); i++) {
+		unsigned char ch = series[i];
+		if (isalnum(ch))
+			slug += (char) tolower(ch);
+		else if (!slug.empty() && slug[slug.size() - 1] != '-')
+			slug += '-';
+	}
+	while (!slug.empty() && slug[slug.size() - 1] == '-')
+		slug.erase(slug.size() - 1);
+	std::string want = plain(episode);
+	std::string answer, err;
+	Json::Value root;
+	std::string url = "https://api.ardmediathek.de/page-gateway/pages/ard/editorial/" + slug + "?embedded=true";
+	if (!slug.empty() && getUrl(url, answer, AGENT, 20) && parseJsonFromString(answer, &root, &err)) {
+		const Json::Value &widgets = root["widgets"];
+		for (unsigned int w = 0; w < widgets.size(); w++) {
+			const Json::Value &teasers = widgets[w]["teasers"];
+			for (unsigned int i = 0; i < teasers.size(); i++) {
+				const Json::Value &t = teasers[i];
+				std::string title = t.get("longTitle", t.get("shortTitle", "")).asString();
+				std::string src = t["images"]["aspect3x4"].get("src", "").asString();
+				if (!src.empty() && plain(episodeTitle(title)) == want) {
+					picture = ardImage(src, "600");
+					return true;
+				}
+			}
+		}
+	}
+	answer.clear();
+	url = "https://api.ardmediathek.de/page-gateway/widgets/ard/search/vod?pageSize=10&searchString=" + encodeUrl(series + " " + episode);
+	if (!getUrl(url, answer, AGENT, 20) || !parseJsonFromString(answer, &root, &err))
+		return false;
+	const Json::Value &teasers = root["teasers"];
+	for (unsigned int i = 0; i < teasers.size(); i++) {
+		const Json::Value &t = teasers[i];
+		if (plain(t["show"].get("title", "").asString()) != plain(series))
+			continue;
+		std::string title = episodeTitle(t.get("longTitle", "").asString());
+		if (plain(title) != want && plain(title) != plain(series + episode))
+			continue;
+		const Json::Value &images = t["images"];
+		bool upright = images.isMember("aspect3x4");
+		std::string src = images[upright ? "aspect3x4" : "aspect16x9"].get("src", "").asString();
+		if (!src.empty()) {
+			picture = ardImage(src, upright ? "600" : "768");
+			return true;
+		}
+	}
+	return false;
+}
+
 bool arteWord(const std::string &w)
 {
 	return w == "arte";
@@ -266,15 +354,37 @@ void fetch(const recording_cover::job &j)
 	std::string tmp = base + ".jpg.part";
 	tmdbPoster found;
 	const char *source = NULL;
-	if (g_settings.tmdb_enabled && CTMDB::findPoster(j.title, j.year, found)) {
+	bool tmdb = g_settings.tmdb_enabled && CTMDB::findPoster(j.title, j.year, found);
+	if (tmdb) {
 		markInfo(j, found);
 		if (j.start)
 			began[j.ts] = found;
+	}
+	std::string picture;
+	/* "Tatort: Schweigen" from an ARD channel: the picture of this film
+	   before the poster of the series */
+	if (tmdb && found.type == "tv" && j.title.size() > found.name.size()
+	    && j.title.compare(0, found.name.size(), found.name) == 0 && channelWord(j.channel, ardWord)) {
+		std::string episode = j.title.substr(found.name.size());
+		for (bool cut = true; cut && !episode.empty();) {
+			cut = episode[0] == ' ' || episode[0] == ':' || episode[0] == '-';
+			if (cut)
+				episode.erase(0, 1);
+			else if (episode.compare(0, 3, "\xe2\x80\x93") == 0) {	/* – */
+				episode.erase(0, 3);
+				cut = true;
+			}
+		}
+		unlink(tmp.c_str());
+		if (!episode.empty() && ardEpisodePicture(found.name, episode, picture)
+		    && downloadUrl(picture, tmp, AGENT, 30) && usable(tmp) && asJpeg(tmp))
+			source = "ARD episode";
+	}
+	if (!source && tmdb) {
 		unlink(tmp.c_str());
 		if (downloadUrl(found.url, tmp, AGENT, 30) && usable(tmp))
 			source = "TMDB";
 	}
-	std::string picture;
 	const char *library = source ? NULL : libraryPicture(j, picture);
 	if (library) {
 		unlink(tmp.c_str());
