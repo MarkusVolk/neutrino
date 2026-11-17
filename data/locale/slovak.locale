@@ -3239,6 +3239,47 @@ web.devices.remove_ask Odstrániť „{name}“?
 web.devices.title Spárované zariadenia
 web.done Hotovo
 web.edit Upraviť
+web.error.authentication_off Prihlásenie heslom je na tomto boxe vypnuté; domáca sieť má prístup bez neho.
+web.error.bad_code Kód je nesprávny alebo už neplatí. Zobrazte nový na TV.
+web.error.box_in_standby Box je v pohotovostnom režime.
+web.error.busy Box neprijal prepnutie kanála.
+web.error.in_use Tam je už niečo pripojené.
+web.error.mount_failed Disk sa nepodarilo pripojiť.
+web.error.mounted Pred zmenou zdieľanie odpojte.
+web.error.needs_https Párovanie funguje iba cez HTTPS.
+web.error.no_certificate Box ešte nevytvoril svoj certifikát.
+web.error.no_current_event Sprievodca teraz pre tento kanál nič nemá.
+web.error.no_free_entry Všetky položky zdieľaní sú obsadené.
+web.error.no_other_drive Nahrávky idú na tento disk a nie je pripojený žiadny iný, ktorý by ich prevzal.
+web.error.no_password Pre webové rozhranie nie je nastavené heslo.
+web.error.no_remote_input Box odtiaľto neprijíma tlačidlá.
+web.error.no_running_channel Nebeží žiadny kanál.
+web.error.no_such_channel Tento kanál neexistuje.
+web.error.no_such_client Tento klient neexistuje.
+web.error.no_such_cover Nahrávka nemá obrázok.
+web.error.no_such_device Toto zariadenie neexistuje.
+web.error.no_such_drive Tento disk neexistuje.
+web.error.no_such_event Tento program v sprievodcovi nie je.
+web.error.no_such_recording Táto nahrávka neexistuje.
+web.error.no_such_share Toto zdieľanie neexistuje.
+web.error.no_such_timer Tento časovač neexistuje.
+web.error.not_deleted Nahrávku sa nepodarilo vymazať.
+web.error.not_paired Tento prehliadač nie je spárovaný.
+web.error.not_permitted Meno a heslo k sebe nepatria.
+web.error.not_started Príkaz sa nespustil.
+web.error.not_stored Box nedokázal zariadenie uložiť.
+web.error.playback_running Práve sa prehráva súbor alebo doplnok.
+web.error.recording_running Beží nahrávanie a pre tento kanál nie je voľný tuner.
+web.error.recording_without_duration Nahrávanie potrebuje koniec po začiatku.
+web.error.refused TV to nepovolila.
+web.error.screen_for_the_viewer Na TV je otvorená otázka pre diváka.
+web.error.screen_not_captured Snímka obrazovky sa už vytvára.
+web.error.timer_in_the_past Jednorazový časovač nemôže začať v minulosti.
+web.error.timer_list_unavailable Služba časovačov neodpovedá.
+web.error.timer_not_created Služba časovačov časovač neprijala.
+web.error.timer_not_removed Služba časovačov vymazanie neprijala.
+web.error.timer_without_channel Tento druh časovača potrebuje kanál.
+web.error.too_many_attempts Príliš veľa nesprávnych prihlásení. Skúste to neskôr.
 web.ext.missing Táto stránka neexistuje
 web.free_of {free} voľných z {total}
 web.https.off HTTPS je na tomto boxe vypnuté.

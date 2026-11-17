@@ -3239,6 +3239,47 @@ web.devices.remove_ask „{name}“ entfernen?
 web.devices.title Gekoppelte Geräte
 web.done Erledigt
 web.edit Bearbeiten
+web.error.authentication_off Anmelden mit Passwort ist auf dieser Box aus; das Heimnetz hat Zugriff ohne.
+web.error.bad_code Der Code ist falsch oder nicht mehr gültig. Am Fernseher einen neuen anzeigen.
+web.error.box_in_standby Die Box ist im Standby.
+web.error.busy Die Box hat das Umschalten nicht angenommen.
+web.error.in_use Dort ist schon etwas eingehängt.
+web.error.mount_failed Das Laufwerk ließ sich nicht einhängen.
+web.error.mounted Die Freigabe vor dem Ändern aushängen.
+web.error.needs_https Koppeln geht nur über HTTPS.
+web.error.no_certificate Die Box hat ihr Zertifikat noch nicht erzeugt.
+web.error.no_current_event Das EPG hat für diesen Kanal gerade nichts.
+web.error.no_free_entry Alle Einträge für Freigaben sind belegt.
+web.error.no_other_drive Die Aufnahmen gehen auf dieses Laufwerk, und kein anderes ist eingehängt, das sie übernehmen könnte.
+web.error.no_password Für das Webinterface ist kein Passwort gesetzt.
+web.error.no_remote_input Die Box nimmt von hier keine Tasten an.
+web.error.no_running_channel Es läuft kein Kanal.
+web.error.no_such_channel Diesen Kanal gibt es nicht.
+web.error.no_such_client Diesen Client gibt es nicht.
+web.error.no_such_cover Die Aufnahme hat kein Bild.
+web.error.no_such_device Dieses Gerät gibt es nicht.
+web.error.no_such_drive Dieses Laufwerk gibt es nicht.
+web.error.no_such_event Diese Sendung gibt es im EPG nicht.
+web.error.no_such_recording Diese Aufnahme gibt es nicht.
+web.error.no_such_share Diese Freigabe gibt es nicht.
+web.error.no_such_timer Diesen Timer gibt es nicht.
+web.error.not_deleted Die Aufnahme ließ sich nicht löschen.
+web.error.not_paired Dieser Browser ist nicht gekoppelt.
+web.error.not_permitted Name und Passwort passen nicht zusammen.
+web.error.not_started Der Befehl ist nicht gestartet.
+web.error.not_stored Die Box konnte das Gerät nicht speichern.
+web.error.playback_running Eine Datei oder ein Plugin spielt gerade.
+web.error.recording_running Eine Aufnahme läuft, und für diesen Kanal ist kein Tuner frei.
+web.error.recording_without_duration Eine Aufnahme braucht ein Ende nach dem Beginn.
+web.error.refused Der Fernseher hat es nicht erlaubt.
+web.error.screen_for_the_viewer Am Fernseher ist eine Frage an den Zuschauer offen.
+web.error.screen_not_captured Es wird schon ein Bildschirmfoto gemacht.
+web.error.timer_in_the_past Ein einmaliger Timer kann nicht in der Vergangenheit beginnen.
+web.error.timer_list_unavailable Der Timer-Dienst antwortet nicht.
+web.error.timer_not_created Der Timer-Dienst hat den Timer nicht angenommen.
+web.error.timer_not_removed Der Timer-Dienst hat das Löschen nicht angenommen.
+web.error.timer_without_channel Diese Art Timer braucht einen Kanal.
+web.error.too_many_attempts Zu viele falsche Anmeldungen. Später noch einmal versuchen.
 web.ext.missing Diese Seite gibt es nicht
 web.free_of {free} frei von {total}
 web.https.off HTTPS ist auf dieser Box aus.

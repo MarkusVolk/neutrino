@@ -3239,6 +3239,47 @@ web.devices.remove_ask "{name}" verwijderen?
 web.devices.title Gekoppelde apparaten
 web.done Klaar
 web.edit Bewerken
+web.error.authentication_off Aanmelden met een wachtwoord staat uit op deze box; het thuisnetwerk heeft toegang zonder.
+web.error.bad_code De code is onjuist of niet meer geldig. Toon een nieuwe op de tv.
+web.error.box_in_standby De box staat in standby.
+web.error.busy De box heeft het zappen niet aangenomen.
+web.error.in_use Daar is al iets gekoppeld.
+web.error.mount_failed De schijf kon niet worden gekoppeld.
+web.error.mounted Ontkoppel de share voordat je hem wijzigt.
+web.error.needs_https Koppelen werkt alleen via HTTPS.
+web.error.no_certificate De box heeft zijn certificaat nog niet gemaakt.
+web.error.no_current_event De gids heeft nu niets op deze zender.
+web.error.no_free_entry Alle share-plaatsen zijn in gebruik.
+web.error.no_other_drive De opnames gaan naar deze schijf en er is geen andere gekoppeld om ze over te nemen.
+web.error.no_password Er is geen wachtwoord ingesteld voor de webinterface.
+web.error.no_remote_input De box neemt vanaf hier geen toetsen aan.
+web.error.no_running_channel Er speelt geen zender.
+web.error.no_such_channel Deze zender bestaat niet.
+web.error.no_such_client Deze client bestaat niet.
+web.error.no_such_cover De opname heeft geen afbeelding.
+web.error.no_such_device Dit apparaat bestaat niet.
+web.error.no_such_drive Deze schijf bestaat niet.
+web.error.no_such_event Dit programma staat niet in de gids.
+web.error.no_such_recording Deze opname bestaat niet.
+web.error.no_such_share Deze share bestaat niet.
+web.error.no_such_timer Deze timer bestaat niet.
+web.error.not_deleted De opname kon niet worden verwijderd.
+web.error.not_paired Deze browser is niet gekoppeld.
+web.error.not_permitted Naam en wachtwoord horen niet bij elkaar.
+web.error.not_started De opdracht is niet gestart.
+web.error.not_stored De box kon het apparaat niet opslaan.
+web.error.playback_running Er speelt een bestand of een plugin.
+web.error.recording_running Er loopt een opname en er is geen tuner vrij voor deze zender.
+web.error.recording_without_duration Een opname heeft een einde na het begin nodig.
+web.error.refused De tv heeft het niet toegestaan.
+web.error.screen_for_the_viewer Op de tv staat een vraag voor de kijker open.
+web.error.screen_not_captured Er wordt al een schermafbeelding gemaakt.
+web.error.timer_in_the_past Een eenmalige timer kan niet in het verleden beginnen.
+web.error.timer_list_unavailable De timerdienst antwoordt niet.
+web.error.timer_not_created De timerdienst heeft de timer niet aangenomen.
+web.error.timer_not_removed De timerdienst heeft het verwijderen niet aangenomen.
+web.error.timer_without_channel Dit soort timer heeft een zender nodig.
+web.error.too_many_attempts Te veel foute aanmeldingen. Probeer het later opnieuw.
 web.ext.missing Deze pagina bestaat niet
 web.free_of {free} vrij van {total}
 web.https.off HTTPS staat uit op deze box.

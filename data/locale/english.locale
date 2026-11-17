@@ -3239,6 +3239,47 @@ web.devices.remove_ask Remove "{name}"?
 web.devices.title Paired devices
 web.done Done
 web.edit Edit
+web.error.authentication_off Signing in with a password is off on this box; the home network has access without one.
+web.error.bad_code The code is wrong or no longer valid. Show a new one on the TV.
+web.error.box_in_standby The box is in standby.
+web.error.busy The box did not take the channel change.
+web.error.in_use Something is already mounted there.
+web.error.mount_failed The drive could not be mounted.
+web.error.mounted Unmount the share before changing it.
+web.error.needs_https Pairing works over HTTPS only.
+web.error.no_certificate The box has not made its certificate yet.
+web.error.no_current_event The guide has nothing on this channel now.
+web.error.no_free_entry All share entries are in use.
+web.error.no_other_drive The recordings go to this drive and no other drive is mounted to take them.
+web.error.no_password No password is set for the web interface.
+web.error.no_remote_input The box takes no keys from here.
+web.error.no_running_channel No channel is running.
+web.error.no_such_channel There is no such channel.
+web.error.no_such_client There is no such client.
+web.error.no_such_cover The recording has no picture.
+web.error.no_such_device There is no such device.
+web.error.no_such_drive There is no such drive.
+web.error.no_such_event The guide has no such programme.
+web.error.no_such_recording There is no such recording.
+web.error.no_such_share There is no such share.
+web.error.no_such_timer There is no such timer.
+web.error.not_deleted The recording could not be deleted.
+web.error.not_paired This browser is not paired.
+web.error.not_permitted The name and the password do not go together.
+web.error.not_started The command did not start.
+web.error.not_stored The box could not keep the device.
+web.error.playback_running A file or a plugin is playing.
+web.error.recording_running A recording is running and no tuner is free for this channel.
+web.error.recording_without_duration A recording needs an end after its start.
+web.error.refused The TV did not allow it.
+web.error.screen_for_the_viewer A question for the viewer at the TV is open.
+web.error.screen_not_captured A screenshot is already being taken.
+web.error.timer_in_the_past A one-time timer cannot start in the past.
+web.error.timer_list_unavailable The timer service does not answer.
+web.error.timer_not_created The timer service did not take the timer.
+web.error.timer_not_removed The timer service did not take the removal.
+web.error.timer_without_channel This kind of timer needs a channel.
+web.error.too_many_attempts Too many wrong sign-ins. Try again later.
 web.ext.missing No such page
 web.free_of {free} free of {total}
 web.https.off HTTPS is off on this box.
