@@ -25,11 +25,13 @@
 
 #include "recording_cover.h"
 
+#include <algorithm>
 #include <condition_variable>
 #include <deque>
 #include <map>
 #include <mutex>
 #include <thread>
+#include <vector>
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -254,6 +256,167 @@ bool ardEpisodePicture(const std::string &series, const std::string &episode, st
 	return false;
 }
 
+/* the rubric pages of the ARD media library show some thousands of films,
+   documentaries and shows with an upright poster each; of them the
+   parts of the titles and the picture are kept for a day, in a file too, so
+   that a restart does not load them again; worker only */
+#define ARD_POSTERS_FILE	CONFIGDIR "/ard-posters"
+#define ARD_POSTERS_AGE		(24 * 3600)
+struct ardPoster
+{
+	std::vector<std::string> titles;	/* plain, without a year */
+	std::string picture;
+};
+std::vector<ardPoster> ardPosters;
+time_t ardPostersTime = 0;
+
+/* "Dream Scenario | Düstere Komödie", "Das Lied der Tochter · Wolfsland":
+   each part may be the title */
+void titleParts(const std::string &teaser, std::vector<std::string> &parts)
+{
+	std::string rest = teaser;
+	for (;;) {
+		size_t bar = rest.find(" | ");
+		size_t dot = rest.find(" \xc2\xb7 ");
+		size_t cut = std::min(bar, dot);
+		std::string part = plain(episodeTitle(rest.substr(0, cut)));
+		if (!part.empty() && std::find(parts.begin(), parts.end(), part) == parts.end())
+			parts.push_back(part);
+		if (cut == std::string::npos)
+			return;
+		rest = rest.substr(cut + (cut == bar ? 3 : 4));
+	}
+}
+
+/* the rubrics as the library lists them under "Alle Rubriken" (films,
+   series, documentaries, classical music, ...), else a few known ones */
+std::vector<std::string> ardRubrics()
+{
+	std::vector<std::string> rubrics;
+	std::string url = "https://api.ardmediathek.de/page-gateway/pages/ard/compilation/alle-rubriken?embedded=true", answer, err;
+	Json::Value root;
+	if (getUrl(url, answer, AGENT, 20) && parseJsonFromString(answer, &root, &err)) {
+		const Json::Value &widgets = root["widgets"];
+		for (unsigned int w = 0; w < widgets.size(); w++) {
+			const Json::Value &teasers = widgets[w]["teasers"];
+			for (unsigned int i = 0; i < teasers.size(); i++) {
+				std::string href = teasers[i]["links"]["target"].get("href", "").asString();
+				size_t at = href.find("/editorial/");
+				if (at == std::string::npos)
+					continue;
+				std::string slug = href.substr(at + 11, href.find('?', at) == std::string::npos ? std::string::npos : href.find('?', at) - at - 11);
+				if (!slug.empty() && std::find(rubrics.begin(), rubrics.end(), slug) == rubrics.end())
+					rubrics.push_back(slug);
+			}
+		}
+	}
+	if (rubrics.empty()) {
+		static const char *known[] = { "filme", "serien", "dokus", "kinderfamilie", "shows_comedy", "kultur", "wissen",
+			"klassik", "sport", NULL };
+		for (unsigned int i = 0; known[i]; i++)
+			rubrics.push_back(known[i]);
+	}
+	return rubrics;
+}
+
+void loadArdPosters()
+{
+	std::vector<std::string> rubrics = ardRubrics();
+	std::vector<ardPoster> posters;
+	for (size_t r = 0; r < rubrics.size(); r++) {
+		std::string url = "https://api.ardmediathek.de/page-gateway/pages/ard/editorial/" + rubrics[r] + "?embedded=true";
+		std::string answer, err;
+		Json::Value root;
+		if (!getUrl(url, answer, AGENT, 20) || !parseJsonFromString(answer, &root, &err))
+			continue;
+		const Json::Value &widgets = root["widgets"];
+		for (unsigned int w = 0; w < widgets.size(); w++) {
+			const Json::Value &teasers = widgets[w]["teasers"];
+			for (unsigned int i = 0; i < teasers.size(); i++) {
+				const Json::Value &t = teasers[i];
+				std::string src = t["images"]["aspect3x4"].get("src", "").asString();
+				if (src.empty())
+					continue;
+				ardPoster p;
+				titleParts(t.get("longTitle", "").asString(), p.titles);
+				titleParts(t.get("shortTitle", "").asString(), p.titles);
+				p.picture = ardImage(src, "600");
+				posters.push_back(p);
+			}
+		}
+	}
+	if (posters.empty())
+		return;
+	ardPosters.swap(posters);
+	ardPostersTime = time(NULL);
+	/* a line per poster: the picture, then its titles, by tabs */
+	std::string tmp = std::string(ARD_POSTERS_FILE) + ".part";
+	FILE *f = fopen(tmp.c_str(), "w");
+	if (!f)
+		return;
+	for (size_t i = 0; i < ardPosters.size(); i++) {
+		fputs(ardPosters[i].picture.c_str(), f);
+		for (size_t t = 0; t < ardPosters[i].titles.size(); t++)
+			fprintf(f, "\t%s", ardPosters[i].titles[t].c_str());
+		fputc('\n', f);
+	}
+	if (fclose(f) == 0)
+		rename(tmp.c_str(), ARD_POSTERS_FILE);
+	else
+		unlink(tmp.c_str());
+}
+
+/* the list a run before kept, while it is young enough */
+void readArdPosters()
+{
+	struct stat st;
+	if (stat(ARD_POSTERS_FILE, &st) != 0 || time(NULL) - st.st_mtime > ARD_POSTERS_AGE)
+		return;
+	FILE *f = fopen(ARD_POSTERS_FILE, "r");
+	if (!f)
+		return;
+	std::vector<ardPoster> posters;
+	char *line = NULL;
+	size_t n = 0;
+	while (getline(&line, &n, f) > 0) {
+		std::string l = line;
+		while (!l.empty() && (l[l.size() - 1] == '\n' || l[l.size() - 1] == '\r'))
+			l.erase(l.size() - 1);
+		ardPoster p;
+		size_t tab = l.find('\t');
+		p.picture = l.substr(0, tab);
+		while (tab != std::string::npos) {
+			size_t next = l.find('\t', tab + 1);
+			p.titles.push_back(l.substr(tab + 1, next == std::string::npos ? std::string::npos : next - tab - 1));
+			tab = next;
+		}
+		if (!p.picture.empty() && !p.titles.empty())
+			posters.push_back(p);
+	}
+	free(line);
+	fclose(f);
+	if (!posters.empty()) {
+		ardPosters.swap(posters);
+		ardPostersTime = st.st_mtime;
+	}
+}
+
+bool ardRubricPicture(const std::string &title, std::string &picture)
+{
+	if (!ardPostersTime)
+		readArdPosters();
+	if (time(NULL) - ardPostersTime > ARD_POSTERS_AGE)
+		loadArdPosters();
+	std::string want = plain(title);
+	for (size_t i = 0; i < ardPosters.size(); i++)
+		for (size_t t = 0; t < ardPosters[i].titles.size(); t++)
+			if (ardPosters[i].titles[t] == want) {
+				picture = ardPosters[i].picture;
+				return true;
+			}
+	return false;
+}
+
 bool arteWord(const std::string &w)
 {
 	return w == "arte";
@@ -361,11 +524,11 @@ void fetch(const recording_cover::job &j)
 			began[j.ts] = found;
 	}
 	std::string picture;
-	/* "Tatort: Schweigen" from an ARD channel: the picture of this film
-	   before the poster of the series */
+	/* "Tatort: Schweigen": the episode of the series TMDB found */
+	std::string episode;
 	if (tmdb && found.type == "tv" && j.title.size() > found.name.size()
-	    && j.title.compare(0, found.name.size(), found.name) == 0 && channelWord(j.channel, ardWord)) {
-		std::string episode = j.title.substr(found.name.size());
+	    && j.title.compare(0, found.name.size(), found.name) == 0) {
+		episode = j.title.substr(found.name.size());
 		for (bool cut = true; cut && !episode.empty();) {
 			cut = episode[0] == ' ' || episode[0] == ':' || episode[0] == '-';
 			if (cut)
@@ -375,10 +538,20 @@ void fetch(const recording_cover::job &j)
 				cut = true;
 			}
 		}
+	}
+	if (channelWord(j.channel, ardWord)) {
+		/* from an ARD channel: the poster of this film on the page of its
+		   series, else on a rubric page of the library (films, documentaries
+		   ...), before the poster of the series */
 		unlink(tmp.c_str());
 		if (!episode.empty() && ardEpisodePicture(found.name, episode, picture)
 		    && downloadUrl(picture, tmp, AGENT, 30) && usable(tmp) && asJpeg(tmp))
 			source = "ARD episode";
+		if (!source && (ardRubricPicture(j.title, picture) || (!episode.empty() && ardRubricPicture(episode, picture)))) {
+			unlink(tmp.c_str());
+			if (downloadUrl(picture, tmp, AGENT, 30) && usable(tmp) && asJpeg(tmp))
+				source = "ARD rubric";
+		}
 	}
 	if (!source && tmdb) {
 		unlink(tmp.c_str());
