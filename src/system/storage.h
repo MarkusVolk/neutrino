@@ -70,7 +70,10 @@ namespace storage
 	/* swap, LUKS, LVM, RAID: belong to something else, never mounted here */
 	bool foreignFs(const std::string &fs);
 
+	/* through systemd where it is PID 1, else mount(8) */
 	bool mount(const std::string &name, const std::string &dir);
+	/* mounted by mount() and not unmounted by umount() yet */
+	bool ownMount(const std::string &name);
 	/* unmounts the device wherever it is mounted, removes the empty
 	   directories below /media and releases a swap */
 	bool umount(const std::string &name, bool lazy = false);

@@ -257,7 +257,7 @@ bool CHDDMenuHandler::removed(const std::string &name)
 	struct stat st;
 	if (stat(("/dev/" + name).c_str(), &st) == 0)
 		return false;
-	if (storage::mountPoints(name).empty())
+	if (storage::mountPoints(name).empty() && !storage::ownMount(name))
 		return false;
 	storage::umount(name, true);
 	showHint(name + ": " + g_Locale->getText(LOCALE_HDD_UMOUNTED));

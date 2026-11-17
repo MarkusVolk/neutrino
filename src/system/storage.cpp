@@ -39,6 +39,8 @@
 #include <sys/wait.h>
 
 #include <fstream>
+#include <map>
+#include <mutex>
 #include <set>
 #include <sstream>
 
@@ -285,13 +287,39 @@ bool foreignFs(const std::string &fs)
 	return false;
 }
 
+/* the directories mount() made, so that they go with the drive even when
+   systemd unmounted it on removal */
+static std::map<std::string, std::string> own_dirs;
+static std::mutex own_dirs_lock;
+
+/* with systemd PID 1 mounts, in the namespace of the system: Neutrino may run
+   in a sandbox of its own whose mounts nobody else would see. Lazily, so that
+   a drive pulled during a recording or playback still goes */
+static std::string systemd_tool(const char *name)
+{
+	return access("/run/systemd/system", F_OK) == 0 ? tool(name) : "";
+}
+
 bool mount(const std::string &name, const std::string &dir)
 {
 	safe_mkdir(dir.c_str());
-	if (run_program({ "mount", "-o", "noatime", "/dev/" + name, dir }) == 0)
+	std::string sd = systemd_tool("systemd-mount");
+	std::vector<std::string> args = { "mount", "-o", "noatime", "/dev/" + name, dir };
+	if (!sd.empty())
+		args = { sd, "--collect", "--bind-device", "-p", "LazyUnmount=yes", "-o", "noatime", "/dev/" + name, dir };
+	if (run_program(args) == 0) {
+		std::lock_guard<std::mutex> lock(own_dirs_lock);
+		own_dirs[name] = dir;
 		return true;
+	}
 	rmdir(dir.c_str());
 	return false;
+}
+
+bool ownMount(const std::string &name)
+{
+	std::lock_guard<std::mutex> lock(own_dirs_lock);
+	return own_dirs.count(name) != 0;
 }
 
 bool umount(const std::string &name, bool lazy)
@@ -302,13 +330,27 @@ bool umount(const std::string &name, bool lazy)
 			printf("[storage] %s is mounted on %s, not unmounting it\n", name.c_str(), points[i].c_str());
 			return false;
 		}
+	std::string sd = systemd_tool("systemd-umount");
 	/* the last one mounted goes first */
 	for (size_t i = points.size(); i-- > 0;) {
-		if (::umount2(points[i].c_str(), lazy ? MNT_DETACH : 0)) {
+		if (!sd.empty()) {
+			if (run_program({ sd, points[i] })) {
+				printf("[storage] systemd-umount %s failed\n", points[i].c_str());
+				return false;
+			}
+		} else if (::umount2(points[i].c_str(), lazy ? MNT_DETACH : 0)) {
 			printf("[storage] umount %s: %s\n", points[i].c_str(), strerror(errno));
 			return false;
 		}
 		rmdir(points[i].c_str());
+	}
+	{
+		std::lock_guard<std::mutex> lock(own_dirs_lock);
+		std::map<std::string, std::string>::iterator it = own_dirs.find(name);
+		if (it != own_dirs.end()) {
+			rmdir(it->second.c_str());
+			own_dirs.erase(it);
+		}
 	}
 	std::ifstream swaps("/proc/swaps");
 	std::string line, devpath = "/dev/" + name;
