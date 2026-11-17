@@ -1770,6 +1770,14 @@ void ep_stream(Call &c)
 //-----------------------------------------------------------------------------
 // signing in
 //-----------------------------------------------------------------------------
+/* the language of the OSD, as its ISO 639-1 code: the web interface follows it */
+std::string box_language()
+{
+	std::string name = settingsText(g_settings.language);
+	std::string code = Lang2ISO639_1(name);
+	return code.empty() ? "en" : code;
+}
+
 Json::Value session_state(Call &c, const Session *s, const pairing::Device *d = NULL, const std::string &device_token = "")
 {
 	Json::Value v(Json::objectValue);
@@ -1780,6 +1788,7 @@ Json::Value session_state(Call &c, const Session *s, const pairing::Device *d = 
 	v["secure"] = c.in.secure;
 	v["https_port"] = Cyhttpd::ConfigList["WebsiteMain.https"] == "true" ? (Json::UInt) yhttpd_https_port() : 0;
 	v["http_port"] = atoi(Cyhttpd::ConfigList["WebsiteMain.port"].c_str());
+	v["language"] = box_language();
 	v["csrf"] = s ? s->csrf : d ? pairing::csrf_of(device_token) : "";
 	v["csrf_header"] = kCsrfHeaderName;
 	v["expires_in"] = s ? (Json::UInt) std::max((time_t) 0, s->expires - time(NULL)) : 0;
@@ -2356,6 +2365,19 @@ std::string theme_hex(unsigned char r, unsigned char g, unsigned char b)
 	return string_printf("#%06x", convertSetupColor2RGB(r, g, b) & 0xffffff);
 }
 
+/* the texts of the web interface in the language of the OSD, by their names
+   without "web."; English where a language lacks one */
+void ep_texts(Call &c)
+{
+	Json::Value v(Json::objectValue);
+	v["language"] = box_language();
+	v["texts"] = Json::Value(Json::objectValue);
+	std::map<std::string, std::string> texts = g_Locale->getTexts("web.");
+	for (std::map<std::string, std::string>::const_iterator it = texts.begin(); it != texts.end(); ++it)
+		v["texts"][it->first.substr(4)] = it->second;
+	send_json(c.out, 200, v);
+}
+
 void ep_theme(Call &c)
 {
 	const SNeutrinoTheme &t = g_settings.theme;
@@ -2363,6 +2385,7 @@ void ep_theme(Call &c)
 	v["accent"] = theme_hex(t.menu_Content_Selected_red, t.menu_Content_Selected_green, t.menu_Content_Selected_blue);
 	v["accent_text"] = theme_hex(t.menu_Content_Selected_Text_red, t.menu_Content_Selected_Text_green, t.menu_Content_Selected_Text_blue);
 	v["rounded"] = t.rounded_corners != 0;
+	v["language"] = box_language();
 	send_json(c.out, 200, v);
 }
 
@@ -3208,6 +3231,7 @@ const Route routes[] = {
 	{ "DELETE",	"/api/v1/pair/devices/{}",	L_SYSTEM,	ep_device_delete },
 	{ "GET",	"/api/v1/system/ca",		L_PUBLIC,	ep_ca },
 	{ "GET",	"/api/v1/theme",		L_PUBLIC,	ep_theme },
+	{ "GET",	"/api/v1/texts",		L_PUBLIC,	ep_texts },
 	{ "GET",	"/api/v1/ext",			L_READ,		ep_ext_list },
 	{ "GET",	"/api/v1/mcp",			L_SYSTEM,	ep_mcp_get },
 #ifdef ENABLE_ASSISTANT

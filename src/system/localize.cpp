@@ -290,6 +290,17 @@ std::string CLocaleManager::getString(const neutrino_locale_t keyName) const
 	return (std::string) localeData.load()[keyName];
 }
 
+std::map<std::string, std::string> CLocaleManager::getTexts(const std::string &prefix) const
+{
+	std::map<std::string, std::string> texts;
+	OpenThreads::ScopedLock<OpenThreads::Mutex> lock(catalog_mutex);
+	char **table = localeData.load();
+	for (unsigned int i = 1; i < sizeof(locale_real_names)/sizeof(const char *); i++)
+		if (strncmp(locale_real_names[i], prefix.c_str(), prefix.size()) == 0)
+			texts[locale_real_names[i]] = table[i];
+	return texts;
+}
+
 /* The way back from the name a locale is written under to the value the screens
    pass around. Against the untranslated names and not the loaded ones, so the
    answer does not move with the language.

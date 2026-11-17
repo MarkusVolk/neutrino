@@ -86,6 +86,9 @@ class CLocaleManager
 		const char * getText(const neutrino_locale_t keyName) const;
 		// A copy taken under the lock.
 		std::string getString(const neutrino_locale_t keyName) const;
+		/* every text whose name begins with prefix, by name, copied with the
+		   lock held: the web interface takes its texts this way */
+		std::map<std::string, std::string> getTexts(const std::string &prefix) const;
 		std::string getTextAsString(const neutrino_locale_t keyName) const {return (static_cast<std::string>(getText(keyName)));}
 
 		// NONEXISTANT_LOCALE for a name nothing is written under, which is
