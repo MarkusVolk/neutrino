@@ -1802,7 +1802,7 @@ menu.hint_record_apid_alt Record alternative non-AC3 audio pids
 menu.hint_record_apid_std Record first audio pid
 menu.hint_record_apids Configure audio pids to record
 menu.hint_record_apply Apply record options
-menu.hint_record_auto_cover Auto-create movie thumbnail for movie browser on record playback
+menu.hint_record_auto_cover A picture for every recording: when it ends the poster from TMDB or else a frame of the recording, on playback a frame of the place
 menu.hint_record_chandir Create directory with name of channel\nto store recording
 menu.hint_record_data Record (videotext, subtitles) data streams
 menu.hint_record_data_dvbsub Subtitle stream

@@ -1802,7 +1802,7 @@ menu.hint_record_apid_alt Sind weitere Tonspuren verfügbar, dann können diese 
 menu.hint_record_apid_std Schließt bei einer Aufnahme die durch den Sender definierte Tonspur 'Standard' in die Aufnahme ein bzw. aus
 menu.hint_record_apids Konfigurieren Sie die Tonspuren für die Aufnahme
 menu.hint_record_apply Hiermit werden die Aufnahmeoptionen übernommen
-menu.hint_record_auto_cover Automatisch ein Film-Vorschaubild beim Abspielen erzeugen
+menu.hint_record_auto_cover Ein Vorschaubild für jede Aufnahme: nach dem Ende das Poster von TMDB oder sonst ein Bild aus der Aufnahme, beim Abspielen ein Bild der Stelle
 menu.hint_record_chandir Diese Option speichert Aufnahmen mit dem Namen des Kanals in ein eigenes Verzeichnis
 menu.hint_record_data Daten-Spuren (Videotext, Untertitel) für die Aufnahme
 menu.hint_record_data_dvbsub Untertitel-Spur zu Aufnahme hinzufügen

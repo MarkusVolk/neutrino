@@ -1802,7 +1802,7 @@ menu.hint_record_apid_alt Alternatieve (niet AC3) audio PIDS opnemen
 menu.hint_record_apid_std Eerste audio PID opnemen
 menu.hint_record_apids Configureer de op te nemen audio pids
 menu.hint_record_apply Opname opties toepassen
-menu.hint_record_auto_cover Automatisch aanmaken movie-thumbnail voor movie-browser tijdens afspelen opname
+menu.hint_record_auto_cover Een afbeelding voor elke opname: na afloop de poster van TMDB of anders een beeld uit de opname, bij het afspelen een beeld van de plek
 menu.hint_record_chandir Creeer map met de naam van \nhet op te nemen kanaal om de opname in op te slaan
 menu.hint_record_data Datastreams voor de opname (teletekst, ondertitels)
 menu.hint_record_data_dvbsub Ondertitelstream aan opname toevoegen

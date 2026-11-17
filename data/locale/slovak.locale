@@ -1802,7 +1802,7 @@ menu.hint_record_apid_alt Nahrá ostatné zvukové pidy
 menu.hint_record_apid_std Nahrá prvý zvukový pid
 menu.hint_record_apids Konfigurácia volieb zvukových pidov pre nahrávanie
 menu.hint_record_apply Použije voľby nahrávania
-menu.hint_record_auto_cover Automatické vytvorenie náhľadu pre prehrávač filmov na nahranom prehrávaní
+menu.hint_record_auto_cover Obrázok pre každú nahrávku: po skončení plagát z TMDB alebo inak snímka z nahrávky, pri prehrávaní snímka z miesta
 menu.hint_record_chandir Vytvoriť priečinok s názvom kanálu\npre uloženie nahrávky
 menu.hint_record_data Konfigurácia dátových služieb (TeleText, Titulky) pre nahrávanie
 menu.hint_record_data_dvbsub Nahrá pid/stream s titulkami

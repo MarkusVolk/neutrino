@@ -1119,7 +1119,7 @@ int CNeutrinoApp::loadSetup(const char *fname)
 	g_settings.screenshot_mode = configfile.getInt32("screenshot_mode", 0);
 	g_settings.screenshot_scale = configfile.getInt32("screenshot_scale", 0);
 	g_settings.screenshot_video = configfile.getInt32("screenshot_video", 1);
-	g_settings.auto_cover = configfile.getInt32("auto_cover", 0);
+	g_settings.auto_cover = configfile.getInt32("auto_cover", 1);
 
 	// screen configuration
 	// default for fullpixel
