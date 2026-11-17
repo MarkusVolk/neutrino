@@ -42,10 +42,13 @@
 #include <global.h>
 #include <driver/movieinfo.h>
 #include <gui/moviedb/mdb-tmdb.h>
+#include <gui/pictureviewer.h>
 #include <system/helpers.h>
 #include <system/helpers-json.h>
 #include <system/recordings.h>
 #include <system/set_threadname.h>
+
+extern CPictureViewer *g_PicViewer; /* neutrino.cpp */
 
 namespace
 {
@@ -487,6 +490,27 @@ bool asJpeg(const std::string &file)
 	return ok;
 }
 
+/* a wide picture made upright (2:3, as the posters of TMDB): whole in the
+   middle of a blurred and darkened copy of itself, so that the covers of
+   the moviebrowser keep one shape while one scrolls through them */
+bool upright(const std::string &file)
+{
+	int w = 0, h = 0;
+	g_PicViewer->getSize(file.c_str(), &w, &h);
+	if (w <= h)
+		return true;
+	std::string out = file + ".upright";
+	my_system(17, "nice", "-n", "19", "ffmpeg", "-nostdin", "-loglevel", "error", "-y", "-i", file.c_str(),
+		  "-filter_complex",
+		  "[0:v]scale=600:900:force_original_aspect_ratio=increase,crop=600:900,boxblur=30:2,"
+		  "colorchannelmixer=rr=0.6:gg=0.6:bb=0.6[bg];[0:v]scale=600:-2[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2",
+		  "-frames:v", "1", "-f", "mjpeg", out.c_str());
+	bool ok = usable(out) && rename(out.c_str(), file.c_str()) == 0;
+	if (!ok)
+		unlink(out.c_str());
+	return ok;
+}
+
 /* the frame a tenth into the recording, but not in the first minute, where
    the programme before or a trailer may still run; the start if the file is
    shorter than that */
@@ -515,7 +539,13 @@ void fetch(const recording_cover::job &j)
 		markInfo(j, known->second);
 		began.erase(known);
 	}
-	if (access(cover.c_str(), F_OK) == 0 || access(j.ts.c_str(), R_OK) != 0)
+	/* a cover there is, from before covers were made upright, is only
+	   made upright */
+	if (access(cover.c_str(), F_OK) == 0) {
+		upright(cover);
+		return;
+	}
+	if (access(j.ts.c_str(), R_OK) != 0)
 		return;
 	std::string tmp = base + ".jpg.part";
 	tmdbPoster found;
@@ -569,7 +599,7 @@ void fetch(const recording_cover::job &j)
 	}
 	if (!source && !j.start && still(j, tmp))
 		source = "frame";
-	if (source && rename(tmp.c_str(), cover.c_str()) == 0)
+	if (source && upright(tmp) && rename(tmp.c_str(), cover.c_str()) == 0)
 		printf("[covers] %s: %s\n", j.ts.c_str(), source);
 	else {
 		unlink(tmp.c_str());

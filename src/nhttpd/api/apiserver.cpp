@@ -3114,7 +3114,8 @@ void ep_recording_cover(Call &c)
 }
 
 /* covers for the recordings that have none, fetched one after the other;
-   a running one gets its poster, the frame only once it has ended */
+   a running one gets its poster, the frame only once it has ended; a wide
+   cover of before is made upright */
 void ep_recording_covers(Call &c)
 {
 	std::vector<std::string> files;
@@ -3123,7 +3124,8 @@ void ep_recording_covers(Call &c)
 	int queued = 0;
 	for (size_t i = 0; i < files.size(); i++) {
 		std::string path = dir + "/" + files[i];
-		if (access((recordings::without_ts(path) + ".jpg").c_str(), F_OK) == 0)
+		recordings::entry e = recordings::describe(files[i]);
+		if (e.cover && !e.cover_wide)
 			continue;
 		recording_cover::queue(path, recordings::busy(path));
 		queued++;
