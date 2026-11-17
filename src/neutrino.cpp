@@ -685,6 +685,7 @@ int CNeutrinoApp::loadSetup(const char *fname)
 	g_settings.hdd_sleep = configfile.getInt32("hdd_sleep", 120);
 	g_settings.hdd_noise = configfile.getInt32("hdd_noise", 254);
 	g_settings.hdd_record_uuid = configfile.getString("hdd_record_uuid", "");
+	g_settings.hdd_record_auto = configfile.getBool("hdd_record_auto", true);
 	g_settings.hdd_statfs_mode = configfile.getInt32("hdd_statfs_mode", SNeutrinoSettings::HDD_STATFS_RECORDING);
 // 	g_settings.hdd_format_on_mount_failed = configfile.getInt32("hdd_format_on_mount_failed", 0);
 // 	g_settings.hdd_wakeup = configfile.getInt32("hdd_wakeup", 1);
@@ -1789,6 +1790,7 @@ void CNeutrinoApp::saveSetup(const char *fname)
 	configfile.setInt32("hdd_sleep", g_settings.hdd_sleep);
 	configfile.setInt32("hdd_noise", g_settings.hdd_noise);
 	configfile.setString("hdd_record_uuid", g_settings.hdd_record_uuid);
+	configfile.setBool("hdd_record_auto", g_settings.hdd_record_auto);
 	configfile.setInt32("hdd_statfs_mode", g_settings.hdd_statfs_mode);
 // 	configfile.setInt32("hdd_format_on_mount_failed", g_settings.hdd_format_on_mount_failed);
 // 	configfile.setInt32("hdd_wakeup", g_settings.hdd_wakeup);

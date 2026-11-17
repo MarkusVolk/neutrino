@@ -31,6 +31,11 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <sys/stat.h>
+#include <dirent.h>
+
+#include <algorithm>
+#include <string.h>
+#include <ctype.h>
 
 #include <global.h>
 #include <neutrino.h>
@@ -97,6 +102,13 @@ static std::string describe(const storage::Device &d)
 	return d.name + (d.label.empty() ? "" : " " + d.label) + " (" + d.fstype + ")";
 }
 
+/* a disk built into the box; older kernels, like the HD51's, give it no
+   transport, and a disk behind a USB bridge on the board is marked by udev */
+static bool isInternal(const storage::Device &d)
+{
+	return d.internal || d.tran == "sata" || d.tran == "ata" || d.tran.empty();
+}
+
 /* a filesystem of its own: not a disk whose partitions carry them (the
    iso9660 of a hybrid image), nothing that belongs to swap, RAID or LUKS */
 static bool own_fs(const storage::Device &d)
@@ -128,13 +140,45 @@ CHDDMenuHandler* CHDDMenuHandler::getInstance()
 	return me;
 }
 
+/* a mount point or a directory with something in it; an empty one is a
+   leftover of a drive that went without being unmounted */
+static bool in_use(const std::string &dir)
+{
+	struct stat st, base;
+	if (stat(dir.c_str(), &st) || stat(MOUNT_BASE, &base))
+		return false;
+	if (!S_ISDIR(st.st_mode) || st.st_dev != base.st_dev)
+		return true;
+	DIR *dp = opendir(dir.c_str());
+	if (!dp)
+		return true;
+	bool empty = true;
+	while (struct dirent *e = readdir(dp))
+		if (strcmp(e->d_name, ".") && strcmp(e->d_name, "..")) {
+			empty = false;
+			break;
+		}
+	closedir(dp);
+	return !empty;
+}
+
 /* the drive chosen for recordings always comes to the same place, so that
-   the record dir stays valid whatever name the kernel gives the disk */
+   the record dir stays valid whatever name the kernel gives the disk; the
+   others are named by label, else by UUID */
 std::string CHDDMenuHandler::mountDir(const storage::Device &d)
 {
 	if (!d.uuid.empty() && d.uuid == g_settings.hdd_record_uuid)
 		return RECORD_MOUNT;
-	return MOUNT_BASE + d.name;
+	std::string name = d.label.empty() ? d.uuid : d.label;
+	for (size_t i = 0; i < name.size(); i++)
+		if (!isalnum((unsigned char)name[i]) && !strchr("-_.", name[i]))
+			name[i] = '_';
+	if (name.empty() || name[0] == '.')
+		name = d.name;
+	std::string dir = MOUNT_BASE + name;
+	for (int n = 2; dir == RECORD_MOUNT || in_use(dir); n++)
+		dir = MOUNT_BASE + name + "-" + to_string(n);
+	return dir;
 }
 
 bool CHDDMenuHandler::mountable(const storage::Device &d)
@@ -207,25 +251,53 @@ void CHDDMenuHandler::mountAll()
 	std::vector<storage::Device> list;
 	storage::scan(list);
 
-	/* until a drive is chosen, the first SATA disk keeps /media/record, as
-	   the udev rule of the boxes did before; a box without one, like the
-	   HD60, records to its first USB drive. Older kernels, like the HD51's,
-	   give the built-in disk no transport */
-	if (g_settings.hdd_record_uuid.empty() && below(g_settings.network_nfs_recordingdir, RECORD_MOUNT)) {
-		for (int usb = 0; usb < 2 && g_settings.hdd_record_uuid.empty(); usb++)
-			for (size_t i = 0; i < list.size(); i++) {
-				const std::string &tran = list[i].tran;
-				bool fits = usb ? tran == "usb" : tran == "sata" || tran == "ata" || tran.empty();
-				if (fits && !list[i].system() && !list[i].uuid.empty() && mountable(list[i])) {
-					printf("CHDDMenuHandler: %s holds the recordings\n", list[i].name.c_str());
-					g_settings.hdd_record_uuid = list[i].uuid;
-					break;
-				}
-			}
+	/* until a drive is chosen in the menu, the first internal disk holds
+	   /media/record, as the udev rule of the boxes did before; a box without
+	   one, like the HD60, records to the first USB drive there is until an
+	   internal disk comes */
+	if (below(g_settings.network_nfs_recordingdir, RECORD_MOUNT)) {
+		const storage::Device *internal = NULL, *usb = NULL, *chosen = NULL;
+		for (size_t i = 0; i < list.size(); i++) {
+			const storage::Device &d = list[i];
+			if (d.uuid.empty())
+				continue;
+			if (d.uuid == g_settings.hdd_record_uuid)
+				chosen = &d;
+			if (storage::systemDisk(list, d.disk) || !mountable(d))
+				continue;
+			if (!internal && isInternal(d))
+				internal = &d;
+			else if (!usb && d.tran == "usb")
+				usb = &d;
+		}
+		const storage::Device *take = NULL;
+		if (g_settings.hdd_record_uuid.empty())
+			take = internal ? internal : usb;
+		else if (g_settings.hdd_record_auto && internal && !(chosen && isInternal(*chosen)))
+			take = internal;
+		else if (g_settings.hdd_record_auto && !chosen)
+			take = usb;
+		if (take) {
+			printf("CHDDMenuHandler: %s holds the recordings\n", take->name.c_str());
+			g_settings.hdd_record_uuid = take->uuid;
+			g_settings.hdd_record_auto = true;
+		}
 	}
-	for (size_t i = 0; i < list.size(); i++)
-		if (!list[i].mounted() && list[i].type != "rom" && mountable(list[i]))
-			storage::mount(list[i].name, mountDir(list[i]));
+	/* nothing of the disk the system runs from, such as the boot partition
+	   beside the root */
+	for (size_t i = 0; i < list.size(); i++) {
+		const storage::Device &d = list[i];
+		if (d.type == "rom" || !mountable(d) || storage::systemDisk(list, d.disk))
+			continue;
+		bool record = !d.uuid.empty() && d.uuid == g_settings.hdd_record_uuid;
+		if (d.mounted()) {
+			/* the record drive somewhere else below /media goes to its place */
+			std::vector<std::string>::const_iterator at = std::find(d.mountpoints.begin(), d.mountpoints.end(), RECORD_MOUNT);
+			if (!record || at != d.mountpoints.end() || !storage::umount(d.name))
+				continue;
+		}
+		storage::mount(d.name, mountDir(d));
+	}
 }
 
 /* true when the drives changed */
@@ -238,7 +310,7 @@ bool CHDDMenuHandler::added(const std::string &name)
 	if (!d || d->mounted() || d->type == "rom" || storage::foreignFs(d->fstype))
 		return false;
 	/* the partitions come on their own */
-	if (d->isDisk() && d->has_parts)
+	if ((d->isDisk() && d->has_parts) || storage::systemDisk(list, d->disk))
 		return false;
 	if (!mountable(*d) || !storage::mount(name, mountDir(*d))) {
 		if (hinted.insert(d->disk).second)
@@ -303,6 +375,7 @@ bool CHDDMenuHandler::takeRecordDrive(const std::string &name)
 	if ((!old.empty() && !storage::umount(old)) || !storage::umount(name))
 		return false;
 	g_settings.hdd_record_uuid = d->uuid;
+	g_settings.hdd_record_auto = false;
 	bool ok = mount_dev(name);
 	if (!old.empty())
 		mount_dev(old);
@@ -643,7 +716,7 @@ int CHDDMenuHandler::formatDevice(const std::string &disk)
 		showError(LOCALE_HDD_FORMAT_FAILED);
 	} else if (mount_dev(part) && mkfs_label == MKFS_LABEL_DEFAULT) {
 		std::string dst = storage::mountPoints(part)[0];
-		static const char *dirs[] = { "movies", "pictures", "epg", "music", "logos", "plugins", NULL };
+		static const char *dirs[] = { "movies", "pictures", "epg", "music", "logos", "plugins", "games", NULL };
 		for (const char **p = dirs; *p; p++)
 			safe_mkdir((dst + "/" + *p).c_str());
 	}

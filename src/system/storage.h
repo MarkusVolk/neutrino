@@ -43,6 +43,7 @@ namespace storage
 		std::string tran;	/* usb, sata, mmc, nvme ... of the disk */
 		uint64_t size;
 		bool removable;
+		bool internal;		/* udev: NEUTRINO_INTERNAL=1 on the disk */
 		bool has_parts;		/* a disk with a partition table */
 		std::vector<std::string> mountpoints;
 

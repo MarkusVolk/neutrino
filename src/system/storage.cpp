@@ -44,6 +44,10 @@
 #include <set>
 #include <sstream>
 
+#ifdef ASSUME_UDEV
+#include <libudev.h>
+#endif
+
 #include <global.h>
 #include <system/helpers.h>
 #include <system/helpers-json.h>
@@ -92,6 +96,28 @@ bool hidden(const std::string &name)
 	return false;
 }
 
+/* a disk the board connects through USB, such as the M.2 slot of the SF8008,
+   is marked by a udev rule of the box */
+bool marked_internal(const std::string &disk)
+{
+	bool internal = false;
+#ifdef ASSUME_UDEV
+	struct udev *udev = udev_new();
+	if (!udev)
+		return false;
+	struct udev_device *dev = udev_device_new_from_subsystem_sysname(udev, "block", disk.c_str());
+	if (dev) {
+		const char *v = udev_device_get_property_value(dev, "NEUTRINO_INTERNAL");
+		internal = v && !strcmp(v, "1");
+		udev_device_unref(dev);
+	}
+	udev_unref(udev);
+#else
+	(void)disk;
+#endif
+	return internal;
+}
+
 storage::Device device(const Json::Value &v, const storage::Device *disk)
 {
 	storage::Device d;
@@ -114,11 +140,13 @@ storage::Device device(const Json::Value &v, const storage::Device *disk)
 		d.disk = disk->name;
 		d.model = disk->model;
 		d.tran = disk->tran;
+		d.internal = disk->internal;
 	} else {
 		d.disk = d.name;
 		d.model = str(v["vendor"]) + " " + str(v["model"]);
 		d.model = trim(d.model);
 		d.tran = str(v["tran"]);
+		d.internal = marked_internal(d.name);
 	}
 	return d;
 }
