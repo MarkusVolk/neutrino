@@ -3194,6 +3194,267 @@ weather.direction_wsw WSW
 weather.enabled Weather support
 weather.location Weather location
 weather.postalcode Weather location by postal code
+web.add Add
+web.back Back
+web.bouquet Bouquet
+web.box.image Image
+web.box.kernel Kernel
+web.box.memory Memory
+web.box.message Message
+web.box.message_placeholder Text for the TV screen
+web.box.message_sent Message sent
+web.box.model Model
+web.box.power Power
+web.box.reboot Reboot
+web.box.reboot_ask Reboot the box?
+web.box.restart Restart Neutrino
+web.box.restart_ask Restart Neutrino?
+web.box.running Running
+web.box.shutdown Shut down
+web.box.shutdown_ask Switch the box off?
+web.box.standby Standby
+web.box.storage Storage
+web.box.wait_ok Wait for OK
+web.box.wake Wake up
+web.browser.access_device Access: {level} as paired device "{device}"
+web.browser.access_home Access: {level} from the home network
+web.browser.access_user Access: {level} as {user}
+web.browser.ca Certificate of the box
+web.browser.ca_hint Install it on a phone to trust the box without a warning
+web.browser.title This browser
+web.browser.unpair Unpair
+web.browser.unpair_ask Unpair this browser? It needs to be paired again to work as a remote control.
+web.cancel Cancel
+web.channels.no_epg No programme information
+web.channels.none No channels
+web.channels.record Record this programme
+web.channels.stream Watch as stream
+web.close Close
+web.continue Continue
+web.copy Copy
+web.delete Delete
+web.devices.last_used last used {day} {time}
+web.devices.none No device is paired. Pair a phone with the code on the TV: Network > Web server (nhttpd) > Pair a phone.
+web.devices.remove_ask Remove "{name}"?
+web.devices.title Paired devices
+web.done Done
+web.edit Edit
+web.ext.missing No such page
+web.free_of {free} free of {total}
+web.https.off HTTPS is off on this box.
+web.https.switch Switch to HTTPS
+web.key.audio Audio
+web.key.blue Blue
+web.key.down Down
+web.key.favorites Favourites
+web.key.forward Forward
+web.key.green Green
+web.key.help Help
+web.key.home Exit
+web.key.info Info
+web.key.left Left
+web.key.mute Mute
+web.key.pagedown Channel down
+web.key.pageup Channel up
+web.key.playpause Play/pause
+web.key.power Power
+web.key.pvr Recordings
+web.key.radio Radio
+web.key.record Record
+web.key.red Red
+web.key.rewind Rewind
+web.key.right Right
+web.key.setup Menu
+web.key.stop Stop
+web.key.subtitle Subtitles
+web.key.text Teletext
+web.key.up Up
+web.key.volumedown Volume down
+web.key.volumeup Volume up
+web.key.www Web channels
+web.key.yellow Yellow
+web.level.public public
+web.level.read read
+web.level.system system
+web.level.write write
+web.loading Loading ...
+web.mcp.address Address
+web.mcp.client_until {host} - until {day}
+web.mcp.clients Signed-in clients
+web.mcp.new_token New token
+web.mcp.new_token_ask A new token ends the old one; clients that use it need the new one.
+web.mcp.new_token_shown The new token, shown only now:
+web.mcp.no_clients No client is signed in.
+web.mcp.open Open for MCP clients such as claude.ai
+web.mcp.public_address Public address
+web.mcp.public_hint Public address: where clients from the internet reach the box (a tunnel such as Tailscale Funnel). Everything but MCP stays closed there.
+web.mcp.sign_out_all Sign out all
+web.mcp.sign_out_all_ask Sign every client out?
+web.mcp.sign_out_ask Sign "{name}" out?
+web.mcp.title MCP server
+web.mcp.token Token
+web.mcp.token_copied Token copied
+web.minutes {n} min
+web.more More
+web.mounts.add_by_name Add by name
+web.mounts.add_mount Add and mount
+web.mounts.add_share Add a network share
+web.mounts.asking Asking the server...
+web.mounts.at_boot Mounts at boot
+web.mounts.automount Mount when the box starts
+web.mounts.by_desktop Mounted by the desktop
+web.mounts.change_share Change the share
+web.mounts.desktop_hint Drives and shares are mounted by the desktop (file manager or fstab). Once mounted they show up here and can take the recordings.
+web.mounts.drive_mounted Drive mounted
+web.mounts.drive_unmounted Drive unmounted
+web.mounts.drive_unmounted_moved Drive unmounted, recordings go to {dir} again
+web.mounts.drives Drives
+web.mounts.export Export
+web.mounts.find Find shares
+web.mounts.host_placeholder 192.168.178.1 or nas
+web.mounts.list_shares List shares
+web.mounts.manual Manual mount
+web.mounts.mount Mount
+web.mounts.mount_at Mount at
+web.mounts.mounted Mounted
+web.mounts.mounted_lower mounted
+web.mounts.network_shares Network shares
+web.mounts.nfs_exports NFS exports
+web.mounts.no_drives No drives
+web.mounts.no_list The server lists no shares
+web.mounts.no_servers No SMB or NFS server answered
+web.mounts.no_shares No network shares
+web.mounts.no_shares_mounted No network shares mounted
+web.mounts.not_mounted Not mounted
+web.mounts.not_mounted_lower not mounted
+web.mounts.options Options
+web.mounts.record_here Record here
+web.mounts.recordings_here Recordings go here
+web.mounts.remove_ask Remove {share}?
+web.mounts.searching Searching the network...
+web.mounts.server Server
+web.mounts.servers Servers in the network
+web.mounts.share Share
+web.mounts.share_mounted Share mounted
+web.mounts.share_placeholder share name
+web.mounts.share_removed Share removed
+web.mounts.share_removed_moved Share removed, recordings go to {dir} again
+web.mounts.share_unmounted Share unmounted
+web.mounts.share_unmounted_moved Share unmounted, recordings go to {dir} again
+web.mounts.sign_in_to Sign in to {host}
+web.mounts.smb_shares SMB shares
+web.mounts.type Type
+web.mounts.type_nfs NFS (Linux, NAS)
+web.mounts.type_smb SMB (Windows, Fritz!Box, most NAS)
+web.mounts.unchanged unchanged
+web.mounts.unmount Unmount
+web.mounts.user User
+web.mpv.clipboard Starting mpv - if nothing opens, the address is in the clipboard
+web.mpv.start Starting mpv
+web.nav.box Box
+web.nav.channels Channels
+web.nav.epg Programme guide
+web.nav.guide Guide
+web.nav.mounts Mounts
+web.nav.recordings Recordings
+web.nav.remote Remote
+web.nav.timers Timers
+web.ok OK
+web.pair.allow Allow this browser on the TV. The TV shows the code {code}.
+web.pair.ask Ask the TV
+web.pair.how On the TV: Network > Web server (nhttpd) > Pair a phone shows a code to scan. Or ask the TV from here:
+web.pair.https Pairing works over HTTPS. The browser warns once about the certificate of the box; {link} to avoid that.
+web.pair.install_ca install it
+web.pair.refused The TV did not allow it.
+web.pair.title Pair with the TV
+web.phone.allow Allow this phone on the TV. The TV shows the code {code}.
+web.phone.ask_again Ask again
+web.phone.box_silent The box does not answer.
+web.phone.go_https Go to HTTPS
+web.phone.no_access This phone has no access to the box.
+web.phone.no_access_https This phone has no access to the box. Pair it over HTTPS.
+web.phone.no_access_pair This phone has no access to the box. Show the code on the TV (Network > Web server (nhttpd) > Pair a phone) and scan it, or ask the TV here.
+web.phone.no_answer No answer from the box
+web.phone.not_paired Not paired: {why}
+web.phone.paired Paired
+web.phone.pairing_failed pairing did not work.
+web.phone.without_pairing Use without pairing
+web.record Record
+web.recordings.all_have_pictures Every recording has a picture
+web.recordings.delete_ask Delete the recording "{title}"?
+web.recordings.deleted Recording deleted
+web.recordings.episodes.few {n} episodes
+web.recordings.episodes.one {n} episode
+web.recordings.episodes.other {n} episodes
+web.recordings.fetch Fetch pictures
+web.recordings.fetch_hint Fetch a picture for every recording that has none
+web.recordings.fetching.few Fetching {n} pictures
+web.recordings.fetching.one Fetching {n} picture
+web.recordings.fetching.other Fetching {n} pictures
+web.recordings.list List
+web.recordings.none No recordings
+web.recordings.now recording now
+web.recordings.play_here Play on this device
+web.recordings.play_tv Play on TV
+web.recordings.playing_tv Playing on the TV: {title}
+web.recordings.rename_title Rename the recording
+web.recordings.renamed Renamed
+web.recordings.view View
+web.recordings.wall Wall
+web.reload Reload
+web.remote.full_interface Full interface
+web.remote.full_screen Full screen
+web.remote.keyboard Keyboard: arrows, Enter = OK, Esc = Exit, 0-9, + / - volume, r g y b colour keys. {link} fills a phone screen.
+web.remote.no_menu No menu on the screen
+web.remote.only Remote only
+web.remote.only_phone Remote only (phone)
+web.remote.osd_hint The OSD of the box shows here after a key
+web.remote.page_title Remote - Neutrino
+web.remote.title Remote control
+web.remove Remove
+web.rename Rename
+web.save Save
+web.saved Saved
+web.screenshot.saved Screenshot saved
+web.screenshot.title Screenshot of the TV
+web.send Send
+web.sign_out Sign out
+web.signin.button Sign in
+web.signin.has_access This browser already has {level} access. {link}
+web.signin.name Name
+web.signin.off Signing in with a password is off on this box; the home network has access without one.
+web.signin.password Password
+web.signin.title Sign in with a password
+web.stream Stream
+web.timer.conflict "{title}" overlaps with {other}. The box may not be able to record both. Set the timer anyway?
+web.timer.delete Delete timer
+web.timer.delete_ask Delete the timer "{title}"?
+web.timer.deleted Timer deleted: {title}
+web.timer.kind.exec_plugin Plugin
+web.timer.kind.next_program Next programme
+web.timer.kind.record Recording
+web.timer.kind.remind Reminder
+web.timer.kind.shutdown Shutdown
+web.timer.kind.sleeptimer Sleep timer
+web.timer.kind.standby Standby
+web.timer.kind.zapto Zap
+web.timer.recording_set Recording set: {title}
+web.timer.set_anyway Set anyway
+web.timer.stop Stop recording
+web.timer.stop_ask Stop the recording of "{title}"?
+web.timer.stopped Recording stopped: {title}
+web.timers.none No timers
+web.title Title
+web.uptime.days {d} d {h} h
+web.uptime.hours {h} h {m} min
+web.wall.documentaries Documentaries
+web.wall.movies Movies
+web.wall.newest Newest
+web.wall.other Other
+web.wall.series Series
+web.yes Yes
+web.zap Zap
+web.zapped Zapped to {name}
 webchannels.xml.add Add
 webchannels.xml.del Remove
 webchannels.xml.enter Enter

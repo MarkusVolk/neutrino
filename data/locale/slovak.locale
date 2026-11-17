@@ -3194,6 +3194,267 @@ weather.direction_wsw ZJZ
 weather.enabled Podpora počasia
 weather.location Lokalita
 weather.postalcode Lokalita počasia podľa PSČ
+web.add Pridať
+web.back Späť
+web.bouquet Buket
+web.box.image Image
+web.box.kernel Jadro
+web.box.memory Pamäť
+web.box.message Správa
+web.box.message_placeholder Text pre obrazovku TV
+web.box.message_sent Správa odoslaná
+web.box.model Model
+web.box.power Zapnutie/vypnutie
+web.box.reboot Reštartovať
+web.box.reboot_ask Reštartovať box?
+web.box.restart Reštartovať Neutrino
+web.box.restart_ask Reštartovať Neutrino?
+web.box.running V prevádzke
+web.box.shutdown Vypnúť
+web.box.shutdown_ask Vypnúť box?
+web.box.standby Pohotovostný režim
+web.box.storage Úložisko
+web.box.wait_ok Čakať na OK
+web.box.wake Prebudiť
+web.browser.access_device Prístup: {level} ako spárované zariadenie „{device}“
+web.browser.access_home Prístup: {level} z domácej siete
+web.browser.access_user Prístup: {level} ako {user}
+web.browser.ca Certifikát boxu
+web.browser.ca_hint Nainštalujte ho do telefónu, aby boxu dôveroval bez varovania
+web.browser.title Tento prehliadač
+web.browser.unpair Zrušiť spárovanie
+web.browser.unpair_ask Zrušiť spárovanie tohto prehliadača? Ako diaľkový ovládač ho potom treba znova spárovať.
+web.cancel Zrušiť
+web.channels.no_epg Žiadne informácie o programe
+web.channels.none Žiadne kanály
+web.channels.record Nahrať tento program
+web.channels.stream Pozerať ako stream
+web.close Zavrieť
+web.continue Pokračovať
+web.copy Kopírovať
+web.delete Vymazať
+web.devices.last_used naposledy použité {day} {time}
+web.devices.none Nie je spárované žiadne zariadenie. Telefón spárujte kódom na TV: Sieť > Webový server (nhttpd) > Spárovať telefón.
+web.devices.remove_ask Odstrániť „{name}“?
+web.devices.title Spárované zariadenia
+web.done Hotovo
+web.edit Upraviť
+web.ext.missing Táto stránka neexistuje
+web.free_of {free} voľných z {total}
+web.https.off HTTPS je na tomto boxe vypnuté.
+web.https.switch Prepnúť na HTTPS
+web.key.audio Zvuk
+web.key.blue Modrá
+web.key.down Dole
+web.key.favorites Obľúbené
+web.key.forward Dopredu
+web.key.green Zelená
+web.key.help Pomocník
+web.key.home Exit
+web.key.info Info
+web.key.left Vľavo
+web.key.mute Stlmiť
+web.key.pagedown Kanál dole
+web.key.pageup Kanál hore
+web.key.playpause Prehrať/pauza
+web.key.power Zapnutie/vypnutie
+web.key.pvr Nahrávky
+web.key.radio Rádio
+web.key.record Nahrávať
+web.key.red Červená
+web.key.rewind Dozadu
+web.key.right Vpravo
+web.key.setup Menu
+web.key.stop Stop
+web.key.subtitle Titulky
+web.key.text Teletext
+web.key.up Hore
+web.key.volumedown Tichšie
+web.key.volumeup Hlasnejšie
+web.key.www Webové kanály
+web.key.yellow Žltá
+web.level.public verejný
+web.level.read čítanie
+web.level.system systém
+web.level.write ovládanie
+web.loading Načítava sa ...
+web.mcp.address Adresa
+web.mcp.client_until {host} - do {day}
+web.mcp.clients Prihlásení klienti
+web.mcp.new_token Nový token
+web.mcp.new_token_ask Nový token ukončí starý; klienti, ktorí ho používajú, potrebujú nový.
+web.mcp.new_token_shown Nový token, zobrazený iba teraz:
+web.mcp.no_clients Nie je prihlásený žiadny klient.
+web.mcp.open Otvorené pre MCP klientov ako claude.ai
+web.mcp.public_address Verejná adresa
+web.mcp.public_hint Verejná adresa: kde sa klienti z internetu dostanú k boxu (tunel ako Tailscale Funnel). Všetko okrem MCP tam zostáva zatvorené.
+web.mcp.sign_out_all Odhlásiť všetkých
+web.mcp.sign_out_all_ask Odhlásiť všetkých klientov?
+web.mcp.sign_out_ask Odhlásiť „{name}“?
+web.mcp.title MCP server
+web.mcp.token Token
+web.mcp.token_copied Token skopírovaný
+web.minutes {n} min
+web.more Viac
+web.mounts.add_by_name Pridať podľa názvu
+web.mounts.add_mount Pridať a pripojiť
+web.mounts.add_share Pridať sieťové zdieľanie
+web.mounts.asking Pýtam sa servera ...
+web.mounts.at_boot Pripojí sa pri štarte
+web.mounts.automount Pripojiť pri štarte boxu
+web.mounts.by_desktop Pripojené desktopom
+web.mounts.change_share Zmeniť zdieľanie
+web.mounts.desktop_hint Disky a zdieľania pripája desktop (správca súborov alebo fstab). Po pripojení sa zobrazia tu a môžu prijímať nahrávky.
+web.mounts.drive_mounted Disk pripojený
+web.mounts.drive_unmounted Disk odpojený
+web.mounts.drive_unmounted_moved Disk odpojený, nahrávky idú opäť do {dir}
+web.mounts.drives Disky
+web.mounts.export Export
+web.mounts.find Hľadať zdieľania
+web.mounts.host_placeholder 192.168.178.1 alebo nas
+web.mounts.list_shares Zobraziť zdieľania
+web.mounts.manual Pripája sa ručne
+web.mounts.mount Pripojiť
+web.mounts.mount_at Pripojiť do
+web.mounts.mounted Pripojené
+web.mounts.mounted_lower pripojené
+web.mounts.network_shares Sieťové zdieľania
+web.mounts.nfs_exports NFS exporty
+web.mounts.no_drives Žiadne disky
+web.mounts.no_list Server neuvádza žiadne zdieľania
+web.mounts.no_servers Neodpovedal žiadny SMB ani NFS server
+web.mounts.no_shares Žiadne sieťové zdieľania
+web.mounts.no_shares_mounted Nie je pripojené žiadne sieťové zdieľanie
+web.mounts.not_mounted Nepripojené
+web.mounts.not_mounted_lower nepripojené
+web.mounts.options Možnosti
+web.mounts.record_here Nahrávať sem
+web.mounts.recordings_here Nahrávky idú sem
+web.mounts.remove_ask Odstrániť {share}?
+web.mounts.searching Prehľadávam sieť ...
+web.mounts.server Server
+web.mounts.servers Servery v sieti
+web.mounts.share Zdieľanie
+web.mounts.share_mounted Zdieľanie pripojené
+web.mounts.share_placeholder názov zdieľania
+web.mounts.share_removed Zdieľanie odstránené
+web.mounts.share_removed_moved Zdieľanie odstránené, nahrávky idú opäť do {dir}
+web.mounts.share_unmounted Zdieľanie odpojené
+web.mounts.share_unmounted_moved Zdieľanie odpojené, nahrávky idú opäť do {dir}
+web.mounts.sign_in_to Prihlásiť sa k {host}
+web.mounts.smb_shares SMB zdieľania
+web.mounts.type Typ
+web.mounts.type_nfs NFS (Linux, NAS)
+web.mounts.type_smb SMB (Windows, Fritz!Box, väčšina NAS)
+web.mounts.unchanged nezmenené
+web.mounts.unmount Odpojiť
+web.mounts.user Používateľ
+web.mpv.clipboard Spúšťa sa mpv - ak sa nič neotvorí, adresa je v schránke
+web.mpv.start Spúšťa sa mpv
+web.nav.box Box
+web.nav.channels Kanály
+web.nav.epg Programový sprievodca
+web.nav.guide EPG
+web.nav.mounts Disky
+web.nav.recordings Nahrávky
+web.nav.remote Ovládač
+web.nav.timers Časovače
+web.ok OK
+web.pair.allow Povoľte tento prehliadač na TV. TV zobrazuje kód {code}.
+web.pair.ask Opýtať sa TV
+web.pair.how Na TV zobrazí Sieť > Webový server (nhttpd) > Spárovať telefón kód na naskenovanie. Alebo sa opýtajte TV odtiaľto:
+web.pair.https Párovanie funguje cez HTTPS. Prehliadač raz upozorní na certifikát boxu; {link}, aby sa to nestávalo.
+web.pair.install_ca nainštalujte ho
+web.pair.refused TV to nepovolila.
+web.pair.title Spárovať s TV
+web.phone.allow Povoľte tento telefón na TV. TV zobrazuje kód {code}.
+web.phone.ask_again Opýtať sa znova
+web.phone.box_silent Box neodpovedá.
+web.phone.go_https Na HTTPS
+web.phone.no_access Tento telefón nemá prístup k boxu.
+web.phone.no_access_https Tento telefón nemá prístup k boxu. Spárujte ho cez HTTPS.
+web.phone.no_access_pair Tento telefón nemá prístup k boxu. Zobrazte kód na TV (Sieť > Webový server (nhttpd) > Spárovať telefón) a naskenujte ho, alebo sa opýtajte TV tu.
+web.phone.no_answer Žiadna odpoveď od boxu
+web.phone.not_paired Nespárované: {why}
+web.phone.paired Spárované
+web.phone.pairing_failed párovanie sa nepodarilo.
+web.phone.without_pairing Používať bez párovania
+web.record Nahrávať
+web.recordings.all_have_pictures Každá nahrávka má obrázok
+web.recordings.delete_ask Vymazať nahrávku „{title}“?
+web.recordings.deleted Nahrávka vymazaná
+web.recordings.episodes.few {n} epizódy
+web.recordings.episodes.one {n} epizóda
+web.recordings.episodes.other {n} epizód
+web.recordings.fetch Získať obrázky
+web.recordings.fetch_hint Získať obrázok pre každú nahrávku, ktorá ho nemá
+web.recordings.fetching.few Získavajú sa {n} obrázky
+web.recordings.fetching.one Získava sa {n} obrázok
+web.recordings.fetching.other Získava sa {n} obrázkov
+web.recordings.list Zoznam
+web.recordings.none Žiadne nahrávky
+web.recordings.now práve sa nahráva
+web.recordings.play_here Prehrať na tomto zariadení
+web.recordings.play_tv Prehrať na TV
+web.recordings.playing_tv Prehráva sa na TV: {title}
+web.recordings.rename_title Premenovať nahrávku
+web.recordings.renamed Premenované
+web.recordings.view Zobrazenie
+web.recordings.wall Stena
+web.reload Obnoviť
+web.remote.full_interface Celé rozhranie
+web.remote.full_screen Celá obrazovka
+web.remote.keyboard Klávesnica: šípky, Enter = OK, Esc = Exit, 0-9, + / - hlasitosť, r g y b farebné tlačidlá. {link} vyplní obrazovku telefónu.
+web.remote.no_menu Na obrazovke nie je žiadne menu
+web.remote.only Iba ovládač
+web.remote.only_phone Iba ovládač (telefón)
+web.remote.osd_hint OSD boxu sa tu zobrazí po stlačení tlačidla
+web.remote.page_title Ovládač - Neutrino
+web.remote.title Diaľkový ovládač
+web.remove Odstrániť
+web.rename Premenovať
+web.save Uložiť
+web.saved Uložené
+web.screenshot.saved Snímka obrazovky uložená
+web.screenshot.title Snímka obrazovky TV
+web.send Odoslať
+web.sign_out Odhlásiť
+web.signin.button Prihlásiť sa
+web.signin.has_access Tento prehliadač už má prístup ({level}). {link}
+web.signin.name Meno
+web.signin.off Prihlásenie heslom je na tomto boxe vypnuté; domáca sieť má prístup bez neho.
+web.signin.password Heslo
+web.signin.title Prihlásiť sa heslom
+web.stream Stream
+web.timer.conflict „{title}“ sa prekrýva s {other}. Box možno nedokáže nahrať oboje. Napriek tomu nastaviť časovač?
+web.timer.delete Vymazať časovač
+web.timer.delete_ask Vymazať časovač „{title}“?
+web.timer.deleted Časovač vymazaný: {title}
+web.timer.kind.exec_plugin Doplnok
+web.timer.kind.next_program Ďalší program
+web.timer.kind.record Nahrávanie
+web.timer.kind.remind Pripomenutie
+web.timer.kind.shutdown Vypnutie
+web.timer.kind.sleeptimer Časové vypnutie
+web.timer.kind.standby Pohotovostný režim
+web.timer.kind.zapto Prepnutie
+web.timer.recording_set Nahrávanie nastavené: {title}
+web.timer.set_anyway Napriek tomu nastaviť
+web.timer.stop Zastaviť nahrávanie
+web.timer.stop_ask Zastaviť nahrávanie „{title}“?
+web.timer.stopped Nahrávanie zastavené: {title}
+web.timers.none Žiadne časovače
+web.title Názov
+web.uptime.days {d} d {h} h
+web.uptime.hours {h} h {m} min
+web.wall.documentaries Dokumenty
+web.wall.movies Filmy
+web.wall.newest Najnovšie
+web.wall.other Ostatné
+web.wall.series Seriály
+web.yes Áno
+web.zap Prepnúť
+web.zapped Prepnuté na {name}
 webchannels.xml.add Pridať
 webchannels.xml.del Odstrániť
 webchannels.xml.enter Zadať

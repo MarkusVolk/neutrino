@@ -3194,6 +3194,267 @@ weather.direction_wsw WSW
 weather.enabled Wetter-Unterstützung
 weather.location Wetter-Standort
 weather.postalcode Wetter-Standort per Postleitzahl
+web.add Hinzufügen
+web.back Zurück
+web.bouquet Bouquet
+web.box.image Image
+web.box.kernel Kernel
+web.box.memory Arbeitsspeicher
+web.box.message Nachricht
+web.box.message_placeholder Text für den Fernseher
+web.box.message_sent Nachricht gesendet
+web.box.model Modell
+web.box.power Ein/Aus
+web.box.reboot Neu starten
+web.box.reboot_ask Die Box neu starten?
+web.box.restart Neutrino neu starten
+web.box.restart_ask Neutrino neu starten?
+web.box.running Läuft seit
+web.box.shutdown Ausschalten
+web.box.shutdown_ask Die Box ausschalten?
+web.box.standby Standby
+web.box.storage Speicher
+web.box.wait_ok Auf OK warten
+web.box.wake Aufwecken
+web.browser.access_device Zugriff: {level} als gekoppeltes Gerät „{device}“
+web.browser.access_home Zugriff: {level} aus dem Heimnetz
+web.browser.access_user Zugriff: {level} als {user}
+web.browser.ca Zertifikat der Box
+web.browser.ca_hint Auf einem Handy installieren, damit es der Box ohne Warnung vertraut
+web.browser.title Dieser Browser
+web.browser.unpair Entkoppeln
+web.browser.unpair_ask Diesen Browser entkoppeln? Als Fernbedienung muss er danach neu gekoppelt werden.
+web.cancel Abbrechen
+web.channels.no_epg Keine Programminformation
+web.channels.none Keine Kanäle
+web.channels.record Diese Sendung aufnehmen
+web.channels.stream Als Stream ansehen
+web.close Schließen
+web.continue Weiter
+web.copy Kopieren
+web.delete Löschen
+web.devices.last_used zuletzt benutzt {day} {time}
+web.devices.none Kein Gerät gekoppelt. Ein Handy wird mit dem Code am Fernseher gekoppelt: Netzwerk > Webserver (nhttpd) > Handy koppeln.
+web.devices.remove_ask „{name}“ entfernen?
+web.devices.title Gekoppelte Geräte
+web.done Erledigt
+web.edit Bearbeiten
+web.ext.missing Diese Seite gibt es nicht
+web.free_of {free} frei von {total}
+web.https.off HTTPS ist auf dieser Box aus.
+web.https.switch Zu HTTPS wechseln
+web.key.audio Ton
+web.key.blue Blau
+web.key.down Ab
+web.key.favorites Favoriten
+web.key.forward Vorspulen
+web.key.green Grün
+web.key.help Hilfe
+web.key.home Exit
+web.key.info Info
+web.key.left Links
+web.key.mute Stumm
+web.key.pagedown Kanal ab
+web.key.pageup Kanal auf
+web.key.playpause Wiedergabe/Pause
+web.key.power Ein/Aus
+web.key.pvr Aufnahmen
+web.key.radio Radio
+web.key.record Aufnehmen
+web.key.red Rot
+web.key.rewind Zurückspulen
+web.key.right Rechts
+web.key.setup Menü
+web.key.stop Stopp
+web.key.subtitle Untertitel
+web.key.text Videotext
+web.key.up Auf
+web.key.volumedown Leiser
+web.key.volumeup Lauter
+web.key.www Webkanäle
+web.key.yellow Gelb
+web.level.public öffentlich
+web.level.read lesen
+web.level.system System
+web.level.write bedienen
+web.loading Lädt ...
+web.mcp.address Adresse
+web.mcp.client_until {host} - bis {day}
+web.mcp.clients Angemeldete Clients
+web.mcp.new_token Neues Token
+web.mcp.new_token_ask Ein neues Token beendet das alte; Clients, die es nutzen, brauchen das neue.
+web.mcp.new_token_shown Das neue Token, nur jetzt angezeigt:
+web.mcp.no_clients Kein Client ist angemeldet.
+web.mcp.open Offen für MCP-Clients wie claude.ai
+web.mcp.public_address Öffentliche Adresse
+web.mcp.public_hint Öffentliche Adresse: wo Clients aus dem Internet die Box erreichen (ein Tunnel wie Tailscale Funnel). Alles außer MCP bleibt dort geschlossen.
+web.mcp.sign_out_all Alle abmelden
+web.mcp.sign_out_all_ask Alle Clients abmelden?
+web.mcp.sign_out_ask „{name}“ abmelden?
+web.mcp.title MCP-Server
+web.mcp.token Token
+web.mcp.token_copied Token kopiert
+web.minutes {n} Min.
+web.more Mehr
+web.mounts.add_by_name Über den Namen hinzufügen
+web.mounts.add_mount Hinzufügen und einhängen
+web.mounts.add_share Netzwerkfreigabe hinzufügen
+web.mounts.asking Frage den Server ...
+web.mounts.at_boot Beim Start eingehängt
+web.mounts.automount Beim Start der Box einhängen
+web.mounts.by_desktop Vom Desktop eingehängt
+web.mounts.change_share Freigabe ändern
+web.mounts.desktop_hint Laufwerke und Freigaben hängt der Desktop ein (Dateimanager oder fstab). Eingehängt erscheinen sie hier und können die Aufnahmen aufnehmen.
+web.mounts.drive_mounted Laufwerk eingehängt
+web.mounts.drive_unmounted Laufwerk ausgehängt
+web.mounts.drive_unmounted_moved Laufwerk ausgehängt, Aufnahmen gehen wieder nach {dir}
+web.mounts.drives Laufwerke
+web.mounts.export Export
+web.mounts.find Freigaben suchen
+web.mounts.host_placeholder 192.168.178.1 oder nas
+web.mounts.list_shares Freigaben auflisten
+web.mounts.manual Von Hand eingehängt
+web.mounts.mount Einhängen
+web.mounts.mount_at Einhängen unter
+web.mounts.mounted Eingehängt
+web.mounts.mounted_lower eingehängt
+web.mounts.network_shares Netzwerkfreigaben
+web.mounts.nfs_exports NFS-Exporte
+web.mounts.no_drives Keine Laufwerke
+web.mounts.no_list Der Server nennt keine Freigaben
+web.mounts.no_servers Kein SMB- oder NFS-Server hat geantwortet
+web.mounts.no_shares Keine Netzwerkfreigaben
+web.mounts.no_shares_mounted Keine Netzwerkfreigaben eingehängt
+web.mounts.not_mounted Nicht eingehängt
+web.mounts.not_mounted_lower nicht eingehängt
+web.mounts.options Optionen
+web.mounts.record_here Hier aufnehmen
+web.mounts.recordings_here Aufnahmen gehen hierher
+web.mounts.remove_ask {share} entfernen?
+web.mounts.searching Suche im Netzwerk ...
+web.mounts.server Server
+web.mounts.servers Server im Netzwerk
+web.mounts.share Freigabe
+web.mounts.share_mounted Freigabe eingehängt
+web.mounts.share_placeholder Name der Freigabe
+web.mounts.share_removed Freigabe entfernt
+web.mounts.share_removed_moved Freigabe entfernt, Aufnahmen gehen wieder nach {dir}
+web.mounts.share_unmounted Freigabe ausgehängt
+web.mounts.share_unmounted_moved Freigabe ausgehängt, Aufnahmen gehen wieder nach {dir}
+web.mounts.sign_in_to Bei {host} anmelden
+web.mounts.smb_shares SMB-Freigaben
+web.mounts.type Art
+web.mounts.type_nfs NFS (Linux, NAS)
+web.mounts.type_smb SMB (Windows, Fritz!Box, die meisten NAS)
+web.mounts.unchanged unverändert
+web.mounts.unmount Aushängen
+web.mounts.user Benutzer
+web.mpv.clipboard Starte mpv - öffnet sich nichts, steht die Adresse in der Zwischenablage
+web.mpv.start Starte mpv
+web.nav.box Box
+web.nav.channels Kanäle
+web.nav.epg Programmführer
+web.nav.guide EPG
+web.nav.mounts Laufwerke
+web.nav.recordings Aufnahmen
+web.nav.remote Fernbedienung
+web.nav.timers Timer
+web.ok OK
+web.pair.allow Diesen Browser am Fernseher erlauben. Der Fernseher zeigt den Code {code}.
+web.pair.ask Den Fernseher fragen
+web.pair.how Am Fernseher zeigt Netzwerk > Webserver (nhttpd) > Handy koppeln einen Code zum Scannen. Oder von hier aus den Fernseher fragen:
+web.pair.https Koppeln geht über HTTPS. Der Browser warnt einmal wegen des Zertifikats der Box; {link}, um das zu vermeiden.
+web.pair.install_ca es installieren
+web.pair.refused Der Fernseher hat es nicht erlaubt.
+web.pair.title Mit dem Fernseher koppeln
+web.phone.allow Dieses Handy am Fernseher erlauben. Der Fernseher zeigt den Code {code}.
+web.phone.ask_again Erneut fragen
+web.phone.box_silent Die Box antwortet nicht.
+web.phone.go_https Zu HTTPS
+web.phone.no_access Dieses Handy hat keinen Zugriff auf die Box.
+web.phone.no_access_https Dieses Handy hat keinen Zugriff auf die Box. Über HTTPS koppeln.
+web.phone.no_access_pair Dieses Handy hat keinen Zugriff auf die Box. Den Code am Fernseher zeigen (Netzwerk > Webserver (nhttpd) > Handy koppeln) und scannen, oder hier den Fernseher fragen.
+web.phone.no_answer Keine Antwort von der Box
+web.phone.not_paired Nicht gekoppelt: {why}
+web.phone.paired Gekoppelt
+web.phone.pairing_failed Das Koppeln hat nicht geklappt.
+web.phone.without_pairing Ohne Koppeln benutzen
+web.record Aufnehmen
+web.recordings.all_have_pictures Jede Aufnahme hat ein Bild
+web.recordings.delete_ask Die Aufnahme „{title}“ löschen?
+web.recordings.deleted Aufnahme gelöscht
+web.recordings.episodes.few {n} Folgen
+web.recordings.episodes.one {n} Folge
+web.recordings.episodes.other {n} Folgen
+web.recordings.fetch Bilder holen
+web.recordings.fetch_hint Für jede Aufnahme ohne Bild eines holen
+web.recordings.fetching.few Hole {n} Bilder
+web.recordings.fetching.one Hole {n} Bild
+web.recordings.fetching.other Hole {n} Bilder
+web.recordings.list Liste
+web.recordings.none Keine Aufnahmen
+web.recordings.now läuft gerade
+web.recordings.play_here Auf diesem Gerät abspielen
+web.recordings.play_tv Am Fernseher abspielen
+web.recordings.playing_tv Spielt am Fernseher: {title}
+web.recordings.rename_title Aufnahme umbenennen
+web.recordings.renamed Umbenannt
+web.recordings.view Ansicht
+web.recordings.wall Wand
+web.reload Neu laden
+web.remote.full_interface Ganze Oberfläche
+web.remote.full_screen Vollbild
+web.remote.keyboard Tastatur: Pfeile, Enter = OK, Esc = Exit, 0-9, + / - Lautstärke, r g y b Farbtasten. {link} füllt einen Handybildschirm.
+web.remote.no_menu Kein Menü auf dem Bildschirm
+web.remote.only Nur Fernbedienung
+web.remote.only_phone Nur Fernbedienung (Handy)
+web.remote.osd_hint Das OSD der Box erscheint hier nach einer Taste
+web.remote.page_title Fernbedienung - Neutrino
+web.remote.title Fernbedienung
+web.remove Entfernen
+web.rename Umbenennen
+web.save Speichern
+web.saved Gespeichert
+web.screenshot.saved Bildschirmfoto gespeichert
+web.screenshot.title Bildschirmfoto vom Fernseher
+web.send Senden
+web.sign_out Abmelden
+web.signin.button Anmelden
+web.signin.has_access Dieser Browser hat schon Zugriff ({level}). {link}
+web.signin.name Name
+web.signin.off Anmelden mit Passwort ist auf dieser Box aus; das Heimnetz hat Zugriff ohne.
+web.signin.password Passwort
+web.signin.title Mit Passwort anmelden
+web.stream Stream
+web.timer.conflict „{title}“ überschneidet sich mit {other}. Die Box kann vielleicht nicht beides aufnehmen. Den Timer trotzdem setzen?
+web.timer.delete Timer löschen
+web.timer.delete_ask Den Timer „{title}“ löschen?
+web.timer.deleted Timer gelöscht: {title}
+web.timer.kind.exec_plugin Plugin
+web.timer.kind.next_program Nächste Sendung
+web.timer.kind.record Aufnahme
+web.timer.kind.remind Erinnerung
+web.timer.kind.shutdown Ausschalten
+web.timer.kind.sleeptimer Sleeptimer
+web.timer.kind.standby Standby
+web.timer.kind.zapto Umschalten
+web.timer.recording_set Aufnahme gesetzt: {title}
+web.timer.set_anyway Trotzdem setzen
+web.timer.stop Aufnahme beenden
+web.timer.stop_ask Die Aufnahme von „{title}“ beenden?
+web.timer.stopped Aufnahme beendet: {title}
+web.timers.none Keine Timer
+web.title Titel
+web.uptime.days {d} T. {h} Std.
+web.uptime.hours {h} Std. {m} Min.
+web.wall.documentaries Dokumentationen
+web.wall.movies Filme
+web.wall.newest Neueste
+web.wall.other Sonstige
+web.wall.series Serien
+web.yes Ja
+web.zap Umschalten
+web.zapped Umgeschaltet auf {name}
 webchannels.xml.add Hinzufügen
 webchannels.xml.del Entfernen
 webchannels.xml.enter Eintragen

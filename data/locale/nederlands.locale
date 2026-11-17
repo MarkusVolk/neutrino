@@ -3194,6 +3194,267 @@ weather.direction_wsw WZW
 weather.enabled Weerondersteuning
 weather.location Weerlocatie
 weather.postalcode Weerlocatie op postcode
+web.add Toevoegen
+web.back Terug
+web.bouquet Boeket
+web.box.image Image
+web.box.kernel Kernel
+web.box.memory Geheugen
+web.box.message Bericht
+web.box.message_placeholder Tekst voor het tv-scherm
+web.box.message_sent Bericht verzonden
+web.box.model Model
+web.box.power Aan/uit
+web.box.reboot Herstarten
+web.box.reboot_ask De box herstarten?
+web.box.restart Neutrino herstarten
+web.box.restart_ask Neutrino herstarten?
+web.box.running Actief sinds
+web.box.shutdown Uitschakelen
+web.box.shutdown_ask De box uitschakelen?
+web.box.standby Standby
+web.box.storage Opslag
+web.box.wait_ok Op OK wachten
+web.box.wake Wekken
+web.browser.access_device Toegang: {level} als gekoppeld apparaat "{device}"
+web.browser.access_home Toegang: {level} vanuit het thuisnetwerk
+web.browser.access_user Toegang: {level} als {user}
+web.browser.ca Certificaat van de box
+web.browser.ca_hint Installeer het op een telefoon om de box zonder waarschuwing te vertrouwen
+web.browser.title Deze browser
+web.browser.unpair Ontkoppelen
+web.browser.unpair_ask Deze browser ontkoppelen? Als afstandsbediening moet hij daarna opnieuw gekoppeld worden.
+web.cancel Annuleren
+web.channels.no_epg Geen programma-informatie
+web.channels.none Geen zenders
+web.channels.record Dit programma opnemen
+web.channels.stream Als stream bekijken
+web.close Sluiten
+web.continue Verder
+web.copy Kopiëren
+web.delete Verwijderen
+web.devices.last_used laatst gebruikt {day} {time}
+web.devices.none Geen apparaat gekoppeld. Koppel een telefoon met de code op de tv: Netwerk instellingen > Webserver (nhttpd) > Telefoon koppelen.
+web.devices.remove_ask "{name}" verwijderen?
+web.devices.title Gekoppelde apparaten
+web.done Klaar
+web.edit Bewerken
+web.ext.missing Deze pagina bestaat niet
+web.free_of {free} vrij van {total}
+web.https.off HTTPS staat uit op deze box.
+web.https.switch Naar HTTPS
+web.key.audio Audio
+web.key.blue Blauw
+web.key.down Omlaag
+web.key.favorites Favorieten
+web.key.forward Vooruitspoelen
+web.key.green Groen
+web.key.help Help
+web.key.home Exit
+web.key.info Info
+web.key.left Links
+web.key.mute Dempen
+web.key.pagedown Zender omlaag
+web.key.pageup Zender omhoog
+web.key.playpause Afspelen/pauze
+web.key.power Aan/uit
+web.key.pvr Opnames
+web.key.radio Radio
+web.key.record Opnemen
+web.key.red Rood
+web.key.rewind Terugspoelen
+web.key.right Rechts
+web.key.setup Menu
+web.key.stop Stop
+web.key.subtitle Ondertitels
+web.key.text Teletekst
+web.key.up Omhoog
+web.key.volumedown Zachter
+web.key.volumeup Harder
+web.key.www Webzenders
+web.key.yellow Geel
+web.level.public openbaar
+web.level.read lezen
+web.level.system systeem
+web.level.write bedienen
+web.loading Laden ...
+web.mcp.address Adres
+web.mcp.client_until {host} - tot {day}
+web.mcp.clients Aangemelde clients
+web.mcp.new_token Nieuw token
+web.mcp.new_token_ask Een nieuw token beëindigt het oude; clients die het gebruiken hebben het nieuwe nodig.
+web.mcp.new_token_shown Het nieuwe token, alleen nu getoond:
+web.mcp.no_clients Er is geen client aangemeld.
+web.mcp.open Open voor MCP-clients zoals claude.ai
+web.mcp.public_address Openbaar adres
+web.mcp.public_hint Openbaar adres: waar clients vanaf internet de box bereiken (een tunnel zoals Tailscale Funnel). Alles behalve MCP blijft daar gesloten.
+web.mcp.sign_out_all Allen afmelden
+web.mcp.sign_out_all_ask Alle clients afmelden?
+web.mcp.sign_out_ask "{name}" afmelden?
+web.mcp.title MCP-server
+web.mcp.token Token
+web.mcp.token_copied Token gekopieerd
+web.minutes {n} min
+web.more Meer
+web.mounts.add_by_name Op naam toevoegen
+web.mounts.add_mount Toevoegen en koppelen
+web.mounts.add_share Netwerkshare toevoegen
+web.mounts.asking De server vragen ...
+web.mounts.at_boot Bij opstarten gekoppeld
+web.mounts.automount Koppelen bij het opstarten van de box
+web.mounts.by_desktop Door de desktop gekoppeld
+web.mounts.change_share Share wijzigen
+web.mounts.desktop_hint Schijven en shares worden door de desktop gekoppeld (bestandsbeheer of fstab). Gekoppeld verschijnen ze hier en kunnen ze de opnames opnemen.
+web.mounts.drive_mounted Schijf gekoppeld
+web.mounts.drive_unmounted Schijf ontkoppeld
+web.mounts.drive_unmounted_moved Schijf ontkoppeld, opnames gaan weer naar {dir}
+web.mounts.drives Schijven
+web.mounts.export Export
+web.mounts.find Shares zoeken
+web.mounts.host_placeholder 192.168.178.1 of nas
+web.mounts.list_shares Shares tonen
+web.mounts.manual Handmatig gekoppeld
+web.mounts.mount Koppelen
+web.mounts.mount_at Koppelen op
+web.mounts.mounted Gekoppeld
+web.mounts.mounted_lower gekoppeld
+web.mounts.network_shares Netwerkshares
+web.mounts.nfs_exports NFS-exports
+web.mounts.no_drives Geen schijven
+web.mounts.no_list De server noemt geen shares
+web.mounts.no_servers Geen SMB- of NFS-server heeft geantwoord
+web.mounts.no_shares Geen netwerkshares
+web.mounts.no_shares_mounted Geen netwerkshares gekoppeld
+web.mounts.not_mounted Niet gekoppeld
+web.mounts.not_mounted_lower niet gekoppeld
+web.mounts.options Opties
+web.mounts.record_here Hier opnemen
+web.mounts.recordings_here Opnames gaan hierheen
+web.mounts.remove_ask {share} verwijderen?
+web.mounts.searching Netwerk doorzoeken ...
+web.mounts.server Server
+web.mounts.servers Servers in het netwerk
+web.mounts.share Share
+web.mounts.share_mounted Share gekoppeld
+web.mounts.share_placeholder naam van de share
+web.mounts.share_removed Share verwijderd
+web.mounts.share_removed_moved Share verwijderd, opnames gaan weer naar {dir}
+web.mounts.share_unmounted Share ontkoppeld
+web.mounts.share_unmounted_moved Share ontkoppeld, opnames gaan weer naar {dir}
+web.mounts.sign_in_to Aanmelden bij {host}
+web.mounts.smb_shares SMB-shares
+web.mounts.type Soort
+web.mounts.type_nfs NFS (Linux, NAS)
+web.mounts.type_smb SMB (Windows, Fritz!Box, de meeste NAS)
+web.mounts.unchanged ongewijzigd
+web.mounts.unmount Ontkoppelen
+web.mounts.user Gebruiker
+web.mpv.clipboard mpv wordt gestart - opent er niets, dan staat het adres op het klembord
+web.mpv.start mpv wordt gestart
+web.nav.box Box
+web.nav.channels Zenders
+web.nav.epg Programmagids
+web.nav.guide Gids
+web.nav.mounts Schijven
+web.nav.recordings Opnames
+web.nav.remote Afstandsbediening
+web.nav.timers Timers
+web.ok OK
+web.pair.allow Sta deze browser toe op de tv. De tv toont de code {code}.
+web.pair.ask De tv vragen
+web.pair.how Op de tv toont Netwerk instellingen > Webserver (nhttpd) > Telefoon koppelen een code om te scannen. Of vraag de tv vanaf hier:
+web.pair.https Koppelen werkt via HTTPS. De browser waarschuwt één keer voor het certificaat van de box; {link} om dat te voorkomen.
+web.pair.install_ca installeer het
+web.pair.refused De tv heeft het niet toegestaan.
+web.pair.title Met de tv koppelen
+web.phone.allow Sta deze telefoon toe op de tv. De tv toont de code {code}.
+web.phone.ask_again Opnieuw vragen
+web.phone.box_silent De box antwoordt niet.
+web.phone.go_https Naar HTTPS
+web.phone.no_access Deze telefoon heeft geen toegang tot de box.
+web.phone.no_access_https Deze telefoon heeft geen toegang tot de box. Koppel hem via HTTPS.
+web.phone.no_access_pair Deze telefoon heeft geen toegang tot de box. Toon de code op de tv (Netwerk instellingen > Webserver (nhttpd) > Telefoon koppelen) en scan hem, of vraag de tv hier.
+web.phone.no_answer Geen antwoord van de box
+web.phone.not_paired Niet gekoppeld: {why}
+web.phone.paired Gekoppeld
+web.phone.pairing_failed koppelen is niet gelukt.
+web.phone.without_pairing Zonder koppelen gebruiken
+web.record Opnemen
+web.recordings.all_have_pictures Elke opname heeft een afbeelding
+web.recordings.delete_ask De opname "{title}" verwijderen?
+web.recordings.deleted Opname verwijderd
+web.recordings.episodes.few {n} afleveringen
+web.recordings.episodes.one {n} aflevering
+web.recordings.episodes.other {n} afleveringen
+web.recordings.fetch Afbeeldingen ophalen
+web.recordings.fetch_hint Een afbeelding ophalen voor elke opname zonder
+web.recordings.fetching.few {n} afbeeldingen ophalen
+web.recordings.fetching.one {n} afbeelding ophalen
+web.recordings.fetching.other {n} afbeeldingen ophalen
+web.recordings.list Lijst
+web.recordings.none Geen opnames
+web.recordings.now wordt nu opgenomen
+web.recordings.play_here Op dit apparaat afspelen
+web.recordings.play_tv Op de tv afspelen
+web.recordings.playing_tv Speelt op de tv: {title}
+web.recordings.rename_title Opname hernoemen
+web.recordings.renamed Hernoemd
+web.recordings.view Weergave
+web.recordings.wall Wand
+web.reload Opnieuw laden
+web.remote.full_interface Volledige interface
+web.remote.full_screen Volledig scherm
+web.remote.keyboard Toetsenbord: pijlen, Enter = OK, Esc = Exit, 0-9, + / - volume, r g y b kleurtoetsen. {link} vult een telefoonscherm.
+web.remote.no_menu Geen menu op het scherm
+web.remote.only Alleen afstandsbediening
+web.remote.only_phone Alleen afstandsbediening (telefoon)
+web.remote.osd_hint Het OSD van de box verschijnt hier na een toets
+web.remote.page_title Afstandsbediening - Neutrino
+web.remote.title Afstandsbediening
+web.remove Verwijderen
+web.rename Hernoemen
+web.save Opslaan
+web.saved Opgeslagen
+web.screenshot.saved Schermafbeelding opgeslagen
+web.screenshot.title Schermafbeelding van de tv
+web.send Versturen
+web.sign_out Afmelden
+web.signin.button Aanmelden
+web.signin.has_access Deze browser heeft al toegang ({level}). {link}
+web.signin.name Naam
+web.signin.off Aanmelden met een wachtwoord staat uit op deze box; het thuisnetwerk heeft toegang zonder.
+web.signin.password Wachtwoord
+web.signin.title Aanmelden met een wachtwoord
+web.stream Stream
+web.timer.conflict "{title}" overlapt met {other}. De box kan misschien niet beide opnemen. De timer toch instellen?
+web.timer.delete Timer verwijderen
+web.timer.delete_ask De timer "{title}" verwijderen?
+web.timer.deleted Timer verwijderd: {title}
+web.timer.kind.exec_plugin Plugin
+web.timer.kind.next_program Volgend programma
+web.timer.kind.record Opname
+web.timer.kind.remind Herinnering
+web.timer.kind.shutdown Uitschakelen
+web.timer.kind.sleeptimer Slaaptimer
+web.timer.kind.standby Standby
+web.timer.kind.zapto Zap naar
+web.timer.recording_set Opname ingesteld: {title}
+web.timer.set_anyway Toch instellen
+web.timer.stop Opname stoppen
+web.timer.stop_ask De opname van "{title}" stoppen?
+web.timer.stopped Opname gestopt: {title}
+web.timers.none Geen timers
+web.title Titel
+web.uptime.days {d} d {h} u
+web.uptime.hours {h} u {m} min
+web.wall.documentaries Documentaires
+web.wall.movies Films
+web.wall.newest Nieuwste
+web.wall.other Overige
+web.wall.series Series
+web.yes Ja
+web.zap Zappen
+web.zapped Gezapt naar {name}
 webchannels.xml.add Toevoegen
 webchannels.xml.del Verwijderen
 webchannels.xml.enter Invoeren
