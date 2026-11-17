@@ -2,7 +2,7 @@
 // cookie; a request that changes something then carries the CSRF token
 // that GET /api/v1/session hands out.
 
-const state = { csrf: "", level: "public", authenticated: false, device: "", secure: false, httpsPort: 0 };
+const state = { csrf: "", level: "public", authenticated: false, device: "", secure: false, httpsPort: 0, httpPort: 0 };
 
 export class ApiError extends Error {
 	constructor(status, problem) {
@@ -54,7 +54,23 @@ export async function session() {
 	state.device = s.device || "";
 	state.secure = !!s.secure;
 	state.httpsPort = s.https_port || 0;
+	state.httpPort = s.http_port || 0;
 	return s;
+}
+
+/* a box at home answers HTTPS with a certificate of its own, which a player
+   such as mpv refuses; there it gets the plain address, which needs no
+   sign-in at home either */
+export function playerUrl(url) {
+	const u = new URL(url);
+	const home = /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|127\.|169\.254\.)/.test(u.hostname)
+		|| /^\[(f[cd]|fe80|::1)/i.test(u.hostname) || u.hostname === "localhost"
+		|| /\.(local|lan|home|home\.arpa|fritz\.box)$/i.test(u.hostname);
+	if (u.protocol !== "https:" || !state.httpPort || !home)
+		return url;
+	u.protocol = "http:";
+	u.port = state.httpPort === 80 ? "" : String(state.httpPort);
+	return u.toString();
 }
 
 // the same page over HTTPS, where a phone can be paired; empty without HTTPS

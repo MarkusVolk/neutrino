@@ -1779,6 +1779,7 @@ Json::Value session_state(Call &c, const Session *s, const pairing::Device *d = 
 	v["device"] = d ? d->name : "";
 	v["secure"] = c.in.secure;
 	v["https_port"] = Cyhttpd::ConfigList["WebsiteMain.https"] == "true" ? (Json::UInt) yhttpd_https_port() : 0;
+	v["http_port"] = atoi(Cyhttpd::ConfigList["WebsiteMain.port"].c_str());
 	v["csrf"] = s ? s->csrf : d ? pairing::csrf_of(device_token) : "";
 	v["csrf_header"] = kCsrfHeaderName;
 	v["expires_in"] = s ? (Json::UInt) std::max((time_t) 0, s->expires - time(NULL)) : 0;
