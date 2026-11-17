@@ -161,6 +161,8 @@ public:
 
 	void saveSetup(const char * fname);
 	int loadSetup(const char * fname);
+	/* loads g_settings.language; the names it gives take the place of those of the language before */
+	void loadLanguage();
 	void setScreenSettings();
 	/* the margins set on the OSD as it is now become those of the preset */
 	void storeScreenSettings();

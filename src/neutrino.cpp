@@ -391,6 +391,37 @@ static SNeutrinoSettings::usermenu_t usermenu_default[] = {
 	{ CRCInput::RC_nokey,           "",                                     "",     ""              },
 };
 
+/* The four colour menus carry the name the language gives them unless the user
+   named them. Such a name is not kept in the settings and is taken again when
+   the language changes, so that it does not stay in the language of the first
+   start. */
+static const neutrino_locale_t usermenu_title[] = {
+	LOCALE_USERMENU_TITLE_RED, LOCALE_USERMENU_TITLE_GREEN, LOCALE_USERMENU_TITLE_YELLOW, LOCALE_USERMENU_TITLE_BLUE
+};
+
+static bool usermenuTitleIsDefault(unsigned int i)
+{
+	return i < 4 && g_settings.usermenu[i]->title == g_Locale->getText(usermenu_title[i]);
+}
+
+static void usermenuTitles(bool fill)
+{
+	for (unsigned int i = 0; i < 4 && i < g_settings.usermenu.size(); i++) {
+		SNeutrinoSettings::usermenu_t *u = g_settings.usermenu[i];
+		if (!fill && usermenuTitleIsDefault(i))
+			setSettingsText(u->title, "");
+		else if (fill && u->title.empty() && !u->items.empty())
+			setSettingsText(u->title, g_Locale->getText(usermenu_title[i]));
+	}
+}
+
+void CNeutrinoApp::loadLanguage()
+{
+	usermenuTitles(false);
+	g_Locale->loadLocale(g_settings.language.c_str());
+	usermenuTitles(true);
+}
+
 static void clearUsermenuConfig()
 {
 	for (unsigned int i = 0; i < g_settings.usermenu.size(); ++i)
@@ -2323,7 +2354,7 @@ void CNeutrinoApp::saveSetup(const char *fname)
 			txt1 += name;
 			configfile.setString(txt1, g_settings.usermenu[i]->items);
 			txt1 += "_text";
-			configfile.setString(txt1, g_settings.usermenu[i]->title);
+			configfile.setString(txt1, usermenuTitleIsDefault(i) ? "" : g_settings.usermenu[i]->title);
 		}
 	}
 
@@ -3141,14 +3172,7 @@ TIMER_START();
 	}
 
 	// default usermenu titles correspond to gui/user_menue_setup.h:struct usermenu_props_t usermenu
-	if (g_settings.usermenu[0]->title.empty() && !g_settings.usermenu[0]->items.empty())
-		setSettingsText(g_settings.usermenu[0]->title, g_Locale->getText(LOCALE_USERMENU_TITLE_RED));
-	if (g_settings.usermenu[1]->title.empty() && !g_settings.usermenu[1]->items.empty())
-		setSettingsText(g_settings.usermenu[1]->title, g_Locale->getText(LOCALE_USERMENU_TITLE_GREEN));
-	if (g_settings.usermenu[2]->title.empty() && !g_settings.usermenu[2]->items.empty())
-		setSettingsText(g_settings.usermenu[2]->title, g_Locale->getText(LOCALE_USERMENU_TITLE_YELLOW));
-	if (g_settings.usermenu[3]->title.empty() && !g_settings.usermenu[3]->items.empty())
-		setSettingsText(g_settings.usermenu[3]->title, g_Locale->getText(LOCALE_USERMENU_TITLE_BLUE));
+	usermenuTitles(true);
 
 	/* setup GUI */
 	neutrinoFonts = CNeutrinoFonts::getInstance();
@@ -6425,7 +6449,7 @@ bool CNeutrinoApp::changeNotify(const neutrino_locale_t OptionName, void * /*dat
 {
 	if (ARE_LOCALES_EQUAL(OptionName, LOCALE_LANGUAGESETUP_SELECT))
 	{
-		g_Locale->loadLocale(g_settings.language.c_str());
+		loadLanguage();
 		return true;
 	}
 	return false;

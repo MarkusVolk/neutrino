@@ -97,7 +97,7 @@ int COsdLangSetup::exec(CMenuTarget* parent, const std::string &actionKey)
 	if (!actionKey.empty()) {
 		setSettingsText(g_settings.language, actionKey);
 		g_Plugins->loadPlugins();
-		g_Locale->loadLocale(g_settings.language.c_str());
+		CNeutrinoApp::getInstance()->loadLanguage();
 		return menu_return::RETURN_EXIT;
 	}
 
@@ -298,7 +298,7 @@ void COsdLangSetup::showPrefMenu(CMenuWidget *prefMenu, CLangSelectNotifier *lan
 bool COsdLangSetup::changeNotify(const neutrino_locale_t, void *)
 {
 	//apply osd language
-	g_Locale->loadLocale(g_settings.language.c_str());
+	CNeutrinoApp::getInstance()->loadLanguage();
 
 	// TODO: reload channellists to apply changes to localized bouquet names?
 
