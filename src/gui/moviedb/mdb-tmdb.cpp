@@ -25,6 +25,8 @@
 
 #include <fstream>
 #include <set>
+#include <sstream>
+#include <vector>
 #include <string>
 
 #include <stdio.h>
@@ -376,6 +378,35 @@ bool CTMDB::findPoster(const std::string &title, int year, tmdbPoster &found)
 		if (hit) {
 			found.type = "tv";
 			query = series;
+		}
+	}
+	/* "Marie Brand und der Tote im Trikot": a film of a series, under the
+	   series' name; the longest beginning that names one, but no article */
+	if (!hit && cut == std::string::npos) {
+		std::vector<std::string> words;
+		std::istringstream in(query);
+		for (std::string w; in >> w;)
+			words.push_back(w);
+		static const char *small[] = { "der", "die", "das", "den", "dem", "des", "ein", "eine", "einer",
+			"the", "a", "an", "de", "het", "een", "la", "le", "il", NULL };
+		for (size_t n = std::min<size_t>(words.size() - 1, 6); n >= 1 && !hit; n--) {
+			std::string series = words[0];
+			for (size_t i = 1; i < n; i++)
+				series += " " + words[i];
+			if (n == 1) {
+				std::string w = titleKey(series);
+				bool article = w.size() < 4;
+				for (unsigned int i = 0; small[i] && !article; i++)
+					article = w == small[i];
+				if (article)
+					break;
+			}
+			common = "?api_key=" + key + "&language=" + lang + "&query=" + encodeUrl(series);
+			if (tmdbSearch(api + "search/tv" + common, titleKey(series), poster, found)) {
+				hit = true;
+				found.type = "tv";
+				query = series;
+			}
 		}
 	}
 	if (!hit)
