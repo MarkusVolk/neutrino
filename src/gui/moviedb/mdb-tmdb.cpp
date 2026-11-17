@@ -367,17 +367,28 @@ bool CTMDB::findPoster(const std::string &title, int year, tmdbPoster &found)
 	std::string poster;
 	bool hit = (year > 1900 && tmdbSearch(api + "search/movie" + common + "&year=" + to_string(year), want, poster, found))
 		|| tmdbSearch(api + "search/multi" + common, want, poster, found);
-	/* "Tatort: Ein Freund, ein guter Freund": the series, then its episode */
+	/* "Tatort: Ein Freund, ein guter Freund": the series, then its episode;
+	   "Schlepper - Der Usedom-Krimi": the episode, then its series */
 	size_t cut = query.find(": ");
-	if (cut == std::string::npos)
+	size_t dash = 3;
+	if (cut == std::string::npos) {
 		cut = query.find(" - ");
+		if (cut == std::string::npos) {
+			cut = query.find(" \xe2\x80\x93 ");	/* – */
+			dash = 5;
+		}
+	}
 	if (!hit && cut != std::string::npos && cut >= 3) {
-		std::string series = query.substr(0, cut);
-		common = "?api_key=" + key + "&language=" + lang + "&query=" + encodeUrl(series);
-		hit = tmdbSearch(api + "search/tv" + common, titleKey(series), poster, found);
-		if (hit) {
-			found.type = "tv";
-			query = series;
+		std::string series[2] = { query.substr(0, cut), query[cut] == ':' ? "" : query.substr(cut + dash) };
+		for (unsigned int s = 0; s < 2 && !hit; s++) {
+			if (series[s].size() < 3)
+				continue;
+			common = "?api_key=" + key + "&language=" + lang + "&query=" + encodeUrl(series[s]);
+			hit = tmdbSearch(api + "search/tv" + common, titleKey(series[s]), poster, found);
+			if (hit) {
+				found.type = "tv";
+				query = series[s];
+			}
 		}
 	}
 	/* "Marie Brand und der Tote im Trikot": a film of a series, under the

@@ -561,17 +561,23 @@ void fetch(const recording_cover::job &j)
 			began[j.ts] = found;
 	}
 	std::string picture;
-	/* "Tatort: Schweigen": the episode of the series TMDB found */
+	/* "Tatort: Schweigen", "Schlepper - Der Usedom-Krimi": the episode of
+	   the series TMDB found */
 	std::string episode;
-	if (tmdb && found.type == "tv" && j.title.size() > found.name.size()
-	    && j.title.compare(0, found.name.size(), found.name) == 0) {
-		episode = j.title.substr(found.name.size());
+	if (tmdb && found.type == "tv" && j.title.size() > found.name.size()) {
+		bool first = j.title.compare(0, found.name.size(), found.name) == 0;
+		bool last = !first && j.title.compare(j.title.size() - found.name.size(), found.name.size(), found.name) == 0;
+		if (first)
+			episode = j.title.substr(found.name.size());
+		else if (last)
+			episode = j.title.substr(0, j.title.size() - found.name.size());
 		for (bool cut = true; cut && !episode.empty();) {
-			cut = episode[0] == ' ' || episode[0] == ':' || episode[0] == '-';
+			size_t at = first ? 0 : episode.size() - 1;
+			cut = episode[at] == ' ' || episode[at] == ':' || episode[at] == '-';
 			if (cut)
-				episode.erase(0, 1);
-			else if (episode.compare(0, 3, "\xe2\x80\x93") == 0) {	/* – */
-				episode.erase(0, 3);
+				episode.erase(at, 1);
+			else if (episode.size() >= 3 && episode.compare(first ? 0 : episode.size() - 3, 3, "\xe2\x80\x93") == 0) {	/* – */
+				episode.erase(first ? 0 : episode.size() - 3, 3);
 				cut = true;
 			}
 		}
