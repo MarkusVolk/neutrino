@@ -291,14 +291,17 @@ void titleParts(const std::string &teaser, std::vector<std::string> &parts)
 	}
 }
 
-/* the pages with posters: the start pages of ARD and 3sat, and the rubrics
-   as the library lists them under "Alle Rubriken" (films, series,
-   documentaries, classical music, ...), else a few known ones */
+/* the pages with posters: the start pages of ARD and of its channels, and
+   the rubrics as the library lists them under "Alle Rubriken" (films,
+   series, documentaries, classical music, ...), else a few known ones */
 std::vector<std::string> ardRubrics()
 {
+	static const char *channels[] = { "ard", "daserste", "br", "hr", "mdr", "ndr", "radiobremen", "rbb", "sr", "swr",
+		"wdr", "one", "tagesschau24", "phoenix", "kika", "alpha", "3sat", NULL };
 	std::vector<std::string> rubrics;
-	rubrics.push_back("ard/home");
-	rubrics.push_back("3sat/home");
+	for (unsigned int i = 0; channels[i]; i++)
+		rubrics.push_back(std::string(channels[i]) + "/home");
+	size_t homes = rubrics.size();
 	std::string url = "https://api.ardmediathek.de/page-gateway/pages/ard/compilation/alle-rubriken?embedded=true", answer, err;
 	Json::Value root;
 	if (getUrl(url, answer, AGENT, 20) && parseJsonFromString(answer, &root, &err)) {
@@ -316,7 +319,7 @@ std::vector<std::string> ardRubrics()
 			}
 		}
 	}
-	if (rubrics.size() == 2) {
+	if (rubrics.size() == homes) {
 		static const char *known[] = { "filme", "serien", "dokus", "kinderfamilie", "shows_comedy", "kultur", "wissen",
 			"klassik", "sport", NULL };
 		for (unsigned int i = 0; known[i]; i++)
@@ -340,8 +343,9 @@ void loadArdPosters()
 			const Json::Value &teasers = widgets[w]["teasers"];
 			for (unsigned int i = 0; i < teasers.size(); i++) {
 				const Json::Value &t = teasers[i];
+				/* a video's upright picture is a cut of its wide one */
 				std::string src = t["images"]["aspect3x4"].get("src", "").asString();
-				if (src.empty())
+				if (src.empty() || t.get("type", "").asString() == "ondemand")
 					continue;
 				ardPoster p;
 				titleParts(t.get("longTitle", "").asString(), p.titles);
@@ -573,17 +577,18 @@ void fetch(const recording_cover::job &j)
 		}
 	}
 	if (channelWord(j.channel, ardWord)) {
-		/* from an ARD channel: the poster of this film on the page of its
-		   series, else on a rubric page of the library (films, documentaries
-		   ...), before the poster of the series */
-		unlink(tmp.c_str());
-		if (!episode.empty() && ardEpisodePicture(found.name, episode, picture)
-		    && downloadUrl(picture, tmp, AGENT, 30) && usable(tmp) && asJpeg(tmp))
-			source = "ARD episode";
-		if (!source && (ardRubricPicture(j.title, picture) || (!episode.empty() && ardRubricPicture(episode, picture)))) {
+		/* from an ARD channel: the poster of this film on a start or
+		   rubric page of the library, else on the page of its series,
+		   before the poster of the series */
+		if (ardRubricPicture(j.title, picture) || (!episode.empty() && ardRubricPicture(episode, picture))) {
 			unlink(tmp.c_str());
 			if (downloadUrl(picture, tmp, AGENT, 30) && usable(tmp) && asJpeg(tmp))
 				source = "ARD rubric";
+		}
+		if (!source && !episode.empty() && ardEpisodePicture(found.name, episode, picture)) {
+			unlink(tmp.c_str());
+			if (downloadUrl(picture, tmp, AGENT, 30) && usable(tmp) && asJpeg(tmp))
+				source = "ARD episode";
 		}
 	}
 	if (!source && tmdb) {
