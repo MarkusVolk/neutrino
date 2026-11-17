@@ -978,7 +978,7 @@ async function viewRecordings(main) {
 		may("system") ? h("button", { class: "btn", title: "Fetch a picture for every recording that has none", onclick: async () => {
 			try {
 				const r = await api("recordings/covers", { method: "POST" });
-				toast(r.queued ? `Fetching ${r.queued} pictures` : "Every recording has a picture");
+				toast(r?.queued ? `Fetching ${r.queued} pictures` : "Every recording has a picture");
 			} catch (e) { fail(e); }
 		} }, "Fetch pictures") : null,
 		h("button", { class: "btn icon", title: "Refresh", html: icon("refresh"), onclick: () => show(true).catch(fail) })), content);

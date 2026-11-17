@@ -3096,7 +3096,7 @@ void ep_recording_covers(Call &c)
 	}
 	Json::Value v(Json::objectValue);
 	v["queued"] = queued;
-	send_json(c.out, 202, v);
+	send_json(c.out, 200, v);
 }
 
 void ep_recording_play(Call &c)
