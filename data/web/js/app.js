@@ -745,57 +745,242 @@ function renameDialog(title) {
 	});
 }
 
+function savedRecordingsView() {
+	try { return localStorage.getItem("recordings_view") === "wall" ? "wall" : "list"; } catch { return "list"; }
+}
+
+function saveRecordingsView(view) {
+	try { localStorage.setItem("recordings_view", view); } catch { /* no storage */ }
+}
+
+const coverUrl = (r) => `/api/v1/recordings/${r.id}/cover?v=${r.cover_time || 0}`;
+
+/* the picture of a tile: a wide one fitted in, over a blurred copy of itself */
+function tilePicture(r) {
+	if (!r?.cover)
+		return h("div", { class: "pic none", html: icon("recordings") });
+	const img = h("img", { src: coverUrl(r), alt: "", loading: "lazy" });
+	if (!r.cover_wide)
+		return h("div", { class: "pic" }, img);
+	return h("div", { class: "pic wide", style: `--bg: url("${coverUrl(r)}")` }, img);
+}
+
+const episodes = (n) => `${n} ${n === 1 ? "episode" : "episodes"}`;
+
+/* a row of tiles that scrolls sideways, with < and > where there is more */
+function shelfStrip(tiles) {
+	const row = h("div", { class: "tiles" }, ...tiles);
+	const step = (dir) => () => row.scrollBy({ left: dir * row.clientWidth * 0.9, behavior: "smooth" });
+	const prev = h("button", { class: "nav prev", title: "Back", "aria-label": "Back", onclick: step(-1) }, "‹");
+	const next = h("button", { class: "nav next", title: "More", "aria-label": "More", onclick: step(1) }, "›");
+	const update = () => {
+		prev.hidden = row.scrollLeft <= 1;
+		next.hidden = row.scrollLeft + row.clientWidth >= row.scrollWidth - 1;
+	};
+	row.addEventListener("scroll", update, { passive: true });
+	new ResizeObserver(update).observe(row);
+	return h("div", { class: "strip" }, prev, row, next);
+}
+
+/* what tells one episode from another: "Tatort: Ein Freund, ein guter Freund"
+   gives its part after the series, "S17E4 ║ Ein letzter Tropfen ║ 2015 ║ 12+ ║ GB"
+   the number and the first part that is no year, age or country and does not
+   just name the series again */
+function episodeName(r) {
+	const plain = (s) => s.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+	const series = r.serie || "";
+	let name = "";
+	if (series && r.title.length > series.length && r.title.startsWith(series))
+		name = r.title.slice(series.length).replace(/^\s*[:\-–]\s*/, "");
+	let number = "";
+	for (const part of (r.info || "").split(/\s*[║|]\s*/).map((s) => s.trim()).filter(Boolean)) {
+		if (/^S\d+\s*E\d+$/i.test(part) || /^\(\d+\)$/.test(part)) {
+			number ||= part.replace(/[()]/g, "");
+			continue;
+		}
+		if (/^\d{4}$/.test(part) || /^\d+\+$/.test(part) || /^[A-Z]{1,3}$/.test(part))
+			continue;
+		if (!name && !plain(part).includes(plain(r.title)) && !(series && plain(part).includes(plain(series))))
+			name = part;
+	}
+	return [/^\d+$/.test(number) ? `#${number}` : number, name].filter(Boolean).join(" · ");
+}
+
 async function viewRecordings(main) {
-	const list = h("div", { class: "list" });
+	let view = savedRecordingsView();
+	let items = [];
+	let shown = "";
+	const content = h("div", {});
 	const run = async (fn, done) => {
 		try {
 			await fn();
 			if (done)
 				toast(done);
-			await show();
+			await show(true);
 		} catch (e) { fail(e); }
 	};
-	const row = (r) => {
-		const cover = r.cover
-			? h("img", { class: "cover", src: `/api/v1/recordings/${r.id}/cover`, alt: "", loading: "lazy" })
-			: h("div", { class: "cover none", html: icon("recordings") });
+	/* what can be done with a recording, in the list and in a tile's dialog */
+	const actions = (r, closing) => {
 		const buttons = h("div", { class: "row" });
+		const then = (fn) => async () => { closing?.(); await fn(); };
 		if (!onBox)
 			buttons.append(h("button", { class: "btn icon", title: "Play on this device", html: icon("stream"),
 				onclick: () => playUrl(`${location.origin}/api/v1/recordings/${r.id}/file`).catch(fail) }));
 		if (may("write"))
-			buttons.append(h("button", { class: "btn", onclick: async () => {
+			buttons.append(h("button", { class: "btn", onclick: then(async () => {
 				try {
 					await api(`recordings/${r.id}/play`, { method: "POST" });
 					toast(`Playing on the TV: ${r.title}`);
 				} catch (e) { fail(e); }
-			} }, "Play on TV"));
+			}) }, "Play on TV"));
 		if (may("system") && !r.busy) {
-			buttons.append(h("button", { class: "btn", onclick: async () => {
+			buttons.append(h("button", { class: "btn", onclick: then(async () => {
 				const title = await renameDialog(r.title);
 				if (title && title !== r.title)
 					await run(() => api(`recordings/${r.id}/rename`, { method: "POST", body: { title } }), "Renamed");
-			} }, "Rename"));
-			buttons.append(h("button", { class: "btn icon danger", title: "Delete", html: icon("trash"), onclick: async () => {
+			}) }, "Rename"));
+			buttons.append(h("button", { class: "btn icon danger", title: "Delete", html: icon("trash"), onclick: then(async () => {
 				if (await confirmDialog(`Delete the recording "${r.title}"?`, "Delete", true))
 					await run(() => api(`recordings/${r.id}`, { method: "DELETE" }), "Recording deleted");
-			} }));
+			}) }));
 		}
+		return buttons;
+	};
+	const meta = (r) => [r.genre_detail || r.genre, r.channel, `${day(r.time)} ${hm(r.time)}`, r.length ? `${r.length} min` : "",
+		size(r.size), r.busy ? "recording now" : ""].filter(Boolean).join(" · ");
+	const row = (r) => {
+		const cover = r.cover
+			? h("img", { class: "cover", src: coverUrl(r), alt: "", loading: "lazy" })
+			: h("div", { class: "cover none", html: icon("recordings") });
 		return h("div", { class: "card recording" }, cover,
 			h("div", {},
 				h("strong", {}, r.title),
-				h("div", { class: "dim small" }, [r.channel, `${day(r.time)} ${hm(r.time)}`, r.length ? `${r.length} min` : "",
-					size(r.size), r.busy ? "recording now" : ""].filter(Boolean).join(" · ")),
+				h("div", { class: "dim small" }, meta(r)),
 				r.info ? h("div", { class: "dim small" }, r.info) : null),
-			buttons);
+			actions(r));
 	};
-	const show = async () => {
-		const items = ((await api("recordings")).items || []).sort((a, b) => b.time - a.time);
-		list.replaceChildren(...(items.length ? items.map(row) : [h("div", { class: "card empty" }, "No recordings")]));
+	const details = (r) => {
+		const d = h("dialog", { class: "recording-details" });
+		const close = () => d.close();
+		d.append(r.cover ? h("img", { class: r.cover_wide ? "wide" : "", src: coverUrl(r), alt: "" }) : null,
+			h("h2", {}, r.title),
+			episodeName(r) && !r.title.includes(episodeName(r)) ? h("div", {}, episodeName(r)) : null,
+			h("div", { class: "dim small" }, meta(r)),
+			r.info ? h("p", { class: "small" }, r.info) : null,
+			actions(r, close),
+			h("div", { class: "buttons" }, h("button", { class: "btn", onclick: close }, "Close")));
+		d.addEventListener("close", () => d.remove());
+		document.body.append(d);
+		d.showModal();
 	};
+	const tile = (r) => h("button", { class: "tile", title: r.title, onclick: () => details(r) },
+		tilePicture(r),
+		r.busy ? h("span", { class: "badge live" }, "REC") : null,
+		h("span", { class: "caption" }, r.serie || r.title),
+		h("span", { class: "dim small" }, episodeName(r) || `${day(r.time)} ${hm(r.time)}`));
+	/* a series: named so (by TMDB or by hand), a title recorded more than
+	   once, or fiction too short for a film */
+	const seriesOf = (r, count) => r.serie
+		|| (count.get(r.title) > 1 ? r.title : "")
+		|| (r.genre_class === 1 && r.length > 0 && r.length < 70 ? r.title : "");
+	const episodeList = (name, list) => {
+		const d = h("dialog", { class: "recording-details episodes" });
+		const close = () => d.close();
+		const pick = (r) => h("div", { class: "card recording" },
+			r.cover ? h("img", { class: "cover", src: coverUrl(r), alt: "", loading: "lazy" })
+				: h("div", { class: "cover none", html: icon("recordings") }),
+			h("div", {}, h("strong", {}, episodeName(r) || r.title), h("div", { class: "dim small" }, meta(r))),
+			actions(r, close));
+		d.append(h("h2", {}, name), h("div", { class: "dim small" }, episodes(list.length)),
+			h("div", { class: "list" }, ...list.map(pick)),
+			h("div", { class: "buttons" }, h("button", { class: "btn", onclick: close }, "Close")));
+		d.addEventListener("close", () => d.remove());
+		document.body.append(d);
+		d.showModal();
+	};
+	const seriesTile = (name, list) => {
+		const pic = list.find((r) => r.cover && !r.cover_wide) || list.find((r) => r.cover);
+		return h("button", { class: "tile", title: name, onclick: () => episodeList(name, list) },
+			tilePicture(pic),
+			list.some((r) => r.busy) ? h("span", { class: "badge live" }, "REC") : null,
+			h("span", { class: "caption" }, name),
+			h("span", { class: "dim small" }, episodes(list.length)));
+	};
+	/* shelves as in the media libraries: the newest, films, series, then
+	   one per genre, the fullest first, and what has no genre at the end */
+	const wall = () => {
+		const shelf = (title, tiles) => h("section", { class: "shelf" }, h("h2", {}, title), shelfStrip(tiles));
+		const count = new Map();
+		for (const r of items)
+			count.set(r.title, (count.get(r.title) || 0) + 1);
+		const movies = [], series = new Map(), groups = new Map();
+		for (const r of items) {
+			const name = seriesOf(r, count);
+			if (name) {
+				if (!series.has(name))
+					series.set(name, []);
+				series.get(name).push(r);
+			} else if (r.genre_class === 1)
+				movies.push(r);
+			else {
+				const key = r.genre || "";
+				if (!groups.has(key))
+					groups.set(key, []);
+				groups.get(key).push(r);
+			}
+		}
+		const named = [...groups.entries()].filter(([k]) => k).sort((a, b) => b[1].length - a[1].length);
+		const shelves = [shelf("Newest", items.slice(0, 12).map(tile))];
+		if (movies.length)
+			shelves.push(shelf("Movies", movies.map(tile)));
+		if (series.size)
+			shelves.push(shelf("Series", [...series.entries()].map(([name, list]) => seriesTile(name, list))));
+		shelves.push(...named.map(([k, list]) => shelf(k, list.map(tile))));
+		if (groups.has(""))
+			shelves.push(shelf("Other", groups.get("").map(tile)));
+		return h("div", { class: "wall" }, ...shelves);
+	};
+	const render = () => {
+		if (!items.length)
+			content.replaceChildren(h("div", { class: "card empty" }, "No recordings"));
+		else
+			content.replaceChildren(view === "wall" ? wall() : h("div", { class: "list" }, ...items.map(row)));
+	};
+	/* a refresh that changed nothing keeps the shelves where they were scrolled */
+	const show = async (force) => {
+		items = ((await api("recordings")).items || []).sort((a, b) => b.time - a.time);
+		const now = JSON.stringify(items);
+		if (force || now !== shown) {
+			shown = now;
+			render();
+		}
+	};
+	const toggle = (to, label) => h("button", { class: "btn", "aria-pressed": String(view === to), onclick: (ev) => {
+		view = to;
+		saveRecordingsView(view);
+		for (const b of ev.currentTarget.parentNode.children)
+			b.setAttribute("aria-pressed", String(b === ev.currentTarget));
+		render();
+	} }, label);
 	main.append(h("div", { class: "toolbar" }, h("h1", {}, "Recordings"),
-		h("button", { class: "btn icon", title: "Refresh", html: icon("refresh"), onclick: () => show().catch(fail) })), list);
-	await show();
+		h("div", { class: "segmented", role: "group", "aria-label": "View" }, toggle("list", "List"), toggle("wall", "Wall")),
+		may("system") ? h("button", { class: "btn", title: "Fetch a picture for every recording that has none", onclick: async () => {
+			try {
+				const r = await api("recordings/covers", { method: "POST" });
+				toast(r.queued ? `Fetching ${r.queued} pictures` : "Every recording has a picture");
+			} catch (e) { fail(e); }
+		} }, "Fetch pictures") : null,
+		h("button", { class: "btn icon", title: "Refresh", html: icon("refresh"), onclick: () => show(true).catch(fail) })), content);
+	await show(true);
+
+	/* covers arrive in the background, recordings end */
+	const refresh = () => { if (!document.hidden) show().catch(() => {}); };
+	const timer = setInterval(refresh, 10000);
+	document.addEventListener("visibilitychange", refresh);
+	cleanup = () => {
+		clearInterval(timer);
+		document.removeEventListener("visibilitychange", refresh);
+	};
 }
 
 /* ------------------------------------------------------------------ */
