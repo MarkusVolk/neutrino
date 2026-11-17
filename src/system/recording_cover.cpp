@@ -120,7 +120,7 @@ bool channelWord(const std::string &channel, bool (*match)(const std::string &))
 bool ardWord(const std::string &w)
 {
 	static const char *words[] = { "erste", "ard", "br", "hr", "mdr", "ndr", "bremen", "rbb", "sr", "swr", "wdr",
-		"one", "tagesschau24", "phoenix", "kika", "alpha", NULL };
+		"one", "tagesschau24", "phoenix", "kika", "alpha", "3sat", NULL };
 	for (unsigned int i = 0; words[i]; i++)
 		if (w == words[i])
 			return true;
@@ -288,11 +288,14 @@ void titleParts(const std::string &teaser, std::vector<std::string> &parts)
 	}
 }
 
-/* the rubrics as the library lists them under "Alle Rubriken" (films,
-   series, documentaries, classical music, ...), else a few known ones */
+/* the pages with posters: the start pages of ARD and 3sat, and the rubrics
+   as the library lists them under "Alle Rubriken" (films, series,
+   documentaries, classical music, ...), else a few known ones */
 std::vector<std::string> ardRubrics()
 {
 	std::vector<std::string> rubrics;
+	rubrics.push_back("ard/home");
+	rubrics.push_back("3sat/home");
 	std::string url = "https://api.ardmediathek.de/page-gateway/pages/ard/compilation/alle-rubriken?embedded=true", answer, err;
 	Json::Value root;
 	if (getUrl(url, answer, AGENT, 20) && parseJsonFromString(answer, &root, &err)) {
@@ -305,16 +308,16 @@ std::vector<std::string> ardRubrics()
 				if (at == std::string::npos)
 					continue;
 				std::string slug = href.substr(at + 11, href.find('?', at) == std::string::npos ? std::string::npos : href.find('?', at) - at - 11);
-				if (!slug.empty() && std::find(rubrics.begin(), rubrics.end(), slug) == rubrics.end())
-					rubrics.push_back(slug);
+				if (!slug.empty() && std::find(rubrics.begin(), rubrics.end(), "ard/editorial/" + slug) == rubrics.end())
+					rubrics.push_back("ard/editorial/" + slug);
 			}
 		}
 	}
-	if (rubrics.empty()) {
+	if (rubrics.size() == 2) {
 		static const char *known[] = { "filme", "serien", "dokus", "kinderfamilie", "shows_comedy", "kultur", "wissen",
 			"klassik", "sport", NULL };
 		for (unsigned int i = 0; known[i]; i++)
-			rubrics.push_back(known[i]);
+			rubrics.push_back(std::string("ard/editorial/") + known[i]);
 	}
 	return rubrics;
 }
@@ -324,7 +327,7 @@ void loadArdPosters()
 	std::vector<std::string> rubrics = ardRubrics();
 	std::vector<ardPoster> posters;
 	for (size_t r = 0; r < rubrics.size(); r++) {
-		std::string url = "https://api.ardmediathek.de/page-gateway/pages/ard/editorial/" + rubrics[r] + "?embedded=true";
+		std::string url = "https://api.ardmediathek.de/page-gateway/pages/" + rubrics[r] + "?embedded=true";
 		std::string answer, err;
 		Json::Value root;
 		if (!getUrl(url, answer, AGENT, 20) || !parseJsonFromString(answer, &root, &err))
