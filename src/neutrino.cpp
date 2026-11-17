@@ -937,7 +937,8 @@ int CNeutrinoApp::loadSetup(const char *fname)
 	if (g_settings.timeshiftdir.empty())
 	{
 		timeshiftdir = g_settings.network_nfs_recordingdir + "/.timeshift";
-		safe_mkdir(timeshiftdir.c_str());
+		if (!drive_missing(timeshiftdir))
+			safe_mkdir(timeshiftdir.c_str());
 	}
 	else
 	{

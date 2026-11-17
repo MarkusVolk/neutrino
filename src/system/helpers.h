@@ -131,6 +131,9 @@ bool syncDirectoryOf(const std::string &path);
    session; as root it is the box and keeps them on the drives below /media */
 bool media_in_home();
 void wakeup_hdd(const char *hdd_dir);
+/* below /media but on the filesystem of /media itself: the drive is missing,
+   and what is written there would land in the flash of the box */
+bool drive_missing(const std::string &dir);
 int check_dir(const char *dir, bool allow_tmp = false);
 bool get_fs_usage(const char *dir, uint64_t &btotal, uint64_t &bused, long *bsize = NULL);
 bool get_mem_usage(unsigned long &total, unsigned long &free);

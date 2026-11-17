@@ -754,6 +754,25 @@ bool media_in_home()
 	return g_info.hw_caps->media_in_home && geteuid() != 0;
 }
 
+bool drive_missing(const std::string &dir)
+{
+	struct stat d, m;
+	if (dir.compare(0, 7, "/media/") != 0 || stat("/media", &m))
+		return false;
+	/* the deepest part of the path that is there */
+	std::string at = dir;
+	while (stat(at.c_str(), &d)) {
+		size_t slash = at.rfind('/');
+		if (slash == std::string::npos || slash == 0)
+			return false;
+		at.erase(slash);
+	}
+	if (d.st_dev != m.st_dev)
+		return false;
+	printf("No drive mounted for %s\n", dir.c_str());
+	return true;
+}
+
 /* function used to check is this dir writable, i.e. not flash, for record etc */
 int check_dir(const char *dir, bool allow_tmp)
 {
@@ -776,6 +795,8 @@ int check_dir(const char *dir, bool allow_tmp)
 		if (ret == -1)
 			printf("Wrong Filessystem Type: 0x%llx\n", (unsigned long long)s.f_type);
 	}
+	if (ret == 0 && drive_missing(dir))
+		ret = -1;
 	return ret;
 }
 
