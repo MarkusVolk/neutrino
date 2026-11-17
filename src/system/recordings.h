@@ -37,9 +37,13 @@ namespace recordings
 		std::string info;
 		std::string channel;
 		int length;		// minutes
+		int genre;		// DVB content: class in the high nibble, 0 if unknown
+		std::string serie;	// the series it is an episode of
 		time_t time;
 		uint64_t size;
 		bool cover;
+		time_t cover_time;	// when the cover was written
+		bool cover_wide;	// a frame of the recording, not a poster
 		bool busy;		// still being written
 	};
 

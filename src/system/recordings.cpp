@@ -27,7 +27,10 @@
 #include <global.h>
 #include <driver/movieinfo.h>
 #include <gui/movieplayer.h>
+#include <gui/pictureviewer.h>
 #include <system/helpers.h>
+
+extern CPictureViewer *g_PicViewer; /* neutrino.cpp */
 #include <system/main_call.h>
 #include <zapit/client/zapittools.h>
 
@@ -139,9 +142,18 @@ recordings::entry recordings::describe(const std::string &rel)
 	e.info = have_info ? mi.epgInfo1 : "";
 	e.channel = have_info ? mi.channelName : "";
 	e.length = have_info ? mi.length : 0;
+	e.genre = have_info ? mi.genreMajor : 0;
+	e.serie = have_info ? mi.serieName : "";
 	e.time = st.st_mtime;
 	e.size = st.st_size;
-	e.cover = access((without_ts(path) + ".jpg").c_str(), R_OK) == 0;
+	std::string cover = without_ts(path) + ".jpg";
+	struct stat cst;
+	e.cover = stat(cover.c_str(), &cst) == 0 && access(cover.c_str(), R_OK) == 0;
+	e.cover_time = e.cover ? cst.st_mtime : 0;
+	int cw = 0, ch = 0;
+	if (e.cover)
+		g_PicViewer->getSize(cover.c_str(), &cw, &ch);
+	e.cover_wide = cw > ch;
 	e.busy = busy(path);
 	return e;
 }

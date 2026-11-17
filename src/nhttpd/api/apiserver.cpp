@@ -98,6 +98,7 @@
 #include <system/main_call.h>
 #include <system/fsmounter.h>
 #include <system/netshares.h>
+#include <system/recording_cover.h>
 #include <system/recordings.h>
 #include <gui/hdd_menu.h>
 #include <gui/timerlist.h>
@@ -127,6 +128,8 @@ extern cVideo *videoDecoder;
 extern CBouquetManager *g_bouquetManager;
 extern unsigned int yhttpd_https_port();
 
+
+extern const char *GetGenre(const unsigned char contentClassification); /* epgview.cpp */
 namespace
 {
 
@@ -2991,9 +2994,22 @@ Json::Value recording_json(const std::string &rel)
 	v["info"] = e.info;
 	v["channel"] = e.channel;
 	v["length"] = e.length;
+	if (!e.serie.empty())
+		v["serie"] = e.serie;
+	/* the group as the shelf of the wall, the kind within it for the tile */
+	if (e.genre >= 0x10 && e.genre < 0xb0) {
+		v["genre_class"] = e.genre >> 4;
+		v["genre"] = GetGenre(e.genre & 0xf0);
+		if (e.genre & 0x0f)
+			v["genre_detail"] = GetGenre(e.genre);
+	}
 	v["time"] = (Json::Int64) e.time;
 	v["size"] = Json::UInt64(e.size);
 	v["cover"] = e.cover;
+	if (e.cover) {
+		v["cover_time"] = (Json::Int64) e.cover_time;
+		v["cover_wide"] = e.cover_wide;
+	}
 	v["busy"] = e.busy;
 	return v;
 }
@@ -3050,8 +3066,33 @@ void ep_recording_cover(Call &c)
 	std::string rel, path;
 	if (!recording_arg(c, rel, path))
 		return;
-	if (!send_file(c, recordings::without_ts(path) + ".jpg", "image/jpeg", false))
+	if (!send_file(c, recordings::without_ts(path) + ".jpg", "image/jpeg", false)) {
 		problem(c.out, 404, "no-such-cover", "the recording has no cover");
+		return;
+	}
+	/* the page asks with the cover's time in the address */
+	for (size_t i = 0; i < c.out.headers.size(); i++)
+		if (c.out.headers[i].first == "Cache-Control")
+			c.out.headers[i].second = "private, max-age=2592000, immutable";
+}
+
+/* covers for the recordings that have none, fetched one after the other */
+void ep_recording_covers(Call &c)
+{
+	std::vector<std::string> files;
+	recordings::files(files);
+	std::string dir = recordings::dir();
+	int queued = 0;
+	for (size_t i = 0; i < files.size(); i++) {
+		std::string path = dir + "/" + files[i];
+		if (access((recordings::without_ts(path) + ".jpg").c_str(), F_OK) == 0 || recordings::busy(path))
+			continue;
+		recording_cover::queue(path);
+		queued++;
+	}
+	Json::Value v(Json::objectValue);
+	v["queued"] = queued;
+	send_json(c.out, 202, v);
 }
 
 void ep_recording_play(Call &c)
@@ -3136,6 +3177,7 @@ const Route routes[] = {
 	{ "GET",	"/api/v1/recordings",		L_READ,		ep_recordings },
 	{ "GET",	"/api/v1/recordings/{}/file",	L_READ,		ep_recording_file },
 	{ "GET",	"/api/v1/recordings/{}/cover",	L_READ,		ep_recording_cover },
+	{ "POST",	"/api/v1/recordings/covers",	L_SYSTEM,	ep_recording_covers },
 	{ "POST",	"/api/v1/recordings/{}/play",	L_WRITE,	ep_recording_play },
 	{ "POST",	"/api/v1/recordings/{}/rename",	L_SYSTEM,	ep_recording_rename },
 	{ "DELETE",	"/api/v1/recordings/{}",	L_SYSTEM,	ep_recording_delete },
