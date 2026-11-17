@@ -69,6 +69,9 @@ extern cVideo *videoDecoder;
 #include <zapit/zapit.h>
 #include <init.h>
 #include <gui/lua/luainstance.h>
+#ifdef ENABLE_LCD4LINUX
+#include <driver/lcd4l.h>
+#endif
 
 extern CPlugins *g_Plugins;
 extern CRemoteControl *g_RemoteControl;
@@ -436,12 +439,22 @@ int CPlugins::startFullscreenPlugin(int number)
 	g_RCInput->clearRCMsg();
 	g_RCInput->stopInput();
 	CNeutrinoApp::getInstance()->lockPlayBack();
+#ifdef ENABLE_LCD4LINUX
+	/* a game should not share the processor with the display */
+	std::string picture = plugin_list[number].hinticon;
+	if (picture.find('/') == std::string::npos)
+		picture = frameBuffer->getIconPath(picture);
+	CLCD4l::getInstance()->ShowStill(picture);
+#endif
 	frameBuffer->Lock();
 	hal_display_suspend();
 
 	my_system(2, "/bin/sh", script);
 
 	hal_display_resume();
+#ifdef ENABLE_LCD4LINUX
+	CLCD4l::getInstance()->ClearStill();
+#endif
 	frameBuffer->Unlock();
 	frameBuffer->paintBackground();
 	frameBuffer->blit();

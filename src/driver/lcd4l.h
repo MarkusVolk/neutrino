@@ -91,6 +91,11 @@ class CLCD4l
 		void	MenuShown(int x, int y, int w, int h);
 		void	MenuHidden();
 
+		/* a program has the whole display: one still picture, drawn once,
+		   until it ends - nothing else is read or drawn meanwhile */
+		void	ShowStill(const std::string &picture);
+		void	ClearStill();
+
 		static void lcd4linux(int run);
 		enum
 		{
@@ -111,6 +116,12 @@ class CLCD4l
 					OnError;
 
 	private:
+		bool		StillChanged();
+		bool		HandleStill();
+		std::string	m_StillPicture;
+		bool		m_StillWanted;
+		bool		m_StillShown;
+
 		std::thread	*thrMenu;
 		void		MenuProc();
 		bool		MenuWrite(std::vector<uint32_t> &pixels, int w, int h);

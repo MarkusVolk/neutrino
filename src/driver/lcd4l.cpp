@@ -110,6 +110,7 @@ extern CPictureViewer *g_PicViewer;
 #define MENU_PNG		LCD_DATADIR "menu.png"
 /* shown without a menu: lcd4linux paints an image it hides opaque */
 #define MENU_NONE_PNG		LCD_DATADIR "menu-none.png"
+#define STILL_PNG		LCD_DATADIR "still.png"
 /* the picture follows once the keys rest this long, at most every
    MENU_GAP_MS, and stays this long after the menu for the next one */
 #define MENU_SETTLE_MS		150
@@ -136,6 +137,7 @@ extern CPictureViewer *g_PicViewer;
 
 CLCD4l::CLCD4l()
 {
+	m_StillWanted = m_StillShown = false;
 	thrMenu = NULL;
 	m_MenuW = m_MenuH = 0;
 	m_MenuNew = m_MenuHide = m_MenuQuit = false;
@@ -303,6 +305,59 @@ static void panelSize(int &pw, int &ph)
 		case CLCD4l::PNG800x600:
 		default:			pw = 800;  ph = 600; break;
 	}
+}
+
+void CLCD4l::ShowStill(const std::string &picture)
+{
+	std::lock_guard<std::mutex> g(m_MenuLock);
+	m_StillPicture = picture;
+	m_StillWanted = true;
+}
+
+void CLCD4l::ClearStill()
+{
+	std::lock_guard<std::mutex> g(m_MenuLock);
+	m_StillWanted = false;
+}
+
+/* lcd4l thread from here */
+bool CLCD4l::StillChanged()
+{
+	std::lock_guard<std::mutex> g(m_MenuLock);
+	return m_StillWanted != m_StillShown;
+}
+
+/* the still layout draws its picture once and then nothing; the layout
+   it ends with is written anew by the next ParseInfo */
+bool CLCD4l::HandleStill()
+{
+	bool wanted;
+	std::string picture;
+	{
+		std::lock_guard<std::mutex> g(m_MenuLock);
+		wanted = m_StillWanted;
+		picture = m_StillPicture;
+	}
+	size_t mode = m_Layout.rfind('\n');
+	if (wanted && !m_StillShown && mode != std::string::npos)
+	{
+		int pw, ph;
+		panelSize(pw, ph);
+		unlink(STILL_PNG);
+		if (!picture.empty())
+			g_PicViewer->WriteLogoPng(picture, STILL_PNG, pw * 4 / 5, ph * 4 / 5);
+		WriteFile(LAYOUT, m_Layout.substr(0, mode + 1) + "still");
+		RestartLCD4lScript();
+		m_StillShown = true;
+	}
+	else if (!wanted && m_StillShown)
+	{
+		unlink(STILL_PNG);
+		m_Layout = "n/a";
+		ResetParseID();
+		m_StillShown = false;
+	}
+	return m_StillShown;
 }
 
 /* main loop: the OSD is drawn by this thread, so the menu is copied here */
@@ -614,12 +669,16 @@ void *CLCD4l::LCD4lProc(void *arg)
 		for (int i = 0; i < 10; i++)
 		{
 			usleep(5 * 100 * 1000); // 0.5 sec
+			if (PLCD4l->StillChanged())
+				break;
 			new_ParseID = PLCD4l->CompareParseID(p_ParseID);
 			if (new_ParseID || p_ParseID == NeutrinoModes::mode_audio || !PLCD4l->m_ActionKey.empty())
 			{
 				break;
 			}
 		}
+		if (PLCD4l->HandleStill())
+			continue;
 
 		//printf("[CLCD4l] %s: m_ParseID: %llx (new_ParseID: %d)\n", __FUNCTION__, p_ParseID, new_ParseID ? 1 : 0);
 		PLCD4l->ParseInfo(p_ParseID, new_ParseID, FirstRun);
