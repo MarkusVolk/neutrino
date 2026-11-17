@@ -760,7 +760,8 @@ function saveRecordingsView(view) {
 
 const coverUrl = (r) => `/api/v1/recordings/${r.id}/cover?v=${r.cover_time || 0}`;
 
-/* the picture of a tile: a wide one fitted in, over a blurred copy of itself */
+/* the picture of a recording, upright as a poster: a wide one fitted in,
+   over a blurred copy of itself */
 function tilePicture(r) {
 	if (!r?.cover)
 		return h("div", { class: "pic none", html: icon("recordings") });
@@ -854,10 +855,7 @@ async function viewRecordings(main) {
 	const meta = (r) => [r.genre_detail || r.genre, r.channel, `${day(r.time)} ${hm(r.time)}`, r.length ? tr("minutes", { n: r.length }) : "",
 		size(r.size), r.busy ? tr("recordings.now") : ""].filter(Boolean).join(" · ");
 	const row = (r) => {
-		const cover = r.cover
-			? h("img", { class: "cover", src: coverUrl(r), alt: "", loading: "lazy" })
-			: h("div", { class: "cover none", html: icon("recordings") });
-		return h("div", { class: "card recording" }, cover,
+		return h("div", { class: "card recording" }, tilePicture(r),
 			h("div", {},
 				h("strong", {}, r.title),
 				h("div", { class: "dim small" }, meta(r)),
@@ -891,9 +889,7 @@ async function viewRecordings(main) {
 	const episodeList = (name, list) => {
 		const d = h("dialog", { class: "recording-details episodes" });
 		const close = () => d.close();
-		const pick = (r) => h("div", { class: "card recording" },
-			r.cover ? h("img", { class: "cover", src: coverUrl(r), alt: "", loading: "lazy" })
-				: h("div", { class: "cover none", html: icon("recordings") }),
+		const pick = (r) => h("div", { class: "card recording" }, tilePicture(r),
 			h("div", {}, h("strong", {}, episodeName(r) || r.title), h("div", { class: "dim small" }, meta(r))),
 			actions(r, close));
 		d.append(h("h2", {}, name), h("div", { class: "dim small" }, episodes(list.length)),
