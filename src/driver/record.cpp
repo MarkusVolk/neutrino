@@ -705,19 +705,19 @@ void CRecordInstance::ProcessAPIDnames()
 						if(!tags[i].component.empty()) {
 							std::string tmp_desc2;
 							tmp_desc2 = tags[i].component;
-							if (allpids.APIDs[j].is_ac3 && tmp_desc2.find(" (AC3)"))
+							if (allpids.APIDs[j].is_ac3 && tmp_desc2.find(" (AC3)") == std::string::npos)
 								tmp_desc2 += " (AC3)";
-							else if (allpids.APIDs[j].is_aac && tmp_desc2.find(" (AAC)"))
+							else if (allpids.APIDs[j].is_aac && tmp_desc2.find(" (AAC)") == std::string::npos)
 								tmp_desc2 += " (AAC)";
-							else if (allpids.APIDs[j].is_aache && tmp_desc2.find(" (AACP)"))
+							else if (allpids.APIDs[j].is_aache && tmp_desc2.find(" (AACP)") == std::string::npos)
 								tmp_desc2 += " (AACP)";
-							else if (allpids.APIDs[j].is_eac3 && tmp_desc2.find(" (EAC3)"))
+							else if (allpids.APIDs[j].is_eac3 && tmp_desc2.find(" (EAC3)") == std::string::npos)
 								tmp_desc2 += " (EAC3)";
-							else if (allpids.APIDs[j].is_dts && tmp_desc2.find(" (DTS)"))
+							else if (allpids.APIDs[j].is_dts && tmp_desc2.find(" (DTS)") == std::string::npos)
 								tmp_desc2 += " (DTS)";
-							else if (allpids.APIDs[j].is_dtshd && tmp_desc2.find(" (DTSHD)"))
+							else if (allpids.APIDs[j].is_dtshd && tmp_desc2.find(" (DTSHD)") == std::string::npos)
 								tmp_desc2 += " (DTSHD)";
-							else if (allpids.APIDs[j].is_lpcm && tmp_desc2.find(" (LPCM)"))
+							else if (allpids.APIDs[j].is_lpcm && tmp_desc2.find(" (LPCM)") == std::string::npos)
 								tmp_desc2 += " (LPCM)";
 
 							if(!tmp_desc2.empty()){

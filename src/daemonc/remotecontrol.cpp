@@ -599,11 +599,11 @@ void CRemoteControl::processAPIDnames()
 							if (!tags[i].component.empty())
 							{
 								std::string tmp_desc2 = tags[i].component.c_str();
-								if (current_PIDs.APIDs[j].is_ac3 && tmp_desc2.find(" (AC3)"))
+								if (current_PIDs.APIDs[j].is_ac3 && tmp_desc2.find(" (AC3)") == std::string::npos)
 									tmp_desc2 += " (AC3)";
-								else if (current_PIDs.APIDs[j].is_aac && tmp_desc2.find(" (AAC)"))
+								else if (current_PIDs.APIDs[j].is_aac && tmp_desc2.find(" (AAC)") == std::string::npos)
 									tmp_desc2 += " (AAC)";
-								else if (current_PIDs.APIDs[j].is_eac3 && tmp_desc2.find(" (EAC3)"))
+								else if (current_PIDs.APIDs[j].is_eac3 && tmp_desc2.find(" (EAC3)") == std::string::npos)
 									tmp_desc2 += " (EAC3)";
 
 								if (!tmp_desc2.empty())
