@@ -1945,6 +1945,8 @@ menu.hint_softupdate_expert Afzonderlijke partities uit het flashgeheugen lezen 
 menu.hint_softupdate_expert_read Verdeel partitie's (U-Boot, Splash, Kernel, SystemFS) voor het lezen van flashgeheugen
 menu.hint_softupdate_expert_write Verdeel partitie's (Splash, Kernel, SystemFS) voor het schrijven op het flashgeheugen
 menu.hint_softupdate_settings De lokale update directory en configuratie bestand is ingesteld
+menu.hint_speech Menu's, lijsten en meldingen voorlezen; de help-toets lang indrukken schakelt de spraakuitvoer in of uit
+menu.hint_speech_rate Hoe snel er gesproken wordt, van 1 (langzaam) tot 10 (snel)
 menu.hint_standby Schakelt de ontvanger direct in standby. Snel weer inschakelen mogelijk.
 menu.hint_start_tostandby Schakel in standby mode na het herstarten
 menu.hint_streaminfo Informatie huidig kanaal: pids, signaal-ruisverhouding\nBitrate grafieken
@@ -2899,6 +2901,8 @@ settings.pos_top_left Links boven
 settings.pos_top_right Rechts boven
 settings.restore Instellingen herstellen
 settings.restore_warn Alle instellingen zullen vervangen worden.\nDe ontvanger zal opnieuw opstarten\nWilt u verder gaan?
+settings.speech Spraakuitvoer
+settings.speech_rate Spreektempo
 shoutcast.dev_id SHOUTcast Developer ID
 shoutcast.enabled SHOUTcast-ondersteuning
 shutdown.recording_query Wilt u opname echt afbreken ?
@@ -2910,6 +2914,13 @@ sleeptimerbox.hint2 De ontvanger schakelt zichzelf na deze tijd uit.
 sleeptimerbox.hint3 De ontvanger zal automatisch uitschakelen indien u de afstandsbediening niet gebruikt.
 sleeptimerbox.title Slaaptimer
 sleeptimerbox.title2 Inactiviteit uitschakel timer
+speech.empty leeg
+speech.hidden verborgen
+speech.muted gedempt
+speech.off Spraakuitvoer uit
+speech.on Spraakuitvoer aan
+speech.unmuted geluid aan
+speech.volume Volume %d
 streaminfo.aratio Beeldverhouding
 streaminfo.aratio_unknown Onbekend
 streaminfo.audiotype Audiotype

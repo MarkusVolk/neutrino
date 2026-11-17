@@ -1945,6 +1945,8 @@ menu.hint_softupdate_expert Einzelne Partitionen aus dem Flash lesen bzw. in den
 menu.hint_softupdate_expert_read Einzelne Partitionen (U-Boot, Splash, Kernel, SystemFS) aus dem Flash lesen
 menu.hint_softupdate_expert_write Einzelne Partitionen (Splash, Kernel, SystemFS) in den Flash schreiben
 menu.hint_softupdate_settings Das lokale Update-Verzeichnis und die Konfigurationsdatei festlegen
+menu.hint_speech Menüs, Listen und Meldungen vorlesen; langes Drücken der Hilfe-Taste schaltet die Sprachausgabe ein oder aus
+menu.hint_speech_rate Wie schnell gesprochen wird, von 1 (langsam) bis 10 (schnell)
 menu.hint_standby Versetzt die Box sofort in den Standby. Schnelles Wiedereinschalten möglich.
 menu.hint_start_tostandby Aktiviert den Standby-Modus direkt nach dem Starten der Box
 menu.hint_streaminfo Aktuelle Sender-Informationen über PIDs, SNR-Verhältnis, Bitrate usw.
@@ -2899,6 +2901,8 @@ settings.pos_top_left oben links
 settings.pos_top_right oben rechts
 settings.restore System-Einstellungen wiederherstellen
 settings.restore_warn Alle Settings werden ersetzt.\nDie Box wird neu gestartet.\nWeiter?
+settings.speech Sprachausgabe
+settings.speech_rate Sprechtempo
 shoutcast.dev_id SHOUTcast Developer ID
 shoutcast.enabled SHOUTcast-Unterstützung
 shutdown.recording_query Aufnahme läuft. Trotzdem beenden?
@@ -2910,6 +2914,13 @@ sleeptimerbox.hint2 Die Box schaltet sich nach dieser Zeit aus.
 sleeptimerbox.hint3 Die Box schaltet sich bei Nichtbenutzen der Fernbedienung aus.
 sleeptimerbox.title Sleeptimer
 sleeptimerbox.title2 Inaktivitätstimer
+speech.empty leer
+speech.hidden verdeckt
+speech.muted stumm
+speech.off Sprachausgabe aus
+speech.on Sprachausgabe an
+speech.unmuted Ton an
+speech.volume Lautstärke %d
 streaminfo.aratio Verhältnis
 streaminfo.aratio_unknown unbekannt
 streaminfo.audiotype Audiotyp

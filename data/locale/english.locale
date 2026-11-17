@@ -1945,6 +1945,8 @@ menu.hint_softupdate_expert Separate partitions from the flash. Read and write t
 menu.hint_softupdate_expert_read Separate partitions (U-Boot, Splash, Kernel, SystemFS) from the flash read
 menu.hint_softupdate_expert_write Separate partitions (Splash, Kernel, SystemFS) write to the flash
 menu.hint_softupdate_settings The local update directory and the configuration file to set
+menu.hint_speech Read menus, lists and messages aloud; holding the help key switches speech output on or off
+menu.hint_speech_rate How fast it speaks, from 1 (slow) to 10 (fast)
 menu.hint_standby Puts the box into standby immediately. Quick power-on possible.
 menu.hint_start_tostandby Enter standby mode after boot
 menu.hint_streaminfo Current channel info: pids, signal and noise ratio\nBitrate graphs
@@ -2899,6 +2901,8 @@ settings.pos_top_left top left
 settings.pos_top_right top right
 settings.restore Restore system settings
 settings.restore_warn This will replace all settings and reboot\nContinue ?
+settings.speech Speech output
+settings.speech_rate Speech rate
 shoutcast.dev_id SHOUTcast Developer ID
 shoutcast.enabled SHOUTcast support
 shutdown.recording_query You really want to to stop record ?
@@ -2910,6 +2914,13 @@ sleeptimerbox.hint2 The STB will shutdown after this time.
 sleeptimerbox.hint3 The STB will shutdown, if remote not used.
 sleeptimerbox.title Sleeptimer
 sleeptimerbox.title2 Inactivity shutdown timer
+speech.empty empty
+speech.hidden hidden
+speech.muted muted
+speech.off Speech output off
+speech.on Speech output on
+speech.unmuted sound on
+speech.volume Volume %d
 streaminfo.aratio Aspect ratio
 streaminfo.aratio_unknown unknown
 streaminfo.audiotype Audiotype

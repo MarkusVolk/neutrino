@@ -1945,6 +1945,8 @@ menu.hint_softupdate_expert Oddelené partície z pamäte, čítanie/zapisovanie
 menu.hint_softupdate_expert_read Načítanie oddelených partícií z pamäte (U-Boot 512kB, Kernel 4MB, SystemFS 28MB)
 menu.hint_softupdate_expert_write Zápis oddelených partícií do pamäte (U-Boot 512kB, Kernel 4MB, SystemFS 28MB, SystemFS+nastavenia)
 menu.hint_softupdate_settings Priečinok lokálnej aktualizácie a konfiguračný súbor pre nastavenie
+menu.hint_speech Čítať ponuky, zoznamy a správy nahlas; dlhé stlačenie tlačidla pomocníka zapne alebo vypne hlasový výstup
+menu.hint_speech_rate Ako rýchlo sa hovorí, od 1 (pomaly) po 10 (rýchlo)
 menu.hint_standby Okamžite prepne prijímač do pohotovostného režimu. Rýchle opätovné zapnutie je možné.
 menu.hint_start_tostandby Zostane po spustení v pohotovostnom režime
 menu.hint_streaminfo Aktuálna informácia kanálu: pidy, signál a kvalita,\nBitrate graf
@@ -2899,6 +2901,8 @@ settings.pos_top_left vľavo hore
 settings.pos_top_right vpravo hore
 settings.restore NI-Záloha: Obnovenie nastavení
 settings.restore_warn Všetky nastavenia budú nahradené a vykoná sa reštart.\nPokračovať?
+settings.speech Hlasový výstup
+settings.speech_rate Rýchlosť reči
 shoutcast.dev_id SHOUTcast Dev ID
 shoutcast.enabled SHOUTcast podpora
 shutdown.recording_query Skutočne prerušiť nahrávanie?
@@ -2910,6 +2914,13 @@ sleeptimerbox.hint2 Po uplynutí tohto času dôjde k vypnutiu prijímača.
 sleeptimerbox.hint3 Po uplynutí tohto času dôjde k vypnutiu, ak sa nepoužije diaľkový ovládač.
 sleeptimerbox.title Časovač vypnutia
 sleeptimerbox.title2 Čas vypnutia pri neaktivite
+speech.empty prázdne
+speech.hidden skryté
+speech.muted stlmené
+speech.off Hlasový výstup vypnutý
+speech.on Hlasový výstup zapnutý
+speech.unmuted zvuk zapnutý
+speech.volume Hlasitosť %d
 streaminfo.aratio Formát obrazu
 streaminfo.aratio_unknown neznámy
 streaminfo.audiotype Formát zvuku
