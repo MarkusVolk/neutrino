@@ -1443,6 +1443,22 @@ bool CRecordManager::Record(const t_channel_id channel_id, const char * dir, boo
 	return Record(&eventinfo, dir, timeshift, silent);
 }
 
+/* the poster already when the recording starts, so that it shows while it
+   runs and survives a recording cut short; a frame of it only at the end */
+static void queueCover(CRecordInstance *inst, bool start)
+{
+	if (!g_settings.auto_cover || inst->Timeshift())
+		return;
+	MI_MOVIE_INFO *mi = inst->GetMovieInfo();
+	recording_cover::job j;
+	j.ts = std::string(inst->GetFileName()) + ".ts";
+	j.title = mi->epgTitle;
+	j.year = mi->productionDate;
+	j.length = mi->length;
+	j.start = start;
+	recording_cover::queue(j);
+}
+
 bool CRecordManager::Record(const CTimerd::RecordingInfo * const eventinfo, const char * dir, bool timeshift, bool silent)
 {
 	CRecordInstance * inst = NULL;
@@ -1482,6 +1498,7 @@ bool CRecordManager::Record(const CTimerd::RecordingInfo * const eventinfo, cons
 			AddInstanceLocked(inst);
 			if (!timeshift)
 				EndTimeshiftOfLocked(eventinfo->channel_id);
+			queueCover(inst, true);
 			ShowRecordIcon();
 		} else {
 			delete inst;
@@ -1498,6 +1515,7 @@ bool CRecordManager::Record(const CTimerd::RecordingInfo * const eventinfo, cons
 				AddInstanceLocked(inst);
 				if (!timeshift)
 					EndTimeshiftOfLocked(eventinfo->channel_id);
+				queueCover(inst, true);
 				ShowRecordIcon();
 #if 0
 				// mimic old behavior for start/stop menu option chooser, still actual ?
@@ -1756,15 +1774,8 @@ void CRecordManager::StopInstance(CRecordInstance * inst, bool remove_event)
 	/* first erase - then stop, because Stop() reset recording_id to 0 */
 	recmap.erase(inst->GetRecordingId());
 	inst->Stop(remove_event);
-	if (g_settings.auto_cover && !inst->Timeshift() && !inst->Failed()) {
-		MI_MOVIE_INFO *mi = inst->GetMovieInfo();
-		recording_cover::job j;
-		j.ts = std::string(inst->GetFileName()) + ".ts";
-		j.title = mi->epgTitle;
-		j.year = mi->productionDate;
-		j.length = mi->length;
-		recording_cover::queue(j);
-	}
+	if (!inst->Failed())
+		queueCover(inst, false);
 	/* the timeshift the recording of the live channel kept from starting */
 	if (inst->GetChannelId() == CZapit::getInstance()->GetCurrentChannelID())
 		restartTimeshift = true;

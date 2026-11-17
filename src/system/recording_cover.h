@@ -31,6 +31,7 @@ namespace recording_cover
 		std::string title;
 		int year;		/* 0 if unknown */
 		int length;		/* minutes, 0 if unknown */
+		bool start;		/* the recording only begins: no frame yet */
 	};
 
 	/* fetched in a thread of its own, one recording after the other;

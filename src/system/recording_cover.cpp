@@ -26,6 +26,7 @@
 
 #include <condition_variable>
 #include <deque>
+#include <map>
 #include <mutex>
 #include <thread>
 #include <stdio.h>
@@ -46,6 +47,9 @@ std::mutex lock;
 std::condition_variable wake;
 std::deque<recording_cover::job> jobs;
 bool running = false;
+/* what TMDB said when a recording began, to put it in its .xml again at the
+   end: the recorder may have saved its own version meanwhile; worker only */
+std::map<std::string, tmdbPoster> began;
 
 /* DVB content 0x23: documentary */
 #define GENRE_DOCUMENTARY 0x23
@@ -103,6 +107,11 @@ void fetch(const recording_cover::job &j)
 {
 	std::string base = recordings::without_ts(j.ts);
 	std::string cover = base + ".jpg";
+	std::map<std::string, tmdbPoster>::iterator known = began.find(j.ts);
+	if (!j.start && known != began.end()) {
+		markInfo(j, known->second);
+		began.erase(known);
+	}
 	if (access(cover.c_str(), F_OK) == 0 || access(j.ts.c_str(), R_OK) != 0)
 		return;
 	std::string tmp = base + ".jpg.part";
@@ -110,17 +119,20 @@ void fetch(const recording_cover::job &j)
 	const char *source = NULL;
 	if (g_settings.tmdb_enabled && CTMDB::findPoster(j.title, j.year, found)) {
 		markInfo(j, found);
+		if (j.start)
+			began[j.ts] = found;
 		unlink(tmp.c_str());
 		if (downloadUrl(found.url, tmp, AGENT, 30) && usable(tmp))
 			source = "TMDB";
 	}
-	if (!source && still(j, tmp))
+	if (!source && !j.start && still(j, tmp))
 		source = "frame";
 	if (source && rename(tmp.c_str(), cover.c_str()) == 0)
 		printf("[covers] %s: %s\n", j.ts.c_str(), source);
 	else {
 		unlink(tmp.c_str());
-		printf("[covers] %s: no cover\n", j.ts.c_str());
+		if (!j.start)
+			printf("[covers] %s: no cover\n", j.ts.c_str());
 	}
 }
 
@@ -146,7 +158,7 @@ void recording_cover::queue(const job &j)
 	{
 		std::lock_guard<std::mutex> g(lock);
 		for (size_t i = 0; i < jobs.size(); i++)
-			if (jobs[i].ts == j.ts)
+			if (jobs[i].ts == j.ts && jobs[i].start == j.start)
 				return;
 		jobs.push_back(j);
 		if (!running) {
@@ -167,6 +179,7 @@ void recording_cover::queue(const std::string &ts)
 	j.ts = ts;
 	j.year = 0;
 	j.length = 0;
+	j.start = false;
 	if (info.loadMovieInfo(&mi)) {
 		j.title = mi.epgTitle;
 		j.year = mi.productionDate;
