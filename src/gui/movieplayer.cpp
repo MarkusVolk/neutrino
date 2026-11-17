@@ -4080,6 +4080,8 @@ bool CMoviePlayerGui::getAudioName(int apid, std::string &apidtitle)
 void CMoviePlayerGui::addAudioFormat(int count, std::string &apidtitle, bool& enabled)
 {
 	enabled = true;
+	if (playback && (playback->GetAudioFlags(apids[count]) & PLAYBACK_AUDIO_DESCRIPTION))
+		apidtitle += std::string(" (") + g_Locale->getText(LOCALE_AUDIOMENU_AD) + ")";
 	switch(ac3flags[count])
 	{
 		case 1: /*AC3,EAC3*/
@@ -4991,7 +4993,10 @@ void CMoviePlayerGui::selectAutoLang()
 	}
 	if (g_settings.auto_lang &&  (numpida > 1)) {
 		int pref_idx = -1;
+		int pref_score = -1;
 
+		/* the language first, then audio description as set; a track that is
+		   only the narration of an audio description is no track of its own */
 		playback->FindAllPids(apids, ac3flags, &numpida, language);
 		for (int i = 0; i < 3; i++) {
 			for (unsigned j = 0; j < numpida; j++) {
@@ -5002,16 +5007,18 @@ void CMoviePlayerGui::selectAutoLang()
 						// TODO: better check of supported
 						std::string audioname;
 						addAudioFormat(j, audioname, enabled);
-						if (enabled)
+						unsigned int flags = playback->GetAudioFlags(apids[j]);
+						int score = (3 - i) * 2;
+						if (!(flags & PLAYBACK_AUDIO_DESCRIPTION) == !g_settings.audio_description)
+							score += 1;
+						if (enabled && !(flags & PLAYBACK_AUDIO_DEPENDENT) && score > pref_score) {
 							pref_idx = j;
+							pref_score = score;
+						}
 						break;
 					}
 				}
-				if (pref_idx >= 0)
-					break;
 			}
-			if (pref_idx >= 0)
-				break;
 		}
 		if (pref_idx >= 0) {
 			currentapid = apids[pref_idx];
