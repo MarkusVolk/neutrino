@@ -34,6 +34,7 @@
 #include <dvbsi++/ca_program_map_section.h>
 #include <dvbsi++/registration_descriptor.h>
 #include <dvbsi++/iso639_language_descriptor.h>
+#include <dvbsi++/extension_descriptor.h>
 #include <dvbsi++/stream_identifier_descriptor.h>
 #include <dvbsi++/teletext_descriptor.h>
 #include <dvbsi++/subtitling_descriptor.h>
@@ -44,6 +45,9 @@
 #include <dvbsi++/application_profile.h>
 #include <dvbsi++/application_descriptor.h>
 #endif
+
+/* the extension tag libdvbsi++ has no name for */
+#define SUPPLEMENTARY_AUDIO_DESCRIPTOR	0x06
 
 #define DEBUG_PMT
 //#define DEBUG_PMT_UNUSED
@@ -168,6 +172,9 @@ bool CPmt::ParseEsInfo(ElementaryStreamInfo *esinfo, CZapitChannel * const chann
 	std::string description = "";
 	unsigned char componentTag = 0xFF;
 	CZapitAudioChannel::ZapitAudioChannelType audio_type = CZapitAudioChannel::UNKNOWN;
+	bool audio_description = false;
+	bool receiver_mix = false;
+	std::string supplementary_language;
 
 	uint8_t stream_type = esinfo->getType();
 
@@ -208,6 +215,9 @@ bool CPmt::ParseEsInfo(ElementaryStreamInfo *esinfo, CZapitChannel * const chann
 				Iso639LanguageConstIterator it;
 				for (it = languages->begin(); it != languages->end(); ++it) {
 					description = (*it)->getIso639LanguageCode();
+					/* visual impaired commentary */
+					if ((*it)->getAudioType() == 3)
+						audio_description = true;
 					break;
 				}
 			}
@@ -216,6 +226,23 @@ bool CPmt::ParseEsInfo(ElementaryStreamInfo *esinfo, CZapitChannel * const chann
 			{
 				StreamIdentifierDescriptor *sd = (StreamIdentifierDescriptor*) d;
 				componentTag = sd->getComponentTag();
+			}
+			break;
+		case EXTENSION_DESCRIPTOR:
+			{
+				/* supplementary audio descriptor, EN 300 468 6.4.11: mix type,
+				 * the editorial classification (1 being audio description) and
+				 * the language, which ZDF gives here while the ISO 639
+				 * descriptor of the same track says "mis" */
+				ExtensionDescriptor *ed = (ExtensionDescriptor*) d;
+				const SelectorByteVector *sb = ed->getSelectorBytes();
+				if (ed->getExtensionTag() == SUPPLEMENTARY_AUDIO_DESCRIPTOR && sb && !sb->empty()) {
+					if ((((*sb)[0] >> 2) & 0x1f) == 1)
+						audio_description = true;
+					receiver_mix = !((*sb)[0] & 0x80);
+					if (((*sb)[0] & 0x01) && sb->size() >= 4)
+						supplementary_language.assign((const char *) &(*sb)[1], 3);
+				}
 			}
 			break;
 		case TELETEXT_DESCRIPTOR:
@@ -390,6 +417,8 @@ bool CPmt::ParseEsInfo(ElementaryStreamInfo *esinfo, CZapitChannel * const chann
 		break;
 	}
 	if(audio) {
+		if (!supplementary_language.empty())
+			description = supplementary_language;
 		if(description.empty()) {
 			char str[DESC_MAX_LEN];
 //			snprintf(str, DESC_MAX_LEN, "Unknown 0x%04x", esinfo->getPid());
@@ -402,7 +431,8 @@ bool CPmt::ParseEsInfo(ElementaryStreamInfo *esinfo, CZapitChannel * const chann
 			if(channel->getPreAudioPid() == 0)
 				channel->setAudioPid(esinfo->getPid());
 		} else
-			channel->addAudioChannel(esinfo->getPid(), audio_type, description, componentTag);
+			channel->addAudioChannel(esinfo->getPid(), audio_type, description, componentTag,
+						 audio_description, audio_description && receiver_mix);
 	}
 	return true;
 }

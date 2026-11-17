@@ -2597,6 +2597,8 @@ void CZapit::sendAPIDs(int connfd)
 			response.is_lpcm = 1;
 		}
 		response.component_tag = current_channel->getAudioChannel(i)->componentTag;
+		response.is_ad = current_channel->getAudioChannel(i)->audioDescription;
+		response.is_receiver_mix = current_channel->getAudioChannel(i)->receiverMix;
 
 		if (CBasicServer::send_data(connfd, &response, sizeof(response)) == false) {
 			ERROR("could not send any return");

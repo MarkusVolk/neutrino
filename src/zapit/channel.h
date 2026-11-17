@@ -99,6 +99,10 @@ class CZapitAudioChannel
 		unsigned short		pid;
 		std::string		description;
 		unsigned char		componentTag;
+		/* audio description for the visually impaired */
+		bool			audioDescription;
+		/* only the narration, to be mixed with the main track by the receiver */
+		bool			receiverMix;
 
 	enum ZapitAudioChannelType {
 		MPEG = 1,
@@ -298,7 +302,8 @@ class CZapitChannel : public CZapitChannelProvider
 		unsigned short 		getAudioPid(unsigned char index = 0xFF);
 		unsigned char  		getAudioChannelIndex(void)	{ return currentAudioChannel; }
 
-		int addAudioChannel(const unsigned short pid, const CZapitAudioChannel::ZapitAudioChannelType audioChannelType, const std::string & description, const unsigned char componentTag);
+		int addAudioChannel(const unsigned short pid, const CZapitAudioChannel::ZapitAudioChannelType audioChannelType, const std::string & description, const unsigned char componentTag,
+				    bool audioDescription = false, bool receiverMix = false);
 
 		/* set methods */
 		void setServiceType(const unsigned char pserviceType)	{ serviceType = pserviceType; }

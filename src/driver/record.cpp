@@ -666,6 +666,8 @@ void CRecordInstance::GetPids(CZapitChannel * channel)
 			response.is_lpcm = 1;
 		}
 		response.component_tag = channel->getAudioChannel(i)->componentTag;
+		response.is_ad = channel->getAudioChannel(i)->audioDescription;
+		response.is_receiver_mix = channel->getAudioChannel(i)->receiverMix;
 		allpids.APIDs.push_back(response);
 	}
 	ProcessAPIDnames();

@@ -195,6 +195,9 @@ class CZapitClient:public CBasicClient
 		int  is_dtshd;
 		int  is_lpcm;
 		int  component_tag;
+		/* audio description, and one that needs mixing with the main track */
+		int  is_ad;
+		int  is_receiver_mix;
 	};
 
 	typedef std::vector<responseGetAPIDs> APIDList;

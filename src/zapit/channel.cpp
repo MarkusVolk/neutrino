@@ -175,7 +175,8 @@ unsigned short CZapitChannel::getAudioPid(unsigned char index)
 	return retval;
 }
 
-int CZapitChannel::addAudioChannel(const unsigned short pid, const CZapitAudioChannel::ZapitAudioChannelType audioChannelType, const std::string & description, const unsigned char componentTag)
+int CZapitChannel::addAudioChannel(const unsigned short pid, const CZapitAudioChannel::ZapitAudioChannelType audioChannelType, const std::string & description, const unsigned char componentTag,
+				   bool audioDescription, bool receiverMix)
 {
 	std::vector <CZapitAudioChannel *>::iterator aI;
 
@@ -184,6 +185,8 @@ int CZapitChannel::addAudioChannel(const unsigned short pid, const CZapitAudioCh
 			(* aI)->description = description;
                         (* aI)->audioChannelType = audioChannelType;
                         (* aI)->componentTag = componentTag;
+			(* aI)->audioDescription = audioDescription;
+			(* aI)->receiverMix = receiverMix;
 			return -1;
 		}
 	CZapitAudioChannel *tmp = new CZapitAudioChannel();
@@ -191,6 +194,8 @@ int CZapitChannel::addAudioChannel(const unsigned short pid, const CZapitAudioCh
 	tmp->audioChannelType = audioChannelType;
 	tmp->description = description;
 	tmp->componentTag = componentTag;
+	tmp->audioDescription = audioDescription;
+	tmp->receiverMix = receiverMix;
 	owned.audioChannels.push_back(tmp);
 	return 0;
 }

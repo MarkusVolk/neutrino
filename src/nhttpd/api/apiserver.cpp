@@ -892,6 +892,8 @@ void ep_channel_current(Call &c)
 		av["codec"] = audio_codec(a->audioChannelType);
 		av["description"] = a->description;
 		av["selected"] = i == ch->getAudioChannelIndex();
+		if (a->audioDescription)
+			av["audio_description"] = true;
 		v["audio"].append(av);
 	}
 	v["streams_known"] = ch->getPidsFlag();
