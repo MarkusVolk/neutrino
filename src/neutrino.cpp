@@ -5615,10 +5615,19 @@ void CNeutrinoApp::saveEpg(int _mode)
 		printf("[neutrino] guide not read yet, not saved\n");
 		return;
 	}
-	/* a box saves only to a mounted drive, a PC into its own cache */
-	if (media_in_home()) {
-		std::error_code ec;
+	/* a box saves only to a mounted drive, a PC into its own cache; the
+	   directory is made on a drive (/media/record/epg), never on the root */
+	std::error_code ec;
+	if (media_in_home())
 		std::filesystem::create_directories(g_settings.epg_dir, ec);
+	else {
+		std::string dir = g_settings.epg_dir;
+		while (dir.size() > 1 && dir[dir.size() - 1] == '/')
+			dir.erase(dir.size() - 1);
+		std::string parent = std::filesystem::path(dir).parent_path().string();
+		struct stat root_st, parent_st;
+		if (stat("/", &root_st) == 0 && stat(parent.c_str(), &parent_st) == 0 && parent_st.st_dev != root_st.st_dev)
+			std::filesystem::create_directory(dir, ec);
 	}
 	if (stat(g_settings.epg_dir.c_str(), &my_stat) == 0)
 	{
