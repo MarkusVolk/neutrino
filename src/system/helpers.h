@@ -127,6 +127,9 @@ class CAtomicFileWriter
 /* fsync the directory a file sits in (after a rename into place); true on success or EINVAL */
 bool syncDirectoryOf(const std::string &path);
 
+/* media, guide and backups in $HOME: Neutrino as a program of a desktop
+   session; as root it is the box and keeps them on the drives below /media */
+bool media_in_home();
 void wakeup_hdd(const char *hdd_dir);
 int check_dir(const char *dir, bool allow_tmp = false);
 bool get_fs_usage(const char *dir, uint64_t &btotal, uint64_t &bused, long *bsize = NULL);

@@ -749,6 +749,11 @@ int safe_mkdir(const char *path)
 	return mkdir(path, 0755);
 }
 
+bool media_in_home()
+{
+	return g_info.hw_caps->media_in_home && geteuid() != 0;
+}
+
 /* function used to check is this dir writable, i.e. not flash, for record etc */
 int check_dir(const char *dir, bool allow_tmp)
 {

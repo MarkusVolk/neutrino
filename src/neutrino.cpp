@@ -462,7 +462,7 @@ int CNeutrinoApp::loadSetup(const char *fname)
 	CGLCDThemes::getInstance()->getTheme(configfile);
 
 	g_settings.glcd_enable = configfile.getInt32("glcd_enable", g_info.hw_caps->display_type == HW_DISPLAY_GFX);
-	setSettingsText(g_settings.glcd_logodir, configfile.getString("glcd_logodir", TARGET_ROOT "/media/sda1/logos"));
+	setSettingsText(g_settings.glcd_logodir, configfile.getString("glcd_logodir", TARGET_ROOT "/media/record/logos"));
 
 	g_settings.glcd_brightness = configfile.getInt32("glcd_brightness", GLCD_DEFAULT_BRIGHTNESS);
 	g_settings.glcd_brightness_dim = configfile.getInt32("glcd_brightness_dim", GLCD_DEFAULT_BRIGHTNESS_DIM);
@@ -477,7 +477,7 @@ int CNeutrinoApp::loadSetup(const char *fname)
 
 #ifdef ENABLE_LCD4LINUX
 	g_settings.lcd4l_support = configfile.getInt32("lcd4l_support", 0);
-	setSettingsText(g_settings.lcd4l_logodir, configfile.getString("lcd4l_logodir", TARGET_ROOT "/media/sda1/logos"));
+	setSettingsText(g_settings.lcd4l_logodir, configfile.getString("lcd4l_logodir", TARGET_ROOT "/media/record/logos"));
 	g_settings.lcd4l_display_type = configfile.getInt32("lcd4l_display_type", 0);
 	g_settings.lcd4l_skin = configfile.getInt32("lcd4l_skin", 0);
 	g_settings.lcd4l_skin_radio = configfile.getInt32("lcd4l_skin_radio", 0);
@@ -816,10 +816,10 @@ int CNeutrinoApp::loadSetup(const char *fname)
 	// epg
 	const char *home = getenv("HOME");
 	const char *cache = getenv("XDG_CACHE_HOME");
-	std::string epg_dir = TARGET_ROOT "/media/sda1/epg";
-	if (g_info.hw_caps->media_in_home && cache && *cache)
+	std::string epg_dir = TARGET_ROOT "/media/record/epg";
+	if (media_in_home() && cache && *cache)
 		epg_dir = std::string(cache) + "/neutrino/epg";
-	else if (g_info.hw_caps->media_in_home && home && *home)
+	else if (media_in_home() && home && *home)
 		epg_dir = std::string(home) + "/.cache/neutrino/epg";
 	setSettingsText(g_settings.epg_dir, configfile.getString("epg_dir", epg_dir));
 	g_settings.epg_cache = configfile.getInt32("epg_cache_time", 7);
@@ -882,10 +882,10 @@ int CNeutrinoApp::loadSetup(const char *fname)
 		loadSecret(configfile, "network_nfs_password_" + i_str, g_settings.network_nfs[i].password);
 	}
 
-	std::string music_dir = TARGET_ROOT "/media/sda1/music";
-	std::string movie_dir = TARGET_ROOT "/media/sda1/movies";
-	std::string picture_dir = TARGET_ROOT "/media/sda1/pictures";
-	if (g_info.hw_caps->media_in_home && home && *home) {
+	std::string music_dir = TARGET_ROOT "/media/record/music";
+	std::string movie_dir = TARGET_ROOT "/media/record/movies";
+	std::string picture_dir = TARGET_ROOT "/media/record/pictures";
+	if (media_in_home() && home && *home) {
 		music_dir = std::string(home) + "/Music";
 		movie_dir = std::string(home) + "/Videos";
 		picture_dir = std::string(home) + "/Pictures";
@@ -897,7 +897,7 @@ int CNeutrinoApp::loadSetup(const char *fname)
 	setSettingsText(g_settings.network_nfs_streamripperdir, configfile.getString("network_nfs_streamripperdir", music_dir + "/streamripper"));
 
 	setSettingsText(g_settings.downloadcache_dir, configfile.getString("downloadcache_dir", g_settings.network_nfs_recordingdir.c_str()));
-	setSettingsText(g_settings.logo_hdd_dir, configfile.getString("logo_hdd_dir", TARGET_ROOT "/media/sda1/logos"));
+	setSettingsText(g_settings.logo_hdd_dir, configfile.getString("logo_hdd_dir", TARGET_ROOT "/media/record/logos"));
 
 	// recording
 	g_settings.record_hours = configfile.getInt32("record_hours", 4);
@@ -1062,7 +1062,7 @@ int CNeutrinoApp::loadSetup(const char *fname)
 	setSettingsText(g_settings.livestreamScriptPath, configfile.getString("livestreamScriptPath", WEBTVDIR));
 
 	// plugins
-	setSettingsText(g_settings.plugin_hdd_dir, configfile.getString("plugin_hdd_dir", TARGET_ROOT "/media/sda1/plugins"));
+	setSettingsText(g_settings.plugin_hdd_dir, configfile.getString("plugin_hdd_dir", TARGET_ROOT "/media/record/plugins"));
 	setSettingsText(g_settings.plugins_disabled, configfile.getString("plugins_disabled", ""));
 	setSettingsText(g_settings.plugins_game, configfile.getString("plugins_game", ""));
 	setSettingsText(g_settings.plugins_lua, configfile.getString("plugins_lua", ""));
@@ -1170,8 +1170,8 @@ int CNeutrinoApp::loadSetup(const char *fname)
 	g_settings.flashupdate_createimage_add_uldr = configfile.getInt32("flashupdate_createimage_add_uldr", 1);
 	g_settings.flashupdate_createimage_add_var = configfile.getInt32("flashupdate_createimage_add_var", 1);
 
-	setSettingsText(g_settings.backup_dir, configfile.getString("backup_dir", g_info.hw_caps->media_in_home && home && *home ? std::string(home) : std::string(TARGET_ROOT "/media")));
-	setSettingsText(g_settings.update_dir, configfile.getString("update_dir", "/tmp"));
+	setSettingsText(g_settings.backup_dir, configfile.getString("backup_dir", media_in_home() && home && *home ? std::string(home) : std::string(TARGET_ROOT "/media")));
+	setSettingsText(g_settings.update_dir, configfile.getString("update_dir", media_in_home() ? "/tmp" : TARGET_ROOT "/media/record"));
 	setSettingsText(g_settings.update_dir_opkg, configfile.getString("update_dir_opkg", g_settings.update_dir));
 
 	// parentallock
@@ -5575,7 +5575,7 @@ void CNeutrinoApp::saveEpg(int _mode)
 		return;
 	}
 	/* a box saves only to a mounted drive, a PC into its own cache */
-	if (g_info.hw_caps->media_in_home) {
+	if (media_in_home()) {
 		std::error_code ec;
 		std::filesystem::create_directories(g_settings.epg_dir, ec);
 	}

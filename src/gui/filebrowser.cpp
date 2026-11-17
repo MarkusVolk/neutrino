@@ -567,7 +567,7 @@ bool CFileBrowser::readDir_std(const std::string & dirname, CFileList* flist)
 	{
 		std::string scn_err = "Filebrowser scandir: " + to_scan_dir + " ";
 		to_scan_dir = "/media/";
-		if (g_info.hw_caps->media_in_home) {
+		if (media_in_home()) {
 			/* the drives a desktop mounts for the user, else the home */
 			const char *user = getenv("USER");
 			const char *home = getenv("HOME");
