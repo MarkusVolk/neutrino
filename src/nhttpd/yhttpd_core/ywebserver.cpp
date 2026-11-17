@@ -410,8 +410,10 @@ bool wants_https(TRequest *req, std::string &url)
 	unsigned int https_port = server ? server->get_https_port() : 0;
 	if (!https_port || req->UrlData["scheme"] == "https" || (req->method != M_GET && req->method != M_HEAD))
 		return false;
-	const std::string &client = req->UrlData["clientaddr"];
-	if (client.compare(0, 4, "127.") == 0 || client == "::1")
+	/* at home the plain address stays: the box's own certificate would
+	   need an exception in every browser; HTTPS is a click away there, for
+	   signing in and pairing */
+	if (yapi::from_home(req->UrlData["clientaddr"], req->HeaderList))
 		return false;
 	const std::string &path = req->UrlData["url"];
 	bool page = path == "/" || (path.size() > 5 && path.compare(path.size() - 5, 5, ".html") == 0);

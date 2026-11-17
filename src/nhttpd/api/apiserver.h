@@ -70,6 +70,8 @@ namespace yapi
 	/* The request came through a tunnel or proxy, which its headers show,
 	 * or to the public address of the MCP server. */
 	bool from_internet(const CStringList &headers);
+	/* A private address, and not through a tunnel or proxy. */
+	bool from_home(const std::string &client, const CStringList &headers);
 	/* What such a request may reach: MCP and its sign-in, in a build with
 	 * the assistant; nothing else of the box. */
 	bool open_to_internet(const std::string &path);

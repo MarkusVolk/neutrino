@@ -3337,6 +3337,11 @@ bool yapi::open_to_internet(const std::string &path)
 #endif
 }
 
+bool yapi::from_home(const std::string &client, const CStringList &headers)
+{
+	return !from_internet(headers) && private_address(client);
+}
+
 yapi::Level yapi::level_of(const std::string &client, const CStringList &headers)
 {
 	Request in;
