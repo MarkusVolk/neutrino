@@ -39,6 +39,8 @@
 #include <iomanip>
 #include <algorithm>
 #include <system/set_threadname.h>
+#include <driver/abstime.h>
+#include <driver/framebuffer.h>
 
 #include <global.h>
 #include <neutrino.h>
@@ -105,6 +107,14 @@ extern CPictureViewer *g_PicViewer;
 #define END			LCD_DATADIR "end"
 
 #define MENU			LCD_DATADIR "menu"
+#define MENU_PNG		LCD_DATADIR "menu.png"
+/* shown without a menu: lcd4linux paints an image it hides opaque */
+#define MENU_NONE_PNG		LCD_DATADIR "menu-none.png"
+/* the picture follows once the keys rest this long, at most every
+   MENU_GAP_MS, and stays this long after the menu for the next one */
+#define MENU_SETTLE_MS		150
+#define MENU_GAP_MS		300
+#define MENU_HIDE_MS		300
 
 #define FONT			LCD_DATADIR "font"
 #define FGCOLOR			LCD_DATADIR "fgcolor"
@@ -126,6 +136,10 @@ extern CPictureViewer *g_PicViewer;
 
 CLCD4l::CLCD4l()
 {
+	thrMenu = NULL;
+	m_MenuW = m_MenuH = 0;
+	m_MenuNew = m_MenuHide = m_MenuQuit = false;
+	m_MenuDue = 0;
 	thrLCD4l = NULL;
 	exit_proc = false;
 	m_External.active = false;
@@ -206,6 +220,12 @@ void CLCD4l::StartLCD4l()
 		thrLCD4l = new std::thread(LCD4lProc, this);
 		dprintf(DEBUG_NORMAL, "\033[32m[CLCD4l] [%s - %d] thread [%p] is running\033[0m\n", __func__, __LINE__, thrLCD4l);
 	}
+	if (!thrMenu)
+	{
+		unlink(MENU_PNG);
+		m_MenuQuit = false;
+		thrMenu = new std::thread(&CLCD4l::MenuProc, this);
+	}
 	if (g_settings.lcd4l_support)
 	{
 		if (exec_initscript("lcd4linux", "start", "service"))
@@ -229,6 +249,18 @@ void CLCD4l::StopLCD4l()
 		delete thrLCD4l;
 		thrLCD4l = NULL;
 		dprintf(DEBUG_NORMAL, "\033[32m[CLCD4l] [%s - %d] thread [%p] terminated\033[0m\n", __func__, __LINE__, thrLCD4l);
+	}
+	if (thrMenu)
+	{
+		{
+			std::lock_guard<std::mutex> g(m_MenuLock);
+			m_MenuQuit = true;
+		}
+		m_MenuWake.notify_all();
+		thrMenu->join();
+		delete thrMenu;
+		thrMenu = NULL;
+		unlink(MENU_PNG);
 	}
 
 	if (exec_initscript("lcd4linux", "stop", "service"))
@@ -255,6 +287,171 @@ void CLCD4l::SwitchLCD4l()
 		StopLCD4l();
 	else
 		StartLCD4l();
+}
+
+static void panelSize(int &pw, int &ph)
+{
+	switch (g_settings.lcd4l_display_type)
+	{
+		case CLCD4l::PEARL320x240:	pw = 320;  ph = 240; break;
+		case CLCD4l::VUSOLO4K480x320:	pw = 480;  ph = 320; break;
+		case CLCD4l::SAMSUNG800x480:
+		case CLCD4l::PNG800x480:	pw = 800;  ph = 480; break;
+		case CLCD4l::SAMSUNG1024x600:
+		case CLCD4l::PNG1024x600:	pw = 1024; ph = 600; break;
+		case CLCD4l::SAMSUNG800x600:
+		case CLCD4l::PNG800x600:
+		default:			pw = 800;  ph = 600; break;
+	}
+}
+
+/* main loop: the OSD is drawn by this thread, so the menu is copied here */
+void CLCD4l::MenuShown(int x, int y, int w, int h)
+{
+	if (!thrMenu || !g_settings.lcd4l_support)
+		return;
+	CFrameBuffer *fb = CFrameBuffer::getInstance();
+	const fb_pixel_t *osd = fb->getFrameBufferPointer();
+	int sw = fb->getScreenWidth(true);
+	int sh = fb->getScreenHeight(true);
+	unsigned int stride = fb->getStride() / sizeof(fb_pixel_t);
+	if (x < 0) {
+		w += x;
+		x = 0;
+	}
+	if (y < 0) {
+		h += y;
+		y = 0;
+	}
+	w = std::min(w, sw - x);
+	h = std::min(h, sh - y);
+	if (!osd || w < 2 || h < 2)
+		return;
+	{
+		std::lock_guard<std::mutex> g(m_MenuLock);
+		m_MenuPixels.resize((size_t)w * h);
+		for (int j = 0; j < h; j++)
+			memcpy(&m_MenuPixels[(size_t)j * w], osd + (size_t)(y + j) * stride + x, w * sizeof(fb_pixel_t));
+		m_MenuW = w;
+		m_MenuH = h;
+		m_MenuNew = true;
+		m_MenuHide = false;
+		m_MenuDue = time_monotonic_ms() + MENU_SETTLE_MS;
+	}
+	m_MenuWake.notify_one();
+}
+
+void CLCD4l::MenuHidden()
+{
+	if (!thrMenu)
+		return;
+	{
+		std::lock_guard<std::mutex> g(m_MenuLock);
+		m_MenuNew = false;
+		m_MenuHide = true;
+		m_MenuDue = time_monotonic_ms() + MENU_HIDE_MS;
+	}
+	m_MenuWake.notify_one();
+}
+
+void CLCD4l::MenuProc()
+{
+	set_threadname("n:lcd4lmenu");
+	mkdir(LCD_DATADIR, 0755);
+	unsigned char none[4] = { 0, 0, 0, 0 };
+	g_PicViewer->WritePng(MENU_NONE_PNG, none, 1, 1, 4);
+	std::vector<uint32_t> pixels;
+	uint64_t written = 0;
+	uint32_t sum = 0;
+	bool shown = false;
+
+	std::unique_lock<std::mutex> g(m_MenuLock);
+	while (!m_MenuQuit)
+	{
+		if (!m_MenuNew && !m_MenuHide) {
+			m_MenuWake.wait(g);
+			continue;
+		}
+		uint64_t now = time_monotonic_ms();
+		uint64_t due = m_MenuNew ? std::max(m_MenuDue, written + MENU_GAP_MS) : m_MenuDue;
+		if (now < due) {
+			m_MenuWake.wait_for(g, std::chrono::milliseconds(due - now));
+			continue;
+		}
+		if (m_MenuHide) {
+			m_MenuHide = false;
+			g.unlock();
+			if (shown)
+				unlink(MENU_PNG);
+			shown = false;
+			g.lock();
+			continue;
+		}
+		pixels.swap(m_MenuPixels);
+		int w = m_MenuW, h = m_MenuH;
+		m_MenuNew = false;
+		g.unlock();
+
+		/* a key or a timer that changed nothing on the menu */
+		uint32_t s = 2166136261u ^ (uint32_t)(w * 65537 + h);
+		for (size_t i = 0; i < pixels.size(); i++)
+			s = (s ^ pixels[i]) * 16777619u;
+		if (!shown || s != sum) {
+			shown = MenuWrite(pixels, w, h);
+			sum = s;
+			written = time_monotonic_ms();
+		}
+		g.lock();
+	}
+}
+
+/* the menu on black, fitted into the display and centred */
+bool CLCD4l::MenuWrite(std::vector<uint32_t> &pixels, int w, int h)
+{
+	int pw, ph;
+	panelSize(pw, ph);
+	uint64_t t0 = time_monotonic_ms();
+	unsigned char *rgb = (unsigned char *) malloc((size_t)w * h * 3);
+	if (!rgb)
+		return false;
+	unsigned char *d = rgb;
+	for (size_t i = 0; i < pixels.size(); i++, d += 3) {
+		uint32_t p = pixels[i];
+		unsigned int a = p >> 24;
+		d[0] = ((p >> 16) & 0xff) * a / 255;
+		d[1] = ((p >> 8) & 0xff) * a / 255;
+		d[2] = (p & 0xff) * a / 255;
+	}
+	if (w > pw || h > ph) {
+		int dw = pw;
+		int dh = std::max(2, (int)((int64_t)h * pw / w));
+		if (dh > ph) {
+			dh = ph;
+			dw = std::max(2, (int)((int64_t)w * ph / h));
+		}
+		unsigned char *scaled = g_PicViewer->Resize(rgb, w, h, dw, dh, CPictureViewer::COLOR);
+		if (scaled == rgb) {
+			free(rgb);
+			return false;
+		}
+		rgb = scaled;
+		w = dw;
+		h = dh;
+	}
+	unsigned char *canvas = (unsigned char *) calloc((size_t)pw * ph, 3);
+	if (!canvas) {
+		free(rgb);
+		return false;
+	}
+	int ox = (pw - w) / 2, oy = (ph - h) / 2;
+	for (int j = 0; j < h; j++)
+		memcpy(canvas + ((size_t)(oy + j) * pw + ox) * 3, rgb + (size_t)j * w * 3, (size_t)w * 3);
+	free(rgb);
+	uint64_t t1 = time_monotonic_ms();
+	bool ok = g_PicViewer->WritePng(MENU_PNG, canvas, pw, ph, 3);
+	free(canvas);
+	dprintf(DEBUG_INFO, "[CLCD4l] menu %dx%d: %d ms scaled, %d ms written\n", w, h, (int)(t1 - t0), (int)(time_monotonic_ms() - t1));
+	return ok;
 }
 
 int CLCD4l::CreateFile(const char *file, std::string content, bool convert)

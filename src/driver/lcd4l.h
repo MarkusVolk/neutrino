@@ -31,9 +31,11 @@
 #ifndef __lcd4l__
 #define __lcd4l__
 
+#include <condition_variable>
 #include <mutex>
 #include <string>
 #include <thread>
+#include <vector>
 #include <sigc++/signal.h>
 
 class CLCD4l
@@ -83,6 +85,12 @@ class CLCD4l
 		void	SetExternal(const std::string &service, const std::string &event, bool playing, bool paused, int position, int duration);
 		void	ClearExternal();
 
+		/* the open menu as a picture for the display: the menu hands over
+		   where it is drawn each time it waits for a key, a thread of its
+		   own writes the picture once the keys rest */
+		void	MenuShown(int x, int y, int w, int h);
+		void	MenuHidden();
+
 		static void lcd4linux(int run);
 		enum
 		{
@@ -103,6 +111,19 @@ class CLCD4l
 					OnError;
 
 	private:
+		std::thread	*thrMenu;
+		void		MenuProc();
+		bool		MenuWrite(std::vector<uint32_t> &pixels, int w, int h);
+		std::mutex	m_MenuLock;
+		std::condition_variable m_MenuWake;
+		std::vector<uint32_t> m_MenuPixels;
+		int		m_MenuW;
+		int		m_MenuH;
+		bool		m_MenuNew;
+		bool		m_MenuHide;
+		bool		m_MenuQuit;
+		uint64_t	m_MenuDue;
+
 		std::thread	*thrLCD4l;
 		static void	*LCD4lProc(void *arg);
 		bool		exit_proc;

@@ -1085,6 +1085,14 @@ int CMenuWidget::exec(CMenuTarget* parent, const std::string &)
 			bAllowRepeatLR = items[selected]->isMenueOptionChooser();
 		bAllowRepeatLR |= bAllowRepeatLR_override;
 
+#ifdef ENABLE_LCD4LINUX
+		/* everything this key changed is drawn now */
+		if (!remote_path::hidden()) {
+			int rx, ry, rw, rh;
+			screenRect(rx, ry, rw, rh);
+			CLCD4l::getInstance()->MenuShown(rx, ry, rw, rh);
+		}
+#endif
 		g_RCInput->getMsgAbsoluteTimeout(&msg, &data, &timeoutEnd, bAllowRepeatLR);
 
 		/* the OK a remote client sent after it chose an entry: the entry
@@ -1276,6 +1284,8 @@ int CMenuWidget::exec(CMenuTarget* parent, const std::string &)
 #endif
 #ifdef ENABLE_LCD4LINUX
 					CLCD4l::getInstance()->RemoveMenuFile();
+					/* a submenu takes over before the picture goes */
+					CLCD4l::getInstance()->MenuHidden();
 #endif
 
 					//exec this item...
@@ -1404,6 +1414,7 @@ int CMenuWidget::exec(CMenuTarget* parent, const std::string &)
 #endif
 #ifdef ENABLE_LCD4LINUX
 	CLCD4l::getInstance()->RemoveMenuFile();
+	CLCD4l::getInstance()->MenuHidden();
 #endif
 
 	for (unsigned int count = 0; count < items.size(); count++) 
@@ -1909,6 +1920,16 @@ void CMenuWidget::setSubheadText(const std::string &s_subhead_text)
 void CMenuWidget::setSubheadText(neutrino_locale_t l_subhead_text)
 {
 	setSubheadText(g_Locale->getText(l_subhead_text));
+}
+
+void CMenuWidget::screenRect(int &rx, int &ry, int &rw, int &rh)
+{
+	rx = x - DETAILSLINE_WIDTH;
+	ry = y;
+	rw = full_width + DETAILSLINE_WIDTH;
+	rh = full_height;
+	if (hint_height)
+		rh += OFFSET_INTER + hint_height + OFFSET_SHADOW;
 }
 
 void CMenuWidget::saveScreen()
