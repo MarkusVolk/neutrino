@@ -1,6 +1,7 @@
 /*
 	Recording covers: a picture beside each recording, the poster of the
-	film or series from TMDB or else a frame of the recording itself
+	film or series from TMDB, else the picture of the programme in the media
+	library of ARD or ZDF, else a frame of the recording itself
 
 	License: GPL
 
@@ -33,10 +34,14 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
+#include <ctype.h>
+#include <string.h>
+
 #include <global.h>
 #include <driver/movieinfo.h>
 #include <gui/moviedb/mdb-tmdb.h>
 #include <system/helpers.h>
+#include <system/helpers-json.h>
 #include <system/recordings.h>
 #include <system/set_threadname.h>
 
@@ -84,6 +89,174 @@ bool usable(const std::string &file)
 	return stat(file.c_str(), &st) == 0 && st.st_size > 0;
 }
 
+/* ---- the media libraries of ARD and ZDF ---- */
+
+std::string lower(std::string s)
+{
+	for (size_t i = 0; i < s.size(); i++)
+		s[i] = tolower((unsigned char) s[i]);
+	return s;
+}
+
+/* the words of a channel name: "ZDFneo HD", "BR Fernsehen Süd HD" */
+bool channelWord(const std::string &channel, bool (*match)(const std::string &))
+{
+	std::string word;
+	std::string name = lower(channel) + " ";
+	for (size_t i = 0; i < name.size(); i++) {
+		if (isalnum((unsigned char) name[i])) {
+			word += name[i];
+			continue;
+		}
+		if (!word.empty() && match(word))
+			return true;
+		word.clear();
+	}
+	return false;
+}
+
+bool zdfWord(const std::string &w)
+{
+	return w.compare(0, 3, "zdf") == 0 || w == "3sat";
+}
+
+bool ardWord(const std::string &w)
+{
+	static const char *words[] = { "erste", "ard", "br", "hr", "mdr", "ndr", "bremen", "rbb", "sr", "swr", "wdr",
+		"one", "tagesschau24", "phoenix", "kika", "alpha", NULL };
+	for (unsigned int i = 0; words[i]; i++)
+		if (w == words[i])
+			return true;
+	return false;
+}
+
+/* the name of the programme the library calls it by: the title itself, or
+   failing that one that begins with it ("Terra X - die Einzeldokus") */
+int nameMatch(const std::string &name, const std::string &title)
+{
+	std::string n = lower(name), t = lower(title);
+	if (n == t)
+		return 2;
+	if (n.size() > t.size() && n.compare(0, t.size(), t) == 0 && !isalnum((unsigned char) n[t.size()]))
+		return 1;
+	return 0;
+}
+
+std::string zdfToken;	/* worker only */
+
+/* the token zdf.de hands its own pages, for the API */
+bool zdfFetchToken()
+{
+	std::string url = "https://www.zdf.de/", page;
+	zdfToken.clear();
+	if (!getUrl(url, page, AGENT, 20))
+		return false;
+	size_t pos = page.find("videoToken");
+	pos = pos == std::string::npos ? pos : page.find("apiToken", pos);
+	if (pos == std::string::npos)
+		return false;
+	pos += 8;
+	while (pos < page.size() && !isalnum((unsigned char) page[pos]))
+		pos++;
+	size_t end = pos;
+	while (end < page.size() && isalnum((unsigned char) page[end]))
+		end++;
+	zdfToken = page.substr(pos, end - pos);
+	return zdfToken.size() >= 16;
+}
+
+bool zdfPicture(const std::string &title, std::string &picture)
+{
+	std::string answer;
+	for (int attempt = 0; attempt < 2 && answer.empty(); attempt++) {
+		if ((zdfToken.empty() || attempt) && !zdfFetchToken())
+			return false;
+		std::string url = "https://api.zdf.de/search/documents?limit=10&q=" + encodeUrl(title);
+		std::string header = "Api-Auth: Bearer " + zdfToken;
+		getUrl(url, answer, AGENT, 20, header.c_str());
+	}
+	Json::Value root;
+	std::string err;
+	if (answer.empty() || !parseJsonFromString(answer, &root, &err))
+		return false;
+	const Json::Value &results = root["http://zdf.de/rels/search/results"];
+	int best = 0;
+	for (unsigned int i = 0; i < results.size(); i++) {
+		const Json::Value &t = results[i]["http://zdf.de/rels/target"];
+		if (t.get("contentType", "").asString() != "brand")
+			continue;
+		int m = nameMatch(t.get("teaserHeadline", "").asString(), title);
+		const Json::Value &layouts = t["teaserImageRef"]["layouts"];
+		/* its upright formats are cut out of the wide one, the title cut off */
+		std::string pic = layouts.get("768x432", "").asString();
+		if (m > best && !pic.empty()) {
+			best = m;
+			picture = pic;
+		}
+	}
+	return best > 0;
+}
+
+bool ardPicture(const std::string &title, std::string &picture)
+{
+	std::string answer;
+	std::string url = "https://api.ardmediathek.de/page-gateway/widgets/ard/search/grouping?pageSize=10&searchString=" + encodeUrl(title);
+	Json::Value root;
+	std::string err;
+	if (!getUrl(url, answer, AGENT, 20) || !parseJsonFromString(answer, &root, &err))
+		return false;
+	const Json::Value &teasers = root["teasers"];
+	int best = 0;
+	for (unsigned int i = 0; i < teasers.size(); i++) {
+		const Json::Value &t = teasers[i];
+		if (t.get("type", "").asString() != "show")
+			continue;
+		int m = nameMatch(t.get("shortTitle", "").asString(), title);
+		const Json::Value &images = t["images"];
+		bool portrait = images.isMember("aspect3x4");
+		std::string pic = images[portrait ? "aspect3x4" : "aspect16x9"].get("src", "").asString();
+		size_t w = pic.find("{width}");
+		if (w != std::string::npos)
+			pic.replace(w, 7, portrait ? "600" : "768");
+		if (m > best && !pic.empty()) {
+			best = m;
+			picture = pic;
+		}
+	}
+	return best > 0;
+}
+
+/* the picture of the programme in the library of its channel's broadcaster */
+const char *libraryPicture(const recording_cover::job &j, std::string &picture)
+{
+	if (channelWord(j.channel, zdfWord))
+		return zdfPicture(j.title, picture) ? "ZDF" : NULL;
+	if (channelWord(j.channel, ardWord))
+		return ardPicture(j.title, picture) ? "ARD" : NULL;
+	return NULL;
+}
+
+/* a picture as JPEG: ZDF hands out some as PNG with an alpha channel, a
+   megabyte where a JPEG takes a tenth of it */
+bool asJpeg(const std::string &file)
+{
+	unsigned char magic[2] = { 0, 0 };
+	FILE *f = fopen(file.c_str(), "rb");
+	if (!f)
+		return false;
+	size_t n = fread(magic, 1, 2, f);
+	fclose(f);
+	if (n == 2 && magic[0] == 0xff && magic[1] == 0xd8)
+		return true;
+	std::string jpeg = file + ".jpeg";
+	my_system(14, "nice", "-n", "19", "ffmpeg", "-nostdin", "-loglevel", "error", "-y", "-i", file.c_str(),
+		  "-f", "mjpeg", jpeg.c_str());
+	bool ok = usable(jpeg) && rename(jpeg.c_str(), file.c_str()) == 0;
+	if (!ok)
+		unlink(jpeg.c_str());
+	return ok;
+}
+
 /* the frame a tenth into the recording, but not in the first minute, where
    the programme before or a trailer may still run; the start if the file is
    shorter than that */
@@ -124,6 +297,13 @@ void fetch(const recording_cover::job &j)
 		unlink(tmp.c_str());
 		if (downloadUrl(found.url, tmp, AGENT, 30) && usable(tmp))
 			source = "TMDB";
+	}
+	std::string picture;
+	const char *library = source ? NULL : libraryPicture(j, picture);
+	if (library) {
+		unlink(tmp.c_str());
+		if (downloadUrl(picture, tmp, AGENT, 30) && usable(tmp) && asJpeg(tmp))
+			source = library;
 	}
 	if (!source && !j.start && still(j, tmp))
 		source = "frame";
@@ -182,6 +362,7 @@ void recording_cover::queue(const std::string &ts)
 	j.start = false;
 	if (info.loadMovieInfo(&mi)) {
 		j.title = mi.epgTitle;
+		j.channel = mi.channelName;
 		j.year = mi.productionDate;
 		j.length = mi.length;
 	}

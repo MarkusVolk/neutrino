@@ -1453,6 +1453,7 @@ static void queueCover(CRecordInstance *inst, bool start)
 	recording_cover::job j;
 	j.ts = std::string(inst->GetFileName()) + ".ts";
 	j.title = mi->epgTitle;
+	j.channel = mi->channelName;
 	j.year = mi->productionDate;
 	j.length = mi->length;
 	j.start = start;
