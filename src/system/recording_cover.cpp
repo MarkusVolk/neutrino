@@ -1,7 +1,7 @@
 /*
 	Recording covers: a picture beside each recording, the poster of the
 	film or series from TMDB, else the picture of the programme in the media
-	library of ARD, else a frame of the recording itself
+	library of ARD or arte, else a frame of the recording itself
 
 	License: GPL
 
@@ -89,7 +89,7 @@ bool usable(const std::string &file)
 	return stat(file.c_str(), &st) == 0 && st.st_size > 0;
 }
 
-/* ---- the media library of ARD ---- */
+/* ---- the media libraries of ARD and arte ---- */
 
 std::string lower(std::string s)
 {
@@ -166,10 +166,47 @@ bool ardPicture(const std::string &title, std::string &picture)
 	return best > 0;
 }
 
-/* the picture of the programme in the ARD media library, for its channels;
-   the one of ZDF has no API open to others */
+bool arteWord(const std::string &w)
+{
+	return w == "arte";
+}
+
+/* arte's search, open like the one of ARD; its upright size is a poster of
+   its own, not a cut of the wide picture */
+bool artePicture(const std::string &title, std::string &picture)
+{
+	std::string answer;
+	std::string url = "https://api.arte.tv/api/emac/v4/de/web/pages/SEARCH/?mainZonePage=1&query=" + encodeUrl(title);
+	Json::Value root;
+	std::string err;
+	if (!getUrl(url, answer, AGENT, 20) || !parseJsonFromString(answer, &root, &err))
+		return false;
+	const Json::Value &zones = root["zones"];
+	int best = 0;
+	for (unsigned int z = 0; z < zones.size(); z++) {
+		const Json::Value &data = zones[z]["content"]["data"];
+		for (unsigned int i = 0; i < data.size(); i++) {
+			int m = nameMatch(data[i].get("title", "").asString(), title);
+			std::string pic = data[i]["mainImage"].get("url", "").asString();
+			size_t size = pic.find("__SIZE__");
+			if (size == std::string::npos)
+				continue;
+			pic.replace(size, 8, "300x450");
+			if (m > best) {
+				best = m;
+				picture = pic;
+			}
+		}
+	}
+	return best > 0;
+}
+
+/* the picture of the programme in the media library of its channel, where
+   the library's search is open: ARD and arte; the one of ZDF is not */
 const char *libraryPicture(const recording_cover::job &j, std::string &picture)
 {
+	if (channelWord(j.channel, arteWord))
+		return artePicture(j.title, picture) ? "arte" : NULL;
 	if (channelWord(j.channel, ardWord))
 		return ardPicture(j.title, picture) ? "ARD" : NULL;
 	return NULL;
