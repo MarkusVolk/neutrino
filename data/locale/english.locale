@@ -876,7 +876,7 @@ flashupdate.slot_keep Make slot %d the boot slot again?
 flashupdate.slot_next starts next
 flashupdate.slot_no_room Slot %d has no room for this image. Nothing was written.
 flashupdate.slot_overwrite Slot %d is overwritten.\n\nContinue?
-flashupdate.slot_own The running slot %d is written. The box restarts for it and then starts the new image.\n\nContinue?
+flashupdate.slot_own The running slot %d is written.\n\nContinue?
 flashupdate.slot_restart The box restarts.
 flashupdate.slot_running running
 flashupdate.slot_start Restart the box with slot %d?

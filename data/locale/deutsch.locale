@@ -876,7 +876,7 @@ flashupdate.slot_keep Slot %d wieder als Startslot setzen?
 flashupdate.slot_next startet als nächstes
 flashupdate.slot_no_room Slot %d hat keinen Platz für dieses Image. Es wurde nichts geschrieben.
 flashupdate.slot_overwrite Slot %d wird überschrieben.\n\nFortfahren?
-flashupdate.slot_own Der laufende Slot %d wird geschrieben. Die Box startet dafür neu und danach mit dem neuen Image.\n\nFortfahren?
+flashupdate.slot_own Der laufende Slot %d wird geschrieben.\n\nFortfahren?
 flashupdate.slot_restart Die Box startet neu.
 flashupdate.slot_running läuft
 flashupdate.slot_start Die Box mit Slot %d neu starten?
