@@ -2,7 +2,16 @@
 // neutrino-remote): rectangles and circles in a 200 x 624 box that the SVG
 // scales to whatever space it gets.
 
+import { tr } from "./api.js";
+
 const NS = "http://www.w3.org/2000/svg";
+
+/* the name of a key in the language of the box; the layout's own where there is none */
+function keyTitle(k) {
+	const name = `key.${String(k.key).replace(/^KEY_/, "").toLowerCase()}`;
+	const text = tr(name);
+	return text !== name ? text : k.title || k.label || k.key;
+}
 
 // glyphs in a 16 x 16 box, in place of the icon theme names of the layout
 const GLYPHS = {
@@ -50,13 +59,13 @@ export function drawRemote(container, layout, press) {
 		viewBox: `0 0 ${layout.width} ${layout.height}`,
 		preserveAspectRatio: "xMidYMid meet",
 		role: "group",
-		"aria-label": "Remote control",
+		"aria-label": tr("remote.title"),
 	});
 	svg.append(el("rect", { class: "body", x: 0, y: 0, width: layout.width, height: layout.height, rx: 24 }));
 
 	for (const k of layout.keys) {
 		const b = bounds(k);
-		const g = el("g", { class: "key", role: "button", tabindex: "-1", "aria-label": k.title || k.label || k.key });
+		const g = el("g", { class: "key", role: "button", tabindex: "-1", "aria-label": keyTitle(k) });
 		const face = k.shape === "circle"
 			? el("circle", { class: "face", cx: k.coords[0], cy: k.coords[1], r: k.coords[2] })
 			: el("rect", { class: "face", x: b.x, y: b.y, width: b.w, height: b.h, rx: 5 });
@@ -64,7 +73,7 @@ export function drawRemote(container, layout, press) {
 			face.style.fill = k.color;
 		g.append(face);
 		const title = el("title");
-		title.textContent = k.title || k.label || k.key;
+		title.textContent = keyTitle(k);
 		g.append(title);
 		if (k.icon && GLYPHS[k.icon]) {
 			const size = Math.max(8, Math.min(b.w, b.h) * 0.55);

@@ -2,7 +2,7 @@
 // code the TV shows, the address carries a one-time code that pairs the
 // phone first.
 
-import { session, may, key, ApiError, pairWithCode, pairOnTv, httpsUrl, applyTheme } from "./api.js";
+import { session, may, key, ApiError, pairWithCode, pairOnTv, httpsUrl, applyTheme, loadTexts, tr } from "./api.js";
 import { loadLayout, drawRemote } from "./remote.js";
 
 const msg = document.getElementById("msg");
@@ -53,7 +53,7 @@ const full = document.getElementById("full");
 const canFull = () => !!document.documentElement.requestFullscreen && !document.fullscreenElement;
 
 function updateFull() {
-	full.textContent = canFull() ? "Full screen" : "Full interface";
+	full.textContent = canFull() ? tr("remote.full_screen") : tr("remote.full_interface");
 }
 
 function toggleFull() {
@@ -74,20 +74,19 @@ function firstTouch(ev) {
 function noAccess() {
 	const secure = httpsUrl();
 	if (secure)
-		show("This phone has no access to the box. Pair it over HTTPS.", { text: "Go to HTTPS", href: secure });
+		show(tr("phone.no_access_https"), { text: tr("phone.go_https"), href: secure });
 	else if (location.protocol === "https:")
-		show("This phone has no access to the box. Show the code on the TV (Network > Web server > Pair a phone) and scan it, or ask the TV here.",
-			{ text: "Ask the TV", run: askTv });
+		show(tr("phone.no_access_pair"), { text: tr("pair.ask"), run: askTv });
 	else
-		show("This phone has no access to the box.", { text: "Sign in", href: "/#/signin" });
+		show(tr("phone.no_access"), { text: tr("signin.button"), href: "/#/signin" });
 }
 
 async function askTv() {
 	try {
-		await pairOnTv((digits) => show(`Allow this phone on the TV. The TV shows the code ${digits}.`));
+		await pairOnTv((digits) => show(tr("phone.allow", { code: digits })));
 		ready();
 	} catch (e) {
-		show(e.message || "The TV did not allow it.", { text: "Ask again", run: askTv });
+		show(e.message || tr("pair.refused"), { text: tr("phone.ask_again"), run: askTv });
 	}
 }
 
@@ -98,7 +97,7 @@ async function press(name) {
 		if (e instanceof ApiError && (e.status === 401 || e.status === 403))
 			noAccess();
 		else
-			note(e.message || "No answer from the box");
+			note(e.message || tr("phone.no_answer"));
 	}
 }
 
@@ -112,6 +111,8 @@ async function ready() {
 }
 
 async function start() {
+	await loadTexts();
+	document.title = tr("remote.page_title");
 	full.addEventListener("click", toggleFull);
 	document.addEventListener("fullscreenchange", updateFull);
 	document.addEventListener("pointerdown", firstTouch);
@@ -121,7 +122,7 @@ async function start() {
 	try {
 		await session();
 	} catch {
-		show("The box does not answer.");
+		show(tr("phone.box_silent"));
 		return;
 	}
 	const code = new URLSearchParams(location.search).get("pair");
@@ -129,11 +130,11 @@ async function start() {
 		history.replaceState(null, "", location.pathname);
 		try {
 			await pairWithCode(code);
-			note("Paired");
+			note(tr("phone.paired"));
 		} catch (e) {
 			/* the home network may let it in anyway, but it is not paired */
-			show(`Not paired: ${e.message || "pairing did not work."}`,
-				{ text: "Ask the TV", run: askTv }, { text: "Use without pairing", run: ready });
+			show(tr("phone.not_paired", { why: e.message || tr("phone.pairing_failed") }),
+				{ text: tr("pair.ask"), run: askTv }, { text: tr("phone.without_pairing"), run: ready });
 			return;
 		}
 	}

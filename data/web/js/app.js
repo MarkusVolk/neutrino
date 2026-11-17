@@ -1,4 +1,4 @@
-import { api, all, session, may, key, osdUrl, ApiError, pairOnTv, httpsUrl, playerUrl, applyTheme } from "./api.js";
+import { api, all, session, may, key, osdUrl, ApiError, pairOnTv, httpsUrl, playerUrl, applyTheme, loadTexts, language, tr, trn, trx } from "./api.js";
 import { loadLayout, drawRemote, KEYBOARD } from "./remote.js";
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -63,12 +63,12 @@ function fail(e) {
 	toast(e.message || String(e), true);
 }
 
-function confirmDialog(text, okText = "OK", danger = false) {
+function confirmDialog(text, okText = tr("ok"), danger = false) {
 	return new Promise((resolve) => {
 		const d = h("dialog", {},
 			h("p", {}, text),
 			h("div", { class: "buttons" },
-				h("button", { class: "btn", value: "no", onclick: () => d.close("no") }, "Cancel"),
+				h("button", { class: "btn", value: "no", onclick: () => d.close("no") }, tr("cancel")),
 				h("button", { class: `btn ${danger ? "danger" : "primary"}`, onclick: () => d.close("yes") }, okText)));
 		d.addEventListener("close", () => { d.remove(); resolve(d.returnValue === "yes"); });
 		document.body.append(d);
@@ -78,7 +78,7 @@ function confirmDialog(text, okText = "OK", danger = false) {
 
 const pad = (n) => String(n).padStart(2, "0");
 const hm = (t) => { const d = new Date(t * 1000); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
-const day = (t) => new Date(t * 1000).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+const day = (t) => new Date(t * 1000).toLocaleDateString(language(), { weekday: "short", day: "numeric", month: "short" });
 const now = () => Date.now() / 1000;
 
 /* ------------------------------------------------------------------ */
@@ -106,7 +106,7 @@ async function channelName(id) {
 }
 
 function bouquetSelect(bouquets, selected, onchange) {
-	const s = h("select", { "aria-label": "Bouquet", onchange: () => onchange(s.value) },
+	const s = h("select", { "aria-label": tr("bouquet"), onchange: () => onchange(s.value) },
 		bouquets.map((b) => h("option", { value: b.id, selected: String(b.id) === String(selected) }, b.name)));
 	return s;
 }
@@ -136,11 +136,11 @@ async function record(channel, ev) {
 		if (!(e instanceof ApiError && e.code === "timer-conflict"))
 			throw e;
 		const what = e.message.replace(/^overlaps with /, "");
-		if (!await confirmDialog(`"${ev.title}" overlaps with ${what}. The box may not be able to record both. Set the timer anyway?`, "Set anyway"))
+		if (!await confirmDialog(tr("timer.conflict", { title: ev.title, other: what }), tr("timer.set_anyway")))
 			return null;
 		r = await api("timers", { method: "POST", body: { ...body, force: true } });
 	}
-	toast(`Recording set: ${ev.title}`);
+	toast(tr("timer.recording_set", { title: ev.title }));
 	return r;
 }
 
@@ -150,7 +150,7 @@ const onBox = ["localhost", "127.0.0.1", "[::1]", "::1"].includes(location.hostn
 
 async function zap(ch) {
 	await api("zap", { method: "POST", body: { channel_id: ch.id, stop_playback: true } });
-	toast(`Zapped to ${ch.name}`);
+	toast(tr("zapped", { name: ch.name }));
 }
 
 /* An Android phone hands the stream to a video player app; elsewhere an
@@ -173,7 +173,7 @@ async function playUrl(url) {
 		copied = true;
 	} catch { /* no clipboard here */ }
 	location.href = `mpv:${encodeURIComponent(s.url)}`;
-	toast(copied ? "Starting mpv - if nothing opens, the address is in the clipboard" : "Starting mpv");
+	toast(copied ? tr("mpv.clipboard") : tr("mpv.start"));
 }
 
 /* ------------------------------------------------------------------ */
@@ -182,13 +182,12 @@ async function playUrl(url) {
 let cleanup = null;
 
 async function viewRemote(main) {
-	const osd = h("div", { class: "osd" }, h("span", { class: "hint" }, "The OSD of the box shows here after a key"));
+	const osd = h("div", { class: "osd" }, h("span", { class: "hint" }, tr("remote.osd_hint")));
 	const pad = h("div", { class: "remote" });
-	main.append(h("h1", {}, "Remote control"),
+	main.append(h("h1", {}, tr("remote.title")),
 		h("div", { class: "remote-view" }, pad,
 			h("div", { class: "osd-col" }, osd,
-				h("p", { class: "dim small" }, "Keyboard: arrows, Enter = OK, Esc = Exit, 0-9, + / - volume, r g y b colour keys. ",
-					h("a", { href: "/remote.html" }, "Remote only"), " fills a phone screen."))));
+				h("p", { class: "dim small" }, trx("remote.keyboard", { link: h("a", { href: "/remote.html" }, tr("remote.only")) })))));
 
 	/* the box answers a key before it paints, so the OSD is fetched right
 	 * away and again while it settles; one request at a time, and a picture
@@ -217,7 +216,7 @@ async function viewRemote(main) {
 				const g = c.getContext("2d");
 				g.drawImage(img, 0, 0, 32, 18);
 				const empty = !g.getImageData(0, 0, 32, 18).data.some((v, i) => i % 4 === 3 && v > 0);
-				osd.replaceChildren(empty ? h("span", { class: "hint" }, "No menu on the screen") : img);
+				osd.replaceChildren(empty ? h("span", { class: "hint" }, tr("remote.no_menu")) : img);
 			}
 			done();
 		};
@@ -251,14 +250,14 @@ async function viewRemote(main) {
 async function viewChannels(main) {
 	const bouquets = await tvBouquets();
 	if (!bouquets.length) {
-		main.append(h("div", { class: "empty" }, "No channels"));
+		main.append(h("div", { class: "empty" }, tr("channels.none")));
 		return;
 	}
 	const list = h("div", { class: "list" });
 	let current = "";
 	const show = async (id) => {
 		saveBouquet(id);
-		list.replaceChildren(h("div", { class: "empty" }, "Loading ..."));
+		list.replaceChildren(h("div", { class: "empty" }, tr("loading")));
 		const from = Math.floor(now());
 		const [channels, grid, cur] = await Promise.all([
 			all(`channels?bouquet=${id}&limit=500`),
@@ -280,21 +279,21 @@ async function viewChannels(main) {
 				logo,
 				h("div", { class: "info" },
 					h("div", { class: "name" }, ch.name),
-					nowEv ? h("div", { class: "now" }, `${hm(nowEv.start)} ${nowEv.title}`) : h("div", { class: "now dim" }, "No programme information"),
+					nowEv ? h("div", { class: "now" }, `${hm(nowEv.start)} ${nowEv.title}`) : h("div", { class: "now dim" }, tr("channels.no_epg")),
 					/* hidden where there is nothing to show, so that every row is as high */
 					h("div", { class: "progress", style: nowEv ? "" : "visibility:hidden" }, h("span", { style: `width:${pct}%` })),
 					h("div", { class: "next", style: nextEv ? "" : "visibility:hidden" }, nextEv ? `${hm(nextEv.start)} ${nextEv.title}` : "-")),
 				h("div", { class: "actions" },
-					may("write") && nowEv ? h("button", { class: "btn icon", title: "Record this programme", html: icon("record"),
+					may("write") && nowEv ? h("button", { class: "btn icon", title: tr("channels.record"), html: icon("record"),
 						onclick: (ev) => { ev.stopPropagation(); record(ch.id, nowEv).catch(fail); } }) : null,
-					onBox ? null : h("button", { class: "btn icon", title: "Watch as stream", html: icon("stream"),
+					onBox ? null : h("button", { class: "btn icon", title: tr("channels.stream"), html: icon("stream"),
 						onclick: (ev) => { ev.stopPropagation(); stream(ch.id).catch(fail); } })));
 			row.addEventListener("click", async () => {
 				try {
 					await api("zap", { method: "POST", body: { channel_id: ch.id, stop_playback: true } });
 					list.querySelector(".channel.current")?.classList.remove("current");
 					row.classList.add("current");
-					toast(`Zapped to ${ch.name}`);
+					toast(tr("zapped", { name: ch.name }));
 				} catch (e) { fail(e); }
 			});
 			return row;
@@ -302,8 +301,8 @@ async function viewChannels(main) {
 		list.querySelector(".channel.current")?.scrollIntoView({ block: "center" });
 	};
 	const sel = bouquetSelect(bouquets, savedBouquet(bouquets), (id) => show(id).catch(fail));
-	main.append(h("div", { class: "toolbar" }, h("h1", {}, "Channels"), sel,
-		h("button", { class: "btn icon", title: "Reload", html: icon("refresh"), onclick: () => show(sel.value).catch(fail) })), list);
+	main.append(h("div", { class: "toolbar" }, h("h1", {}, tr("nav.channels")), sel,
+		h("button", { class: "btn icon", title: tr("reload"), html: icon("refresh"), onclick: () => show(sel.value).catch(fail) })), list);
 	await show(sel.value);
 }
 
@@ -337,15 +336,15 @@ function eventDialog(ch, ev, el) {
 		timerButton = h("button", { class: "btn danger", onclick: async () => {
 			d.close();
 			/* a timer to come is set again as fast; a recording stopped is gone */
-			if (running && !await confirmDialog(`Stop the recording of "${ev.title}"?`, "Stop recording", true))
+			if (running && !await confirmDialog(tr("timer.stop_ask", { title: ev.title }), tr("timer.stop"), true))
 				return;
 			try {
 				await api(`timers/${timerId}`, { method: "DELETE" });
 				el.classList.remove("timer");
 				delete el.timerId;
-				toast(running ? `Recording stopped: ${ev.title}` : `Timer deleted: ${ev.title}`);
+				toast(running ? tr("timer.stopped", { title: ev.title }) : tr("timer.deleted", { title: ev.title }));
 			} catch (e) { fail(e); }
-		} }, running ? "Stop recording" : "Delete timer");
+		} }, running ? tr("timer.stop") : tr("timer.delete"));
 	else if (may("write"))
 		timerButton = h("button", { class: "btn primary", onclick: () => {
 			record(ch.id, ev).then((r) => {
@@ -355,15 +354,15 @@ function eventDialog(ch, ev, el) {
 				}
 			}).catch(fail);
 			d.close();
-		} }, "Record");
+		} }, tr("record"));
 	const d = h("dialog", {},
 		h("h2", {}, ev.title),
 		h("p", { class: "dim small" }, `${ch.name} - ${day(ev.start)} ${hm(ev.start)}-${hm(ev.start + ev.duration)}`),
 		ev.description ? h("p", {}, ev.description) : null,
 		h("div", { class: "buttons" },
-			h("button", { class: "btn", onclick: () => d.close() }, "Close"),
-			onBox ? null : h("button", { class: "btn", onclick: () => { stream(ch.id).catch(fail); d.close(); } }, "Stream"),
-			may("write") ? h("button", { class: "btn", onclick: () => { zap(ch).catch(fail); d.close(); } }, "Zap") : null,
+			h("button", { class: "btn", onclick: () => d.close() }, tr("close")),
+			onBox ? null : h("button", { class: "btn", onclick: () => { stream(ch.id).catch(fail); d.close(); } }, tr("stream")),
+			may("write") ? h("button", { class: "btn", onclick: () => { zap(ch).catch(fail); d.close(); } }, tr("zap")) : null,
 			timerButton));
 	d.addEventListener("close", () => d.remove());
 	document.body.append(d);
@@ -373,13 +372,13 @@ function eventDialog(ch, ev, el) {
 async function viewEpg(main) {
 	const bouquets = await tvBouquets();
 	if (!bouquets.length) {
-		main.append(h("div", { class: "empty" }, "No channels"));
+		main.append(h("div", { class: "empty" }, tr("channels.none")));
 		return;
 	}
 	const box = h("div", { class: "epg" });
 	const show = async (id) => {
 		saveBouquet(id);
-		box.replaceChildren(h("div", { class: "empty" }, "Loading ..."));
+		box.replaceChildren(h("div", { class: "empty" }, tr("loading")));
 		const start = Math.floor(now() / 1800) * 1800;
 		/* as many hours as the window shows, and two more to scroll to */
 		const hours = Math.min(24, Math.max(8, Math.ceil((box.clientWidth - 150) / (60 * PX_PER_MIN)) + 2));
@@ -450,20 +449,24 @@ async function viewEpg(main) {
 		box.replaceChildren(grid_el);
 	};
 	const sel = bouquetSelect(bouquets, savedBouquet(bouquets), (id) => show(id).catch(fail));
-	main.append(h("div", { class: "toolbar" }, h("h1", {}, "Programme guide"), sel), box);
+	main.append(h("div", { class: "toolbar" }, h("h1", {}, tr("nav.epg")), sel), box);
 	await show(sel.value);
 }
 
-const TIMER_KINDS = { record: "Recording", zapto: "Zap", standby: "Standby", shutdown: "Shutdown",
-	remind: "Reminder", sleeptimer: "Sleep timer", exec_plugin: "Plugin", next_program: "Next programme" };
+/* the API names kinds like exec-plugin, the texts timer.kind.exec_plugin */
+const timerKind = (kind) => {
+	const name = `timer.kind.${String(kind).replace(/-/g, "_")}`;
+	const text = tr(name);
+	return text === name ? kind : text;
+};
 
 async function viewTimers(main) {
 	const list = h("div", { class: "list" });
-	main.append(h("div", { class: "toolbar" }, h("h1", {}, "Timers")), list);
+	main.append(h("div", { class: "toolbar" }, h("h1", {}, tr("nav.timers"))), list);
 	const show = async () => {
 		const items = ((await api("timers")).items || []).sort((a, b) => a.start - b.start);
 		if (!items.length) {
-			list.replaceChildren(h("div", { class: "empty" }, "No timers"));
+			list.replaceChildren(h("div", { class: "empty" }, tr("timers.none")));
 			return;
 		}
 		const rows = [];
@@ -471,12 +474,12 @@ async function viewTimers(main) {
 			const channel = t.channel_id && t.channel_id !== "0" ? await channelName(t.channel_id) : "";
 			rows.push(h("div", { class: "card timer" },
 				h("div", {},
-					h("div", {}, h("strong", {}, t.title || TIMER_KINDS[t.kind] || t.kind)),
+					h("div", {}, h("strong", {}, t.title || timerKind(t.kind))),
 					h("div", { class: "dim small" },
-						`${TIMER_KINDS[t.kind] || t.kind} - ${day(t.start)} ${hm(t.start)}${t.stop ? `-${hm(t.stop)}` : ""}${channel ? ` - ${channel}` : ""}`)),
-				may("write") ? h("button", { class: "btn icon danger", title: "Delete", html: icon("trash"),
+						`${timerKind(t.kind)} - ${day(t.start)} ${hm(t.start)}${t.stop ? `-${hm(t.stop)}` : ""}${channel ? ` - ${channel}` : ""}`)),
+				may("write") ? h("button", { class: "btn icon danger", title: tr("delete"), html: icon("trash"),
 					onclick: async () => {
-						if (!await confirmDialog(`Delete the timer "${t.title || TIMER_KINDS[t.kind] || t.kind}"?`, "Delete", true))
+						if (!await confirmDialog(tr("timer.delete_ask", { title: t.title || timerKind(t.kind) }), tr("delete"), true))
 							return;
 						try {
 							await api(`timers/${t.id}`, { method: "DELETE" });
@@ -493,32 +496,33 @@ function size(bytes) {
 	const units = ["B", "KB", "MB", "GB", "TB"];
 	let i = 0;
 	while (bytes >= 1024 && i < units.length - 1) { bytes /= 1024; i++; }
-	return `${bytes.toFixed(i ? 1 : 0)} ${units[i]}`;
+	const digits = i ? 1 : 0;
+	return `${new Intl.NumberFormat(language(), { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(bytes)} ${units[i]}`;
 }
 
 function uptime(s) {
 	const d = Math.floor(s / 86400), hh = Math.floor(s % 86400 / 3600), mm = Math.floor(s % 3600 / 60);
-	return d ? `${d} d ${hh} h` : `${hh} h ${mm} min`;
+	return d ? tr("uptime.days", { d, h: hh }) : tr("uptime.hours", { h: hh, m: mm });
 }
 
 async function viewBox(main) {
 	const [info, standby] = await Promise.all([api("system/info"), api("system/standby").catch(() => null)]);
 	const cards = h("div", { class: "cards" });
-	main.append(h("h1", {}, "Box"), cards);
+	main.append(h("h1", {}, tr("nav.box")), cards);
 
-	cards.append(h("div", { class: "card" }, h("h2", {}, info.hostname || "Box"),
+	cards.append(h("div", { class: "card" }, h("h2", {}, info.hostname || tr("nav.box")),
 		h("dl", { class: "facts" },
-			h("dt", {}, "Model"), h("dd", {}, `${info.vendor} ${info.model}`.trim()),
-			h("dt", {}, "Image"), h("dd", {}, info.image_version || "-"),
-			h("dt", {}, "Kernel"), h("dd", {}, info.kernel || "-"),
-			h("dt", {}, "Running"), h("dd", {}, uptime(info.uptime || 0)),
-			h("dt", {}, "Memory"), h("dd", {}, `${size(info.memory_free)} free of ${size(info.memory_total)}`),
-			h("dt", {}, "Storage"), h("dd", {}, `${size(info.root_free)} free of ${size(info.root_total)}`))));
+			h("dt", {}, tr("box.model")), h("dd", {}, `${info.vendor} ${info.model}`.trim()),
+			h("dt", {}, tr("box.image")), h("dd", {}, info.image_version || "-"),
+			h("dt", {}, tr("box.kernel")), h("dd", {}, info.kernel || "-"),
+			h("dt", {}, tr("box.running")), h("dd", {}, uptime(info.uptime || 0)),
+			h("dt", {}, tr("box.memory")), h("dd", {}, tr("free_of", { free: size(info.memory_free), total: size(info.memory_total) })),
+			h("dt", {}, tr("box.storage")), h("dd", {}, tr("free_of", { free: size(info.root_free), total: size(info.root_total) })))));
 
 	if (may("write")) {
-		const text = h("textarea", { maxlength: 1024, placeholder: "Text for the TV screen", "aria-label": "Message" });
+		const text = h("textarea", { maxlength: 1024, placeholder: tr("box.message_placeholder"), "aria-label": tr("box.message") });
 		const popup = h("input", { type: "checkbox" });
-		cards.append(h("div", { class: "card" }, h("h2", {}, "Message"),
+		cards.append(h("div", { class: "card" }, h("h2", {}, tr("box.message")),
 			h("form", { onsubmit: async (ev) => {
 				ev.preventDefault();
 				if (!text.value.trim())
@@ -526,22 +530,22 @@ async function viewBox(main) {
 				try {
 					await api("system/message", { method: "POST", body: { text: text.value, popup: popup.checked } });
 					text.value = "";
-					toast("Message sent");
+					toast(tr("box.message_sent"));
 				} catch (e) { fail(e); }
 			} }, text,
 				h("div", { class: "row", style: "margin-top:10px" },
-					h("label", { class: "check" }, popup, "Wait for OK"),
+					h("label", { class: "check" }, popup, tr("box.wait_ok")),
 					h("span", { style: "flex:1" }),
-					h("button", { class: "btn primary" }, "Send")))));
+					h("button", { class: "btn primary" }, tr("send"))))));
 	}
 
 	if (may("system")) {
 		const power = async (action, question) => {
-			if (!await confirmDialog(question, "Yes", true))
+			if (!await confirmDialog(question, tr("yes"), true))
 				return;
 			try {
 				await api("system/power", { method: "POST", body: { action } });
-				toast("Done");
+				toast(tr("done"));
 			} catch (e) { fail(e); }
 		};
 		let asleep = !!standby?.on;
@@ -549,38 +553,40 @@ async function viewBox(main) {
 			try {
 				await api("system/standby", { method: "POST", body: { on: !asleep } });
 				asleep = !asleep;
-				sb.textContent = asleep ? "Wake up" : "Standby";
+				sb.textContent = asleep ? tr("box.wake") : tr("box.standby");
 			} catch (e) { fail(e); }
-		} }, asleep ? "Wake up" : "Standby");
-		cards.append(h("div", { class: "card" }, h("h2", {}, "Power"),
+		} }, asleep ? tr("box.wake") : tr("box.standby"));
+		cards.append(h("div", { class: "card" }, h("h2", {}, tr("box.power")),
 			h("div", { class: "row" }, sb,
-				h("button", { class: "btn", onclick: () => power("restart", "Restart Neutrino?") }, "Restart Neutrino"),
-				h("button", { class: "btn danger", onclick: () => power("reboot", "Reboot the box?") }, "Reboot"),
-				h("button", { class: "btn danger", onclick: () => power("shutdown", "Switch the box off?") }, "Shut down"))));
+				h("button", { class: "btn", onclick: () => power("restart", tr("box.restart_ask")) }, tr("box.restart")),
+				h("button", { class: "btn danger", onclick: () => power("reboot", tr("box.reboot_ask")) }, tr("box.reboot")),
+				h("button", { class: "btn danger", onclick: () => power("shutdown", tr("box.shutdown_ask")) }, tr("box.shutdown")))));
 	}
 
 	const s = await session();
-	const account = h("div", { class: "card" }, h("h2", {}, "This browser"),
-		h("p", { class: "dim small" }, `Access: ${s.level}${s.authenticated ? ` as ${s.user}` : s.device ? ` as paired device "${s.device}"` : " from the home network"}`));
+	const account = h("div", { class: "card" }, h("h2", {}, tr("browser.title")),
+		h("p", { class: "dim small" }, s.authenticated ? tr("browser.access_user", { level: tr(`level.${s.level}`), user: s.user })
+			: s.device ? tr("browser.access_device", { level: tr(`level.${s.level}`), device: s.device })
+			: tr("browser.access_home", { level: tr(`level.${s.level}`) })));
 	const buttons = h("div", { class: "row" });
 	if (s.authenticated)
 		buttons.append(h("button", { class: "btn", onclick: async () => {
 			try { await api("logout", { method: "POST" }); } catch { /* gone anyway */ }
 			location.hash = "#/signin";
-		} }, "Sign out"));
+		} }, tr("sign_out")));
 	else if (s.device)
 		buttons.append(h("button", { class: "btn", onclick: async () => {
-			if (!await confirmDialog("Unpair this browser? It needs to be paired again to work as a remote control.", "Unpair", true))
+			if (!await confirmDialog(tr("browser.unpair_ask"), tr("browser.unpair"), true))
 				return;
 			try { await api("pair/forget", { method: "POST" }); } catch (e) { fail(e); return; }
 			await session();
 			location.hash = "#/signin";
-		} }, "Unpair"));
+		} }, tr("browser.unpair")));
 	else if (s.secure)
-		buttons.append(h("a", { class: "btn", href: "#/signin" }, "Pair with the TV"));
+		buttons.append(h("a", { class: "btn", href: "#/signin" }, tr("pair.title")));
 	else if (httpsUrl())
-		buttons.append(h("a", { class: "btn", href: httpsUrl("/#/signin") }, "Switch to HTTPS"));
-	buttons.append(h("a", { class: "btn", href: "/api/v1/system/ca", title: "Install it on a phone to trust the box without a warning" }, "Certificate of the box"));
+		buttons.append(h("a", { class: "btn", href: httpsUrl("/#/signin") }, tr("https.switch")));
+	buttons.append(h("a", { class: "btn", href: "/api/v1/system/ca", title: tr("browser.ca_hint") }, tr("browser.ca")));
 	account.append(buttons);
 	cards.append(account);
 
@@ -598,51 +604,51 @@ function mcpCard(state) {
 	const show = (st) => {
 		const enabled = h("input", { type: "checkbox", checked: st.enabled });
 		enabled.addEventListener("change", () => change({ enabled: enabled.checked }));
-		const url = h("input", { type: "text", value: st.public_url, placeholder: "https://...", "aria-label": "Public address", style: "flex:1;min-width:0" });
+		const url = h("input", { type: "text", value: st.public_url, placeholder: "https://...", "aria-label": tr("mcp.public_address"), style: "flex:1;min-width:0" });
 		const fresh = st.new_token ? h("div", { class: "row" },
 			h("code", { style: "overflow-wrap:anywhere" }, st.new_token),
 			h("button", { class: "btn", onclick: async () => {
-				try { await navigator.clipboard.writeText(st.new_token); toast("Token copied"); } catch { /* shown above */ }
-			} }, "Copy")) : null;
+				try { await navigator.clipboard.writeText(st.new_token); toast(tr("mcp.token_copied")); } catch { /* shown above */ }
+			} }, tr("copy"))) : null;
 		const now = Date.now() / 1000;
 		const clients = (st.clients || []).filter((c) => c.signed_in_until > now);
-		card.replaceChildren(h("div", {}, h("h2", {}, "MCP server"),
-			h("label", { class: "check" }, enabled, "Open for MCP clients such as claude.ai"),
+		card.replaceChildren(h("div", {}, h("h2", {}, tr("mcp.title")),
+			h("label", { class: "check" }, enabled, tr("mcp.open")),
 			h("dl", { class: "facts", style: "margin-top:10px" },
-				h("dt", {}, "Address"), h("dd", {}, st.address || "-"),
-				h("dt", {}, "Token"), h("dd", {}, st.token || "-")),
-			fresh ? h("p", { class: "small" }, "The new token, shown only now:") : null, fresh,
+				h("dt", {}, tr("mcp.address")), h("dd", {}, st.address || "-"),
+				h("dt", {}, tr("mcp.token")), h("dd", {}, st.token || "-")),
+			fresh ? h("p", { class: "small" }, tr("mcp.new_token_shown")) : null, fresh,
 			h("div", { class: "row", style: "margin-top:10px" },
 				h("button", { class: "btn", onclick: async () => {
-					if (await confirmDialog("A new token ends the old one; clients that use it need the new one.", "New token", true))
+					if (await confirmDialog(tr("mcp.new_token_ask"), tr("mcp.new_token"), true))
 						change({ new_token: true });
-				} }, "New token")),
-			h("p", { class: "dim small" }, "Public address: where clients from the internet reach the box (a tunnel such as Tailscale Funnel). Everything but MCP stays closed there."),
-			h("div", { class: "row" }, url, h("button", { class: "btn", onclick: () => change({ public_url: url.value.trim() }) }, "Save")),
-			h("h2", { style: "margin-top:16px" }, "Signed-in clients"),
+				} }, tr("mcp.new_token"))),
+			h("p", { class: "dim small" }, tr("mcp.public_hint")),
+			h("div", { class: "row" }, url, h("button", { class: "btn", onclick: () => change({ public_url: url.value.trim() }) }, tr("save"))),
+			h("h2", { style: "margin-top:16px" }, tr("mcp.clients")),
 			clients.length ? h("div", { class: "list" }, clients.map((c) => h("div", { class: "timer" },
-				h("div", {}, h("div", {}, c.name || c.id), h("div", { class: "dim small" }, `${c.host} - until ${day(c.signed_in_until)}`)),
+				h("div", {}, h("div", {}, c.name || c.id), h("div", { class: "dim small" }, tr("mcp.client_until", { host: c.host, day: day(c.signed_in_until) }))),
 				h("button", { class: "btn", onclick: async () => {
-					if (!await confirmDialog(`Sign "${c.name || c.id}" out?`, "Sign out", true))
+					if (!await confirmDialog(tr("mcp.sign_out_ask", { name: c.name || c.id }), tr("sign_out"), true))
 						return;
 					try {
 						await api(`mcp/clients/${encodeURIComponent(c.id)}`, { method: "DELETE" });
 						show(await api("mcp"));
 					} catch (e) { fail(e); }
-				} }, "Sign out")))) : h("p", { class: "dim small" }, "No client is signed in."),
+				} }, tr("sign_out"))))) : h("p", { class: "dim small" }, tr("mcp.no_clients")),
 			clients.length > 1 ? h("button", { class: "btn danger", style: "margin-top:8px", onclick: async () => {
-				if (!await confirmDialog("Sign every client out?", "Sign out all", true))
+				if (!await confirmDialog(tr("mcp.sign_out_all_ask"), tr("mcp.sign_out_all"), true))
 					return;
 				try {
 					await api("mcp/clients", { method: "DELETE" });
 					show(await api("mcp"));
 				} catch (e) { fail(e); }
-			} }, "Sign out all") : null));
+			} }, tr("mcp.sign_out_all")) : null));
 	};
 	const change = async (body) => {
 		try {
 			show(await api("mcp", { method: "POST", body }));
-			toast("Saved");
+			toast(tr("saved"));
 		} catch (e) { fail(e); }
 	};
 	show(state);
@@ -650,20 +656,20 @@ function mcpCard(state) {
 }
 
 async function devicesCard() {
-	const card = h("div", { class: "card" }, h("h2", {}, "Paired devices"));
+	const card = h("div", { class: "card" }, h("h2", {}, tr("devices.title")));
 	const list = h("div", { class: "list" });
 	card.append(list);
 	const show = async () => {
 		const items = (await api("pair/devices")).items || [];
 		if (!items.length) {
-			list.replaceChildren(h("p", { class: "dim small" }, "No device is paired. Pair a phone with the code on the TV: Network > Web server > Pair a phone."));
+			list.replaceChildren(h("p", { class: "dim small" }, tr("devices.none")));
 			return;
 		}
 		list.replaceChildren(...items.sort((a, b) => b.last_used - a.last_used).map((d) =>
 			h("div", { class: "timer" },
-				h("div", {}, h("div", {}, d.name), h("div", { class: "dim small" }, `last used ${day(d.last_used)} ${hm(d.last_used)}`)),
-				h("button", { class: "btn icon danger", title: "Remove", html: icon("trash"), onclick: async () => {
-					if (!await confirmDialog(`Remove "${d.name}"?`, "Remove", true))
+				h("div", {}, h("div", {}, d.name), h("div", { class: "dim small" }, tr("devices.last_used", { day: day(d.last_used), time: hm(d.last_used) }))),
+				h("button", { class: "btn icon danger", title: tr("remove"), html: icon("trash"), onclick: async () => {
+					if (!await confirmDialog(tr("devices.remove_ask", { name: d.name }), tr("remove"), true))
 						return;
 					try {
 						await api(`pair/devices/${d.id}`, { method: "DELETE" });
@@ -676,25 +682,24 @@ async function devicesCard() {
 }
 
 function pairCard(s) {
-	const card = h("div", { class: "card signin" }, h("h1", {}, "Pair with the TV"));
+	const card = h("div", { class: "card signin" }, h("h1", {}, tr("pair.title")));
 	if (!s.secure) {
 		const url = httpsUrl("/#/signin");
-		card.append(h("p", { class: "dim" }, "Pairing works over HTTPS. The browser warns once about the certificate of the box; ",
-			h("a", { href: "/api/v1/system/ca" }, "install it"), " to avoid that."),
-			url ? h("a", { class: "btn primary", href: url }, "Switch to HTTPS") : h("p", { class: "error small" }, "HTTPS is off on this box."));
+		card.append(h("p", { class: "dim" }, trx("pair.https", { link: h("a", { href: "/api/v1/system/ca" }, tr("pair.install_ca")) })),
+			url ? h("a", { class: "btn primary", href: url }, tr("https.switch")) : h("p", { class: "error small" }, tr("https.off")));
 		return card;
 	}
-	const out = h("p", { class: "dim" }, "On the TV: Network > Web server > Pair a phone shows a code to scan. Or ask the TV from here:");
+	const out = h("p", { class: "dim" }, tr("pair.how"));
 	const ask = h("button", { class: "btn primary", onclick: async () => {
 		ask.disabled = true;
 		try {
-			await pairOnTv((digits) => { out.textContent = `Allow this browser on the TV. The TV shows the code ${digits}.`; });
+			await pairOnTv((digits) => { out.textContent = tr("pair.allow", { code: digits }); });
 			location.hash = "#/remote";
 		} catch (e) {
-			out.textContent = e.message || "The TV did not allow it.";
+			out.textContent = e.message || tr("pair.refused");
 			ask.disabled = false;
 		}
-	} }, "Ask the TV");
+	} }, tr("pair.ask"));
 	card.append(out, ask);
 	return card;
 }
@@ -702,12 +707,12 @@ function pairCard(s) {
 async function viewSignIn(main) {
 	const s = await session().catch(() => ({ level: "public" }));
 	main.append(pairCard(s));
-	const user = h("input", { type: "text", autocomplete: "username", value: "root", "aria-label": "Name" });
-	const pass = h("input", { type: "password", autocomplete: "current-password", "aria-label": "Password", placeholder: "Password" });
+	const user = h("input", { type: "text", autocomplete: "username", value: "root", "aria-label": tr("signin.name") });
+	const pass = h("input", { type: "password", autocomplete: "current-password", "aria-label": tr("signin.password"), placeholder: tr("signin.password") });
 	const msg = h("p", { class: "error small" });
 	main.append(h("div", { class: "card signin" },
-		h("h1", {}, "Sign in with a password"),
-		s.level !== "public" ? h("p", { class: "dim" }, `This browser already has ${s.level} access. `, h("a", { href: "#/remote" }, "Continue")) : null,
+		h("h1", {}, tr("signin.title")),
+		s.level !== "public" ? h("p", { class: "dim" }, trx("signin.has_access", { level: tr(`level.${s.level}`), link: h("a", { href: "#/remote" }, tr("continue")) })) : null,
 		h("form", { onsubmit: async (ev) => {
 			ev.preventDefault();
 			msg.textContent = "";
@@ -717,10 +722,10 @@ async function viewSignIn(main) {
 				location.hash = "#/remote";
 			} catch (e) {
 				msg.textContent = e.code === "authentication-off"
-					? "Signing in with a password is off on this box; the home network has access without one."
+					? tr("signin.off")
 					: e.message;
 			}
-		} }, user, pass, h("button", { class: "btn primary" }, "Sign in"), msg)));
+		} }, user, pass, h("button", { class: "btn primary" }, tr("signin.button")), msg)));
 }
 
 /* ------------------------------------------------------------------ */
@@ -728,13 +733,13 @@ async function viewSignIn(main) {
 
 function renameDialog(title) {
 	return new Promise((resolve) => {
-		const input = h("input", { type: "text", required: true, value: title, maxlength: 200, "aria-label": "Title" });
+		const input = h("input", { type: "text", required: true, value: title, maxlength: 200, "aria-label": tr("title") });
 		const d = h("dialog", {}, h("form", { method: "dialog", class: "fields" },
-			h("h2", {}, "Rename the recording"),
-			h("label", { class: "field" }, h("span", { class: "dim small" }, "Title"), input),
+			h("h2", {}, tr("recordings.rename_title")),
+			h("label", { class: "field" }, h("span", { class: "dim small" }, tr("title")), input),
 			h("div", { class: "buttons" },
-				h("button", { class: "btn", type: "button", onclick: () => d.close() }, "Cancel"),
-				h("button", { class: "btn primary", value: "ok" }, "Rename"))));
+				h("button", { class: "btn", type: "button", onclick: () => d.close() }, tr("cancel")),
+				h("button", { class: "btn primary", value: "ok" }, tr("rename")))));
 		d.addEventListener("close", () => {
 			d.remove();
 			resolve(d.returnValue === "ok" && input.value.trim() ? input.value.trim() : null);
@@ -765,14 +770,14 @@ function tilePicture(r) {
 	return h("div", { class: "pic wide", style: `--bg: url("${coverUrl(r)}")` }, img);
 }
 
-const episodes = (n) => `${n} ${n === 1 ? "episode" : "episodes"}`;
+const episodes = (n) => trn("recordings.episodes", n);
 
 /* a row of tiles that scrolls sideways, with < and > where there is more */
 function shelfStrip(tiles) {
 	const row = h("div", { class: "tiles" }, ...tiles);
 	const step = (dir) => () => row.scrollBy({ left: dir * row.clientWidth * 0.9, behavior: "smooth" });
-	const prev = h("button", { class: "nav prev", title: "Back", "aria-label": "Back", onclick: step(-1) }, "‹");
-	const next = h("button", { class: "nav next", title: "More", "aria-label": "More", onclick: step(1) }, "›");
+	const prev = h("button", { class: "nav prev", title: tr("back"), "aria-label": tr("back"), onclick: step(-1) }, "‹");
+	const next = h("button", { class: "nav next", title: tr("more"), "aria-label": tr("more"), onclick: step(1) }, "›");
 	const update = () => {
 		prev.hidden = row.scrollLeft <= 1;
 		next.hidden = row.scrollLeft + row.clientWidth >= row.scrollWidth - 1;
@@ -824,30 +829,30 @@ async function viewRecordings(main) {
 		const buttons = h("div", { class: "row" });
 		const then = (fn) => async () => { closing?.(); await fn(); };
 		if (!onBox)
-			buttons.append(h("button", { class: "btn icon", title: "Play on this device", html: icon("stream"),
+			buttons.append(h("button", { class: "btn icon", title: tr("recordings.play_here"), html: icon("stream"),
 				onclick: () => playUrl(`${location.origin}/api/v1/recordings/${r.id}/file`).catch(fail) }));
 		if (may("write"))
 			buttons.append(h("button", { class: "btn", onclick: then(async () => {
 				try {
 					await api(`recordings/${r.id}/play`, { method: "POST" });
-					toast(`Playing on the TV: ${r.title}`);
+					toast(tr("recordings.playing_tv", { title: r.title }));
 				} catch (e) { fail(e); }
-			}) }, "Play on TV"));
+			}) }, tr("recordings.play_tv")));
 		if (may("system") && !r.busy) {
 			buttons.append(h("button", { class: "btn", onclick: then(async () => {
 				const title = await renameDialog(r.title);
 				if (title && title !== r.title)
-					await run(() => api(`recordings/${r.id}/rename`, { method: "POST", body: { title } }), "Renamed");
-			}) }, "Rename"));
-			buttons.append(h("button", { class: "btn icon danger", title: "Delete", html: icon("trash"), onclick: then(async () => {
-				if (await confirmDialog(`Delete the recording "${r.title}"?`, "Delete", true))
-					await run(() => api(`recordings/${r.id}`, { method: "DELETE" }), "Recording deleted");
+					await run(() => api(`recordings/${r.id}/rename`, { method: "POST", body: { title } }), tr("recordings.renamed"));
+			}) }, tr("rename")));
+			buttons.append(h("button", { class: "btn icon danger", title: tr("delete"), html: icon("trash"), onclick: then(async () => {
+				if (await confirmDialog(tr("recordings.delete_ask", { title: r.title }), tr("delete"), true))
+					await run(() => api(`recordings/${r.id}`, { method: "DELETE" }), tr("recordings.deleted"));
 			}) }));
 		}
 		return buttons;
 	};
-	const meta = (r) => [r.genre_detail || r.genre, r.channel, `${day(r.time)} ${hm(r.time)}`, r.length ? `${r.length} min` : "",
-		size(r.size), r.busy ? "recording now" : ""].filter(Boolean).join(" · ");
+	const meta = (r) => [r.genre_detail || r.genre, r.channel, `${day(r.time)} ${hm(r.time)}`, r.length ? tr("minutes", { n: r.length }) : "",
+		size(r.size), r.busy ? tr("recordings.now") : ""].filter(Boolean).join(" · ");
 	const row = (r) => {
 		const cover = r.cover
 			? h("img", { class: "cover", src: coverUrl(r), alt: "", loading: "lazy" })
@@ -868,7 +873,7 @@ async function viewRecordings(main) {
 			h("div", { class: "dim small" }, meta(r)),
 			r.info ? h("p", { class: "small" }, r.info) : null,
 			actions(r, close),
-			h("div", { class: "buttons" }, h("button", { class: "btn", onclick: close }, "Close")));
+			h("div", { class: "buttons" }, h("button", { class: "btn", onclick: close }, tr("close"))));
 		d.addEventListener("close", () => d.remove());
 		document.body.append(d);
 		d.showModal();
@@ -893,7 +898,7 @@ async function viewRecordings(main) {
 			actions(r, close));
 		d.append(h("h2", {}, name), h("div", { class: "dim small" }, episodes(list.length)),
 			h("div", { class: "list" }, ...list.map(pick)),
-			h("div", { class: "buttons" }, h("button", { class: "btn", onclick: close }, "Close")));
+			h("div", { class: "buttons" }, h("button", { class: "btn", onclick: close }, tr("close"))));
 		d.addEventListener("close", () => d.remove());
 		document.body.append(d);
 		d.showModal();
@@ -938,22 +943,22 @@ async function viewRecordings(main) {
 			}
 		}
 		const named = [...groups.entries()].filter(([k]) => k).sort((a, b) => b[1].length - a[1].length);
-		const shelves = [shelf("Newest", items.slice(0, 12).map(tile))];
+		const shelves = [shelf(tr("wall.newest"), items.slice(0, 12).map(tile))];
 		if (movies.length)
-			shelves.push(shelf("Movies", movies.map(tile)));
+			shelves.push(shelf(tr("wall.movies"), movies.map(tile)));
 		if (series.size)
-			shelves.push(shelf("Series", [...series.entries()].map(([name, list]) => seriesTile(name, list))));
+			shelves.push(shelf(tr("wall.series"), [...series.entries()].map(([name, list]) => seriesTile(name, list))));
 		if (docs.size)
-			shelves.push(shelf("Documentaries", [...docs.entries()].map(([name, list]) =>
+			shelves.push(shelf(tr("wall.documentaries"), [...docs.entries()].map(([name, list]) =>
 				name.startsWith("\u0000") ? tile(list[0]) : seriesTile(name, list))));
 		shelves.push(...named.map(([k, list]) => shelf(k, list.map(tile))));
 		if (groups.has(""))
-			shelves.push(shelf("Other", groups.get("").map(tile)));
+			shelves.push(shelf(tr("wall.other"), groups.get("").map(tile)));
 		return h("div", { class: "wall" }, ...shelves);
 	};
 	const render = () => {
 		if (!items.length)
-			content.replaceChildren(h("div", { class: "card empty" }, "No recordings"));
+			content.replaceChildren(h("div", { class: "card empty" }, tr("recordings.none")));
 		else
 			content.replaceChildren(view === "wall" ? wall() : h("div", { class: "list" }, ...items.map(row)));
 	};
@@ -973,15 +978,15 @@ async function viewRecordings(main) {
 			b.setAttribute("aria-pressed", String(b === ev.currentTarget));
 		render();
 	} }, label);
-	main.append(h("div", { class: "toolbar" }, h("h1", {}, "Recordings"),
-		h("div", { class: "segmented", role: "group", "aria-label": "View" }, toggle("list", "List"), toggle("wall", "Wall")),
-		may("system") ? h("button", { class: "btn", title: "Fetch a picture for every recording that has none", onclick: async () => {
+	main.append(h("div", { class: "toolbar" }, h("h1", {}, tr("nav.recordings")),
+		h("div", { class: "segmented", role: "group", "aria-label": tr("recordings.view") }, toggle("list", tr("recordings.list")), toggle("wall", tr("recordings.wall"))),
+		may("system") ? h("button", { class: "btn", title: tr("recordings.fetch_hint"), onclick: async () => {
 			try {
 				const r = await api("recordings/covers", { method: "POST" });
-				toast(r?.queued ? `Fetching ${r.queued} pictures` : "Every recording has a picture");
+				toast(r?.queued ? trn("recordings.fetching", r.queued) : tr("recordings.all_have_pictures"));
 			} catch (e) { fail(e); }
-		} }, "Fetch pictures") : null,
-		h("button", { class: "btn icon", title: "Refresh", html: icon("refresh"), onclick: () => show(true).catch(fail) })), content);
+		} }, tr("recordings.fetch")) : null,
+		h("button", { class: "btn icon", title: tr("reload"), html: icon("refresh"), onclick: () => show(true).catch(fail) })), content);
 	await show(true);
 
 	/* covers arrive in the background, recordings end */
@@ -1005,7 +1010,7 @@ function usage(d) {
 	const used = Math.round(100 * (d.size - d.free) / d.size);
 	return h("div", {},
 		h("div", { class: "progress" }, h("span", { style: `width:${used}%` })),
-		h("div", { class: "dim small" }, `${size(d.free)} free of ${size(d.size)}`));
+		h("div", { class: "dim small" }, tr("free_of", { free: size(d.free), total: size(d.size) })));
 }
 
 function holds(dir, path) {
@@ -1025,27 +1030,27 @@ function localDirFor(share) {
 /* asks for what a share entry holds; resolves to the body, or null on cancel */
 function shareDialog(title, init, isNew) {
 	return new Promise((resolve) => {
-		const type = h("select", { "aria-label": "Type" },
-			h("option", { value: "smb" }, "SMB (Windows, Fritz!Box, most NAS)"),
-			h("option", { value: "nfs" }, "NFS (Linux, NAS)"));
+		const type = h("select", { "aria-label": tr("mounts.type") },
+			h("option", { value: "smb" }, tr("mounts.type_smb")),
+			h("option", { value: "nfs" }, tr("mounts.type_nfs")));
 		type.value = init.type || "smb";
 		const field = (label, input) => h("label", { class: "field" }, h("span", { class: "dim small" }, label), input);
 		const shareName = h("span", { class: "dim small" });
-		const host = h("input", { type: "text", required: true, value: init.host || "", placeholder: "192.168.178.1 or nas" });
+		const host = h("input", { type: "text", required: true, value: init.host || "", placeholder: tr("mounts.host_placeholder") });
 		const share = h("input", { type: "text", required: true, value: init.share || "" });
 		const dir = h("input", { type: "text", required: true, value: init.local_dir || "" });
 		const user = h("input", { type: "text", value: init.username || "", autocomplete: "off" });
 		const pass = h("input", { type: "password", value: init.password || "", autocomplete: "new-password",
-			placeholder: init.has_password ? "unchanged" : "" });
+			placeholder: init.has_password ? tr("mounts.unchanged") : "" });
 		const options = h("input", { type: "text", value: init.options || "", placeholder: "rw" });
 		const auto = h("input", { type: "checkbox" });
 		auto.checked = init.automount !== false;
 		const record = h("input", { type: "checkbox" });
-		const login = h("div", { class: "fields" }, field("User", user), field("Password", pass));
+		const login = h("div", { class: "fields" }, field(tr("mounts.user"), user), field(tr("signin.password"), pass));
 		const sync = () => {
 			login.hidden = type.value === "nfs";
-			share.placeholder = type.value === "nfs" ? "/export/path" : "share name";
-			shareName.textContent = type.value === "nfs" ? "Export" : "Share";
+			share.placeholder = type.value === "nfs" ? "/export/path" : tr("mounts.share_placeholder");
+			shareName.textContent = type.value === "nfs" ? tr("mounts.export") : tr("mounts.share");
 		};
 		type.addEventListener("change", sync);
 		sync();
@@ -1054,13 +1059,13 @@ function shareDialog(title, init, isNew) {
 
 		const form = h("form", { method: "dialog", class: "fields" },
 			h("h2", {}, title),
-			field("Type", type), field("Server", host), h("label", { class: "field" }, shareName, share),
-			login, field("Mount at", dir), field("Options", options),
-			h("label", { class: "check" }, auto, "Mount when the box starts"),
-			isNew ? h("label", { class: "check" }, record, "Record here") : null,
+			field(tr("mounts.type"), type), field(tr("mounts.server"), host), h("label", { class: "field" }, shareName, share),
+			login, field(tr("mounts.mount_at"), dir), field(tr("mounts.options"), options),
+			h("label", { class: "check" }, auto, tr("mounts.automount")),
+			isNew ? h("label", { class: "check" }, record, tr("mounts.record_here")) : null,
 			h("div", { class: "buttons" },
-				h("button", { class: "btn", type: "button", onclick: () => d.close() }, "Cancel"),
-				h("button", { class: "btn primary", value: "ok" }, isNew ? "Add and mount" : "Save")));
+				h("button", { class: "btn", type: "button", onclick: () => d.close() }, tr("cancel")),
+				h("button", { class: "btn primary", value: "ok" }, isNew ? tr("mounts.add_mount") : tr("save"))));
 		const d = h("dialog", {}, form);
 		d.addEventListener("close", () => {
 			d.remove();
@@ -1082,15 +1087,15 @@ function shareDialog(title, init, isNew) {
 
 function loginDialog(host) {
 	return new Promise((resolve) => {
-		const user = h("input", { type: "text", required: true, autocomplete: "off", "aria-label": "User" });
-		const pass = h("input", { type: "password", autocomplete: "new-password", "aria-label": "Password" });
+		const user = h("input", { type: "text", required: true, autocomplete: "off", "aria-label": tr("mounts.user") });
+		const pass = h("input", { type: "password", autocomplete: "new-password", "aria-label": tr("signin.password") });
 		const d = h("dialog", {}, h("form", { method: "dialog", class: "fields" },
-			h("h2", {}, `Sign in to ${host}`),
-			h("label", { class: "field" }, h("span", { class: "dim small" }, "User"), user),
-			h("label", { class: "field" }, h("span", { class: "dim small" }, "Password"), pass),
+			h("h2", {}, tr("mounts.sign_in_to", { host })),
+			h("label", { class: "field" }, h("span", { class: "dim small" }, tr("mounts.user")), user),
+			h("label", { class: "field" }, h("span", { class: "dim small" }, tr("signin.password")), pass),
 			h("div", { class: "buttons" },
-				h("button", { class: "btn", type: "button", onclick: () => d.close() }, "Cancel"),
-				h("button", { class: "btn primary", value: "ok" }, "List shares"))));
+				h("button", { class: "btn", type: "button", onclick: () => d.close() }, tr("cancel")),
+				h("button", { class: "btn primary", value: "ok" }, tr("mounts.list_shares")))));
 		d.addEventListener("close", () => {
 			d.remove();
 			resolve(d.returnValue === "ok" ? { username: user.value.trim(), password: pass.value } : null);
@@ -1126,15 +1131,15 @@ async function viewMounts(main) {
 		if (!may("system") || !dir || !writable || holds(dir, state.record_dir))
 			return null;
 		return h("button", { class: "btn", onclick: (ev) => run(ev.currentTarget,
-			() => recordHere(target), "Recordings go here") }, "Record here");
+			() => recordHere(target), tr("mounts.recordings_here")) }, tr("mounts.record_here"));
 	};
 	/* unmounting the record target moves the recordings; the box says where */
-	const unmounted = (what) => (r) => r?.record_dir ? `${what} unmounted, recordings go to ${r.record_dir} again` : `${what} unmounted`;
+	const unmounted = (what) => (r) => r?.record_dir ? tr(`mounts.${what}_unmounted_moved`, { dir: r.record_dir }) : tr(`mounts.${what}_unmounted`);
 	const marker = (dir) => holds(dir, state.record_dir)
-		? h("span", { class: "badge", title: state.record_dir, html: `${icon("record")}Recordings` }) : null;
+		? h("span", { class: "badge", title: state.record_dir }, h("span", { html: icon("record") }), tr("nav.recordings")) : null;
 
 	const addShare = async (init) => {
-		const r = await shareDialog("Add a network share", init, true);
+		const r = await shareDialog(tr("mounts.add_share"), init, true);
 		if (!r)
 			return;
 		await run(null, async () => {
@@ -1148,12 +1153,12 @@ async function viewMounts(main) {
 			}
 			if (r.record)
 				await recordHere(s.local_dir);
-		}, "Share mounted");
+		}, tr("mounts.share_mounted"));
 	};
 
 	const renderDrives = () => {
 		if (!state.drives.length) {
-			drives.replaceChildren(h("div", { class: "card empty" }, "No drives"));
+			drives.replaceChildren(h("div", { class: "card empty" }, tr("mounts.no_drives")));
 			return;
 		}
 		drives.replaceChildren(...state.drives.map((d) => {
@@ -1161,9 +1166,9 @@ async function viewMounts(main) {
 			if (state.can_mount && may("write"))
 				buttons.append(d.mounted
 					? h("button", { class: "btn", onclick: (ev) => run(ev.currentTarget,
-						() => api(`mounts/drives/${d.name}/umount`, { method: "POST" }), unmounted("Drive")) }, "Unmount")
+						() => api(`mounts/drives/${d.name}/umount`, { method: "POST" }), unmounted("drive")) }, tr("mounts.unmount"))
 					: h("button", { class: "btn", onclick: (ev) => run(ev.currentTarget,
-						() => api(`mounts/drives/${d.name}/mount`, { method: "POST" }), "Drive mounted") }, "Mount"));
+						() => api(`mounts/drives/${d.name}/mount`, { method: "POST" }), tr("mounts.drive_mounted")) }, tr("mounts.mount")));
 			if (d.mounted && d.mount_point) {
 				const b = recordButton(d.mount_point, `${d.mount_point}/movies`, d.writable);
 				if (b)
@@ -1171,7 +1176,7 @@ async function viewMounts(main) {
 			}
 			return h("div", { class: "card" },
 				h("div", { class: "row" }, h("h2", { style: "margin:0;flex:1" }, d.label || d.name), marker(d.mount_point)),
-				h("div", { class: "dim small" }, [d.name, d.fs, d.mounted ? d.mount_point || "mounted" : "not mounted"].filter(Boolean).join(" · ")),
+				h("div", { class: "dim small" }, [d.name, d.fs, d.mounted ? d.mount_point || tr("mounts.mounted_lower") : tr("mounts.not_mounted_lower")].filter(Boolean).join(" · ")),
 				usage(d), buttons.childElementCount ? buttons : null);
 		}));
 	};
@@ -1179,7 +1184,7 @@ async function viewMounts(main) {
 	const renderShares = () => {
 		if (!state.shares.length) {
 			shares.replaceChildren(h("div", { class: "cards" },
-				h("div", { class: "card empty" }, state.can_mount ? "No network shares" : "No network shares mounted")));
+				h("div", { class: "card empty" }, state.can_mount ? tr("mounts.no_shares") : tr("mounts.no_shares_mounted"))));
 			return;
 		}
 		shares.replaceChildren(...state.shares.map((s) => {
@@ -1189,7 +1194,7 @@ async function viewMounts(main) {
 				return h("div", { class: "card share" },
 					h("div", {},
 						h("div", { class: "row" }, h("strong", {}, shareLabel(s)),
-							h("span", { class: "badge on" }, "Mounted by the desktop"), marker(s.local_dir)),
+							h("span", { class: "badge on" }, tr("mounts.by_desktop")), marker(s.local_dir)),
 						h("div", { class: "dim small" }, `${SHARE_TYPES[s.type] || s.type} · ${s.local_dir}`),
 						usage(s)),
 					buttons);
@@ -1197,30 +1202,30 @@ async function viewMounts(main) {
 			if (may("write"))
 				buttons.append(s.mounted
 					? h("button", { class: "btn", onclick: (ev) => run(ev.currentTarget,
-						() => api(`mounts/shares/${s.nr}/umount`, { method: "POST" }), unmounted("Share")) }, "Unmount")
+						() => api(`mounts/shares/${s.nr}/umount`, { method: "POST" }), unmounted("share")) }, tr("mounts.unmount"))
 					: h("button", { class: "btn", onclick: (ev) => run(ev.currentTarget,
-						() => api(`mounts/shares/${s.nr}/mount`, { method: "POST" }), "Share mounted") }, "Mount"));
+						() => api(`mounts/shares/${s.nr}/mount`, { method: "POST" }), tr("mounts.share_mounted")) }, tr("mounts.mount")));
 			if (may("system")) {
 				if (s.mounted)
 					buttons.append(recordButton(s.local_dir, s.local_dir, s.writable) || "");
 				if (!s.mounted)
 					buttons.append(h("button", { class: "btn", onclick: async () => {
-						const r = await shareDialog("Change the share", s, false);
+						const r = await shareDialog(tr("mounts.change_share"), s, false);
 						if (r)
-							await run(null, () => api(`mounts/shares/${s.nr}`, { method: "POST", body: r.body }), "Saved");
-					} }, "Edit"));
-				buttons.append(h("button", { class: "btn icon danger", title: "Remove", html: icon("trash"),
+							await run(null, () => api(`mounts/shares/${s.nr}`, { method: "POST", body: r.body }), tr("saved"));
+					} }, tr("edit")));
+				buttons.append(h("button", { class: "btn icon danger", title: tr("remove"), html: icon("trash"),
 					onclick: async (ev) => {
-						if (await confirmDialog(`Remove ${shareLabel(s)}?`, "Remove", true))
+						if (await confirmDialog(tr("mounts.remove_ask", { share: shareLabel(s) }), tr("remove"), true))
 							await run(ev.currentTarget, () => api(`mounts/shares/${s.nr}`, { method: "DELETE" }),
-								(r) => r?.record_dir ? `Share removed, recordings go to ${r.record_dir} again` : "Share removed");
+								(r) => r?.record_dir ? tr("mounts.share_removed_moved", { dir: r.record_dir }) : tr("mounts.share_removed"));
 					} }));
 			}
 			return h("div", { class: "card share" },
 				h("div", {},
 					h("div", { class: "row" }, h("strong", {}, shareLabel(s)),
-						h("span", { class: `badge ${s.mounted ? "on" : ""}` }, s.mounted ? "Mounted" : "Not mounted"),
-						h("span", { class: "badge" }, s.automount ? "Mounts at boot" : "Manual mount"),
+						h("span", { class: `badge ${s.mounted ? "on" : ""}` }, s.mounted ? tr("mounts.mounted") : tr("mounts.not_mounted")),
+						h("span", { class: "badge" }, s.automount ? tr("mounts.at_boot") : tr("mounts.manual")),
 						marker(s.local_dir)),
 					h("div", { class: "dim small" }, `${SHARE_TYPES[s.type] || s.type} · ${s.local_dir}`),
 					s.mounted ? usage(s) : null),
@@ -1236,7 +1241,7 @@ async function viewMounts(main) {
 
 	const browse = async (host, type, row) => {
 		const label = host.name || host.ip;
-		const out = h("div", { class: "list" }, h("div", { class: "dim small" }, "Asking the server..."));
+		const out = h("div", { class: "list" }, h("div", { class: "dim small" }, tr("mounts.asking")));
 		row.querySelector(".shares")?.remove();
 		out.classList.add("shares");
 		row.append(out);
@@ -1245,13 +1250,13 @@ async function viewMounts(main) {
 			try {
 				const items = (await api("mounts/browse", { method: "POST", body: { host: host.ip, type, ...creds } })).items || [];
 				if (!items.length) {
-					out.replaceChildren(h("div", { class: "dim small" }, "The server lists no shares"));
+					out.replaceChildren(h("div", { class: "dim small" }, tr("mounts.no_list")));
 					return;
 				}
 				out.replaceChildren(...items.map((it) => h("div", { class: "row" },
 					h("span", { style: "flex:1" }, h("strong", {}, it.name), it.comment ? h("span", { class: "dim small" }, ` ${it.comment}`) : null),
 					h("button", { class: "btn", onclick: () => addShare({ type, host: host.ip, share: it.name,
-						local_dir: localDirFor(it.name), ...creds }) }, "Add"))));
+						local_dir: localDirFor(it.name), ...creds }) }, tr("add")))));
 				return;
 			} catch (e) {
 				if (e instanceof ApiError && e.code === "login-needed") {
@@ -1266,7 +1271,7 @@ async function viewMounts(main) {
 				if (e instanceof ApiError && e.code === "no-share-list") {
 					out.replaceChildren(h("div", { class: "row" },
 						h("span", { class: "dim small", style: "flex:1" }, e.message),
-						h("button", { class: "btn", onclick: () => addShare({ type, host: host.ip }) }, "Add by name")));
+						h("button", { class: "btn", onclick: () => addShare({ type, host: host.ip }) }, tr("mounts.add_by_name"))));
 					return;
 				}
 				out.remove();
@@ -1278,19 +1283,19 @@ async function viewMounts(main) {
 
 	const search = async (btn) => {
 		btn.disabled = true;
-		found.replaceChildren(h("div", { class: "empty" }, "Searching the network..."));
+		found.replaceChildren(h("div", { class: "empty" }, tr("mounts.searching")));
 		try {
 			const hosts = (await api("mounts/scan", { method: "POST" })).items || [];
 			if (!hosts.length) {
-				found.replaceChildren(h("div", { class: "empty" }, "No SMB or NFS server answered"));
+				found.replaceChildren(h("div", { class: "empty" }, tr("mounts.no_servers")));
 				return;
 			}
-			found.replaceChildren(h("h2", { style: "margin-top:20px" }, "Servers in the network"), ...hosts.map((host) => {
+			found.replaceChildren(h("h2", { style: "margin-top:20px" }, tr("mounts.servers")), ...hosts.map((host) => {
 				const row = h("div", { class: "card" });
 				row.append(h("div", { class: "row" },
 					h("span", { style: "flex:1" }, h("strong", {}, host.name || host.ip), host.name ? h("span", { class: "dim small" }, ` ${host.ip}`) : null),
-					host.smb ? h("button", { class: "btn", onclick: () => browse(host, "smb", row) }, "SMB shares") : null,
-					host.nfs ? h("button", { class: "btn", onclick: () => browse(host, "nfs", row) }, "NFS exports") : null));
+					host.smb ? h("button", { class: "btn", onclick: () => browse(host, "smb", row) }, tr("mounts.smb_shares")) : null,
+					host.nfs ? h("button", { class: "btn", onclick: () => browse(host, "nfs", row) }, tr("mounts.nfs_exports")) : null));
 				return row;
 			}));
 		} catch (e) {
@@ -1305,14 +1310,14 @@ async function viewMounts(main) {
 	/* a Neutrino without root (a desktop) shows what the desktop mounted and mounts nothing itself */
 	const manage = state.can_mount && may("system");
 	main.append(
-		h("div", { class: "toolbar" }, h("h1", {}, "Mounts"),
-			h("button", { class: "btn icon", title: "Refresh", html: icon("refresh"), onclick: () => show().catch(fail) })),
-		h("h2", {}, "Drives"), drives,
-		h("div", { class: "toolbar", style: "margin-top:24px" }, h("h2", { style: "margin:0;flex:1" }, "Network shares"),
-			manage ? h("button", { class: "btn", onclick: () => addShare({}) }, "Add") : null,
-			manage ? h("button", { class: "btn primary", onclick: (ev) => search(ev.currentTarget) }, "Find shares") : null),
+		h("div", { class: "toolbar" }, h("h1", {}, tr("nav.mounts")),
+			h("button", { class: "btn icon", title: tr("reload"), html: icon("refresh"), onclick: () => show().catch(fail) })),
+		h("h2", {}, tr("mounts.drives")), drives,
+		h("div", { class: "toolbar", style: "margin-top:24px" }, h("h2", { style: "margin:0;flex:1" }, tr("mounts.network_shares")),
+			manage ? h("button", { class: "btn", onclick: () => addShare({}) }, tr("add")) : null,
+			manage ? h("button", { class: "btn primary", onclick: (ev) => search(ev.currentTarget) }, tr("mounts.find")) : null),
 		state.can_mount ? null : h("p", { class: "dim small" },
-			"Drives and shares are mounted by the desktop (file manager or fstab). Once mounted they show up here and can take the recordings."),
+			tr("mounts.desktop_hint")),
 		shares, found);
 
 	/* a mount changes behind the page (boot, menu, another browser) */
@@ -1329,14 +1334,14 @@ async function viewMounts(main) {
 /* frame and routing                                                   */
 
 const VIEWS = {
-	remote: ["Remote", viewRemote, "read"],
-	channels: ["Channels", viewChannels, "read"],
-	epg: ["Guide", viewEpg, "read"],
-	timers: ["Timers", viewTimers, "read"],
-	recordings: ["Recordings", viewRecordings, "read"],
-	mounts: ["Mounts", viewMounts, "read"],
-	box: ["Box", viewBox, "read"],
-	signin: ["Sign in", viewSignIn, "public"],
+	remote: ["nav.remote", viewRemote, "read"],
+	channels: ["nav.channels", viewChannels, "read"],
+	epg: ["nav.guide", viewEpg, "read"],
+	timers: ["nav.timers", viewTimers, "read"],
+	recordings: ["nav.recordings", viewRecordings, "read"],
+	mounts: ["nav.mounts", viewMounts, "read"],
+	box: ["nav.box", viewBox, "read"],
+	signin: ["signin.button", viewSignIn, "public"],
 };
 
 /* the picture on the TV with the OSD over it, saved as a PNG file */
@@ -1357,7 +1362,7 @@ async function screenshot(btn) {
 		a.click();
 		a.remove();
 		setTimeout(() => URL.revokeObjectURL(url), 10000);
-		toast("Screenshot saved");
+		toast(tr("screenshot.saved"));
 	} catch (e) {
 		fail(e);
 	} finally {
@@ -1366,15 +1371,18 @@ async function screenshot(btn) {
 }
 
 function frame() {
-	const nav = h("nav", {}, Object.entries(VIEWS).filter(([k]) => k !== "signin").map(([k, [title]]) =>
-		h("a", { href: `#/${k}`, "data-view": k, html: `${icon(k)}<span>${title}</span>` })));
+	const nav = h("nav", {}, Object.entries(VIEWS).filter(([k]) => k !== "signin").map(([k, [title]]) => {
+		const a = h("a", { href: `#/${k}`, "data-view": k, html: `${icon(k)}<span></span>` });
+		a.querySelector("span").textContent = tr(title);
+		return a;
+	}));
 	const app = h("div", { class: "app" },
 		h("header", { class: "top" },
 			h("div", { class: "brand" }, h("img", { src: "/icons/icon.svg", alt: "" }), "Neutrino"),
 			h("span", { class: "box", id: "boxname" }),
 			h("span", { class: "spacer" }),
-			h("button", { class: "btn icon", title: "Screenshot of the TV", html: icon("camera"), onclick: (ev) => screenshot(ev.currentTarget) }),
-			h("a", { class: "btn icon", href: "/remote.html", title: "Remote only (phone)", html: icon("phone") })),
+			h("button", { class: "btn icon", title: tr("screenshot.title"), html: icon("camera"), onclick: (ev) => screenshot(ev.currentTarget) }),
+			h("a", { class: "btn icon", href: "/remote.html", title: tr("remote.only_phone"), html: icon("phone") })),
 		nav,
 		h("main", { id: "main" }));
 	document.body.replaceChildren(app);
@@ -1387,14 +1395,14 @@ const extensions = [];
 async function viewExtension(main, id) {
 	const ext = extensions.find((e) => e.id === id);
 	if (!ext) {
-		main.append(h("div", { class: "empty" }, "No such page"));
+		main.append(h("div", { class: "empty" }, tr("ext.missing")));
 		return;
 	}
 	const mod = await import(`/ext/${id}/page.js`);
 	await mod.default(main, {
 		title: ext.title,
 		run: async (args) => api(`ext/${id}/run`, { method: "POST", body: { args } }),
-		h, icon, toast, fail, confirmDialog,
+		h, icon, toast, fail, confirmDialog, tr, trn, language,
 	});
 }
 
@@ -1447,6 +1455,7 @@ async function route() {
 }
 
 async function start() {
+	await loadTexts();
 	frame();
 	applyTheme();
 	try {

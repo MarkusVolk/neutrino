@@ -4,6 +4,41 @@
 
 const state = { csrf: "", level: "public", authenticated: false, device: "", secure: false, httpsPort: 0, httpPort: 0 };
 
+/* The texts come from the box, in the language its OSD is set to; a text
+ * the box lacks shows as its name. Placeholders are written {name}. */
+let texts = {};
+let lang = "en";
+
+export async function loadTexts() {
+	try {
+		const r = await api("texts");
+		texts = r.texts || {};
+		lang = r.language || "en";
+	} catch { /* an older box: the names show */ }
+	document.documentElement.lang = lang;
+}
+
+export const language = () => lang;
+
+const fill = (s, vars) => vars ? s.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m)) : s;
+
+export function tr(key, vars) {
+	return fill(texts[key] ?? key, vars);
+}
+
+/* a count: key.one, key.few, key.many or key.other, as the language has them */
+export function trn(key, n, vars = {}) {
+	const form = new Intl.PluralRules(lang).select(n);
+	const s = texts[`${key}.${form}`] ?? texts[`${key}.other`] ?? key;
+	return fill(s, { n, ...vars });
+}
+
+/* a text with nodes in it, such as a link: the pieces for h() */
+export function trx(key, nodes) {
+	return (texts[key] ?? key).split(/(\{\w+\})/).filter(Boolean)
+		.map((part) => { const m = part.match(/^\{(\w+)\}$/); return m && m[1] in nodes ? nodes[m[1]] : part; });
+}
+
 export class ApiError extends Error {
 	constructor(status, problem) {
 		super(problem.detail || problem.title || `HTTP ${status}`);
@@ -187,6 +222,11 @@ export async function applyTheme() {
 	const load = async () => {
 		try {
 			const t = await api("theme");
+			/* the language changed on the box: the page in the new one */
+			if (t.language && t.language !== lang && Object.keys(texts).length) {
+				location.reload();
+				return;
+			}
 			if (JSON.stringify(t) === JSON.stringify(theme))
 				return;
 			theme = t;
