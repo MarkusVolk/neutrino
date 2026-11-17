@@ -47,18 +47,31 @@ std::condition_variable wake;
 std::deque<recording_cover::job> jobs;
 bool running = false;
 
-/* a series is named as one, so that its episodes go together, here and in
-   the moviebrowser; a name given by hand stays */
-void markSeries(const recording_cover::job &j, const std::string &name)
+/* DVB content 0x23: documentary */
+#define GENRE_DOCUMENTARY 0x23
+
+/* what TMDB knows goes where the EPG said nothing: a series is named as
+   one, so that its episodes go together, a documentary gets that genre,
+   here and in the moviebrowser; what the EPG or a hand gave stays */
+void markInfo(const recording_cover::job &j, const tmdbPoster &found)
 {
 	MI_MOVIE_INFO mi;
 	CMovieInfo info;
 	info.clearMovieInfo(&mi);
 	mi.file.Name = j.ts;
-	if (info.loadMovieInfo(&mi) && mi.serieName.empty()) {
-		mi.serieName = name;
-		info.saveMovieInfo(mi);
+	if (!info.loadMovieInfo(&mi))
+		return;
+	bool changed = false;
+	if (found.type == "tv" && mi.serieName.empty()) {
+		mi.serieName = found.name;
+		changed = true;
 	}
+	if (found.documentary && mi.genreMajor == 0) {
+		mi.genreMajor = GENRE_DOCUMENTARY;
+		changed = true;
+	}
+	if (changed)
+		info.saveMovieInfo(mi);
 }
 
 bool usable(const std::string &file)
@@ -93,13 +106,12 @@ void fetch(const recording_cover::job &j)
 	if (access(cover.c_str(), F_OK) == 0 || access(j.ts.c_str(), R_OK) != 0)
 		return;
 	std::string tmp = base + ".jpg.part";
-	std::string url, type, name;
+	tmdbPoster found;
 	const char *source = NULL;
-	if (g_settings.tmdb_enabled && CTMDB::findPoster(j.title, j.year, url, type, name)) {
-		if (type == "tv")
-			markSeries(j, name);
+	if (g_settings.tmdb_enabled && CTMDB::findPoster(j.title, j.year, found)) {
+		markInfo(j, found);
 		unlink(tmp.c_str());
-		if (downloadUrl(url, tmp, AGENT, 30) && usable(tmp))
+		if (downloadUrl(found.url, tmp, AGENT, 30) && usable(tmp))
 			source = "TMDB";
 	}
 	if (!source && still(j, tmp))

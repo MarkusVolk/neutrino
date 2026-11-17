@@ -302,7 +302,7 @@ static std::string titleKey(const std::string &title)
 	return key;
 }
 
-static bool tmdbSearch(const std::string &url, const std::string &want, std::string &poster, std::string &kind)
+static bool tmdbSearch(const std::string &url, const std::string &want, std::string &poster, tmdbPoster &found)
 {
 	std::string answer, err;
 	std::string u = url;
@@ -328,14 +328,19 @@ static bool tmdbSearch(const std::string &url, const std::string &want, std::str
 		for (unsigned int n = 0; n < 4; n++)
 			if (r.isMember(names[n]) && titleKey(r[names[n]].asString()) == want) {
 				poster = path;
-				kind = type;
+				found.type = type;
+				found.documentary = false;
+				const Json::Value &genres = r["genre_ids"];
+				for (unsigned int g = 0; g < genres.size(); g++)
+					if (genres[g].asInt() == 99)	/* Documentary */
+						found.documentary = true;
 				return true;
 			}
 	}
 	return false;
 }
 
-bool CTMDB::findPoster(const std::string &title, int year, std::string &url, std::string &type, std::string &name)
+bool CTMDB::findPoster(const std::string &title, int year, tmdbPoster &found)
 {
 	std::string key = settingsText(g_settings.tmdb_api_key);
 	if (key.empty() || key.compare(0, 4, "XXXX") == 0)
@@ -358,24 +363,24 @@ bool CTMDB::findPoster(const std::string &title, int year, std::string &url, std
 	const std::string api = "http://api.themoviedb.org/3/";
 	std::string common = "?api_key=" + key + "&language=" + lang + "&query=" + encodeUrl(query);
 	std::string poster;
-	bool found = (year > 1900 && tmdbSearch(api + "search/movie" + common + "&year=" + to_string(year), want, poster, type))
-		|| tmdbSearch(api + "search/multi" + common, want, poster, type);
+	bool hit = (year > 1900 && tmdbSearch(api + "search/movie" + common + "&year=" + to_string(year), want, poster, found))
+		|| tmdbSearch(api + "search/multi" + common, want, poster, found);
 	/* "Tatort: Ein Freund, ein guter Freund": the series, then its episode */
 	size_t cut = query.find(": ");
 	if (cut == std::string::npos)
 		cut = query.find(" - ");
-	if (!found && cut != std::string::npos && cut >= 3) {
+	if (!hit && cut != std::string::npos && cut >= 3) {
 		std::string series = query.substr(0, cut);
 		common = "?api_key=" + key + "&language=" + lang + "&query=" + encodeUrl(series);
-		found = tmdbSearch(api + "search/tv" + common, titleKey(series), poster, type);
-		if (found) {
-			type = "tv";
+		hit = tmdbSearch(api + "search/tv" + common, titleKey(series), poster, found);
+		if (hit) {
+			found.type = "tv";
 			query = series;
 		}
 	}
-	if (!found)
+	if (!hit)
 		return false;
-	name = query;
-	url = "http://image.tmdb.org/t/p/" + poster;
+	found.name = query;
+	found.url = "http://image.tmdb.org/t/p/" + poster;
 	return true;
 }
