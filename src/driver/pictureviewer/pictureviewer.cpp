@@ -605,7 +605,7 @@ static bool png_has_trns(const char *name)
 	return ret;
 }
 
-static bool write_png(const std::string &name, unsigned char *buf, int x, int y, int bpp)
+static bool write_png(const std::string &name, unsigned char *buf, int x, int y, int bpp, bool fast = false)
 {
 	FILE *f = fopen(name.c_str(), "wb");
 	if (!f)
@@ -615,6 +615,10 @@ static bool write_png(const std::string &name, unsigned char *buf, int x, int y,
 	bool ok = false;
 	if (info && !setjmp(png_jmpbuf(png))) {
 		png_init_io(png, f);
+		if (fast) {
+			png_set_compression_level(png, 1);
+			png_set_filter(png, 0, PNG_FILTER_NONE);
+		}
 		png_set_IHDR(png, info, x, y, 8, bpp == 4 ? PNG_COLOR_TYPE_RGBA : PNG_COLOR_TYPE_RGB,
 			     PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
 		png_write_info(png, info);
@@ -748,6 +752,19 @@ void CPictureViewer::shrinkLogo(const std::string &name)
 	else
 		unlink(tmp.c_str());
 	free(resized);
+}
+
+bool CPictureViewer::WritePng(const std::string &png, unsigned char *buf, int w, int h, int bpp)
+{
+#ifdef FBV_SUPPORT_PNG
+	std::string tmp = png + ".tmp";
+	bool ok = write_png(tmp, buf, w, h, bpp, true) && rename(tmp.c_str(), png.c_str()) == 0;
+	if (!ok)
+		unlink(tmp.c_str());
+	return ok;
+#else
+	return false;
+#endif
 }
 
 bool CPictureViewer::WriteLogoPng(const std::string &name, const std::string &png, int w, int h)

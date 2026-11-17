@@ -81,6 +81,9 @@ class CPictureViewer
 	/* writes a logo of any supported format as a w x h PNG, fitted and centred
 	   on transparency, for programs that read no SVG or draw it unscaled */
 	bool WriteLogoPng(const std::string &name, const std::string &png, int w, int h);
+	/* RGB (bpp 3) or RGBA rows written in place of png at once, quickly
+	   compressed: for pictures that change often */
+	bool WritePng(const std::string &png, unsigned char *buf, int w, int h, int bpp);
 	unsigned char * Resize(unsigned char *orgin, int ox, int oy, int dx, int dy, ScalingMode type, unsigned char * dst = NULL);
 	unsigned char * ResizeA(unsigned char *orgin, int ox, int oy, int dx, int dy);
 	void rescaleImageDimensions(int *width, int *height, const int max_width, const int max_height, bool upscale=false);
