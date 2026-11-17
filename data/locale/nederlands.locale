@@ -207,8 +207,10 @@ audiomenu.PCMOffset Verlaag volume niveau PCM
 audiomenu.ac3 AC3-doorvoer
 audiomenu.ac3_atype0 AC3-geluid naar ouder audiotype schakelen
 audiomenu.ac3_atype1 AC3-geluid naar standaard audiotype schakelen
+audiomenu.ad AD
 audiomenu.analog_mode Analoge modus
 audiomenu.analog_out Analoge uitgang
+audiomenu.audio_description Audiodescriptie voorkeur
 audiomenu.auto_lang Automatisch audio selecteren
 audiomenu.auto_subs Automatisch ondertiteling selecteren
 audiomenu.avs avs
@@ -1419,6 +1421,7 @@ menu.hint_audio_adjust_vol_pcm Volumecorrectie per zender voor PCM-streams
 menu.hint_audio_analog_mode Selecteer audio kanaal: \nstereo, mono-left, mono-right
 menu.hint_audio_avsync A/V synchronisatie
 menu.hint_audio_dd Automatisch gebruik maken van DolbyDigital audio indien beschikbaar
+menu.hint_audio_description Heeft een programma een geluidsspoor met audiodescriptie, dan wordt dat gekozen; het inschakelen van de spraakuitvoer schakelt dit ook in
 menu.hint_audio_dts DTS-geluidssporen ongewijzigd doorgeven
 menu.hint_audio_hdmi_dd DolbyDigital via HDMI: Uit - decoded\nautomatisch indien het ondersteund is door het apparaat, forceer.
 menu.hint_audio_output Waar het geluid naartoe gaat: auto laat PipeWire kiezen,\nde andere nemen de eerste uitgang van dat soort

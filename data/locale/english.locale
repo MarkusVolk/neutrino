@@ -207,8 +207,10 @@ audiomenu.PCMOffset Volume decrease PCM
 audiomenu.ac3 AC3 passthrough
 audiomenu.ac3_atype0 Switch AC3 sound to older audio type
 audiomenu.ac3_atype1 Switch AC3 sound to default audio type
+audiomenu.ad AD
 audiomenu.analog_mode Analog mode
 audiomenu.analog_out Analog output
+audiomenu.audio_description Prefer audio description
 audiomenu.auto_lang Auto select audio
 audiomenu.auto_subs Auto select subtitles
 audiomenu.avs avs
@@ -1419,6 +1421,7 @@ menu.hint_audio_adjust_vol_pcm Channel specific volume adjustment for PCM stream
 menu.hint_audio_analog_mode Select audio channel to use\nstereo, mono-left, mono-right
 menu.hint_audio_avsync A/V sync
 menu.hint_audio_dd Auto-switch to DolbyDigital audio pid,\nif available
+menu.hint_audio_description When a programme has an audio track with audio description, it is chosen; switching the speech output on switches this on as well
 menu.hint_audio_dts Pass DTS audio tracks unchanged
 menu.hint_audio_hdmi_dd DolbyDigital over HDMI: off - decoded\nauto  if supported by device, force
 menu.hint_audio_output Where the sound goes: auto lets PipeWire choose,\nthe others pick the first output of that kind

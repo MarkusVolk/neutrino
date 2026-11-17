@@ -207,8 +207,10 @@ audiomenu.PCMOffset Lautstärkeabsenkung PCM
 audiomenu.ac3 AC3 durchleiten
 audiomenu.ac3_atype0 AC3 Ton auf älteren Typ ändern
 audiomenu.ac3_atype1 AC3 Ton auf default Type ändern
+audiomenu.ad AD
 audiomenu.analog_mode Analog Modus
 audiomenu.analog_out Analog-Ausgang
+audiomenu.audio_description Audiodeskription bevorzugen
 audiomenu.auto_lang Tonwahl automatisch
 audiomenu.auto_subs Untertitel automatisch
 audiomenu.avs avs
@@ -1419,6 +1421,7 @@ menu.hint_audio_adjust_vol_pcm Lautstärkeanpassung für PCM-Tonspuren
 menu.hint_audio_analog_mode Wählen Sie den Modus des Ausgangssignals für den CINCH-Anschluss
 menu.hint_audio_avsync Diese Funktion synchronisiert Bild und Ton
 menu.hint_audio_dd Ist diese Option aktiviert, wird automatisch auf Dolby Digital Ton geschalten, sobald dieser verfügbar ist
+menu.hint_audio_description Hat eine Sendung eine Tonspur mit Audiodeskription (Hörfilm), wird sie gewählt; das Einschalten der Sprachausgabe schaltet dies mit ein
 menu.hint_audio_dts DTS Tonspuren unverändert durchleiten
 menu.hint_audio_hdmi_dd Bei aktiver Option wird über den HDMI-Ausgang der Dolby Digital Ton ausgegeben
 menu.hint_audio_output Wohin der Ton geht: Auto lässt PipeWire wählen,\ndie anderen nehmen den ersten Ausgang dieser Art

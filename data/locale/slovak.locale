@@ -207,8 +207,10 @@ audiomenu.PCMOffset Zníženie hlasitosti PCM
 audiomenu.ac3 AC3 prechod
 audiomenu.ac3_atype0 prepnúť AC3 zvuk na starší typ zvuku
 audiomenu.ac3_atype1 prepnúť AC3 zvuk na predvolený typ zvuku
+audiomenu.ad AD
 audiomenu.analog_mode Analógový režim
 audiomenu.analog_out Analógový výstup
+audiomenu.audio_description Uprednostniť zvukový opis
 audiomenu.auto_lang Automatický výber zvukovej stopy
 audiomenu.auto_subs Automatický výber titulkov
 audiomenu.avs avs
@@ -1419,6 +1421,7 @@ menu.hint_audio_adjust_vol_pcm Špecifické nastavenie hlasitosti pre PCM prúdy
 menu.hint_audio_analog_mode Výber zvukového kanálu pre\nstereo, mono-ľavý, mono-pravý
 menu.hint_audio_avsync A/V synchronizácia
 menu.hint_audio_dd Automatické prepnutie na DolbyDigital zvukový pid,\nak je dostupný
+menu.hint_audio_description Ak má program zvukovú stopu so zvukovým opisom, vyberie sa; zapnutie hlasového výstupu zapne aj toto
 menu.hint_audio_dts Prechod zvukových DTS stôp bez zmeny
 menu.hint_audio_hdmi_dd DolbyDigital cez HDMI:\nnie - automatické dekódovanie ak je podporované zariadením, nútene - ...
 menu.hint_audio_output Kam ide zvuk: auto nechá vybrať PipeWire,\nostatné vyberú prvý výstup daného druhu
