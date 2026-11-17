@@ -3103,7 +3103,8 @@ void ep_recording_cover(Call &c)
 			c.out.headers[i].second = "private, max-age=2592000, immutable";
 }
 
-/* covers for the recordings that have none, fetched one after the other */
+/* covers for the recordings that have none, fetched one after the other;
+   a running one gets its poster, the frame only once it has ended */
 void ep_recording_covers(Call &c)
 {
 	std::vector<std::string> files;
@@ -3112,9 +3113,9 @@ void ep_recording_covers(Call &c)
 	int queued = 0;
 	for (size_t i = 0; i < files.size(); i++) {
 		std::string path = dir + "/" + files[i];
-		if (access((recordings::without_ts(path) + ".jpg").c_str(), F_OK) == 0 || recordings::busy(path))
+		if (access((recordings::without_ts(path) + ".jpg").c_str(), F_OK) == 0)
 			continue;
-		recording_cover::queue(path);
+		recording_cover::queue(path, recordings::busy(path));
 		queued++;
 	}
 	Json::Value v(Json::objectValue);

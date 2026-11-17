@@ -39,8 +39,9 @@ namespace recording_cover
 	/* fetched in a thread of its own, one recording after the other;
 	   nothing happens when the recording has a cover already */
 	void queue(const job &j);
-	/* a recording on the disk, described by its .xml */
-	void queue(const std::string &ts);
+	/* a recording on the disk, described by its .xml; one still being
+	   recorded gets no frame yet */
+	void queue(const std::string &ts, bool running = false);
 }
 
 #endif

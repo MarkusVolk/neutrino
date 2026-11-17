@@ -288,7 +288,7 @@ void recording_cover::queue(const job &j)
 	wake.notify_one();
 }
 
-void recording_cover::queue(const std::string &ts)
+void recording_cover::queue(const std::string &ts, bool running)
 {
 	MI_MOVIE_INFO mi;
 	CMovieInfo info;
@@ -298,7 +298,7 @@ void recording_cover::queue(const std::string &ts)
 	j.ts = ts;
 	j.year = 0;
 	j.length = 0;
-	j.start = false;
+	j.start = running;
 	if (info.loadMovieInfo(&mi)) {
 		j.title = mi.epgTitle;
 		j.channel = mi.channelName;
