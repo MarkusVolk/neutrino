@@ -1,7 +1,7 @@
 /*
 	Recording covers: a picture beside each recording, the poster of the
 	film or series from TMDB, else the picture of the programme in the media
-	library of ARD or ZDF, else a frame of the recording itself
+	library of ARD, else a frame of the recording itself
 
 	License: GPL
 
@@ -30,7 +30,7 @@ namespace recording_cover
 	{
 		std::string ts;		/* the recording */
 		std::string title;
-		std::string channel;	/* ARD and ZDF ones are asked in their media library */
+		std::string channel;	/* ARD ones are asked in its media library */
 		int year;		/* 0 if unknown */
 		int length;		/* minutes, 0 if unknown */
 		bool start;		/* the recording only begins: no frame yet */

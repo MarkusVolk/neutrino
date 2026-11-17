@@ -1,7 +1,7 @@
 /*
 	Recording covers: a picture beside each recording, the poster of the
 	film or series from TMDB, else the picture of the programme in the media
-	library of ARD or ZDF, else a frame of the recording itself
+	library of ARD, else a frame of the recording itself
 
 	License: GPL
 
@@ -89,7 +89,7 @@ bool usable(const std::string &file)
 	return stat(file.c_str(), &st) == 0 && st.st_size > 0;
 }
 
-/* ---- the media libraries of ARD and ZDF ---- */
+/* ---- the media library of ARD ---- */
 
 std::string lower(std::string s)
 {
@@ -98,7 +98,7 @@ std::string lower(std::string s)
 	return s;
 }
 
-/* the words of a channel name: "ZDFneo HD", "BR Fernsehen Süd HD" */
+/* the words of a channel name: "Das Erste HD", "BR Fernsehen Süd HD" */
 bool channelWord(const std::string &channel, bool (*match)(const std::string &))
 {
 	std::string word;
@@ -115,11 +115,6 @@ bool channelWord(const std::string &channel, bool (*match)(const std::string &))
 	return false;
 }
 
-bool zdfWord(const std::string &w)
-{
-	return w.compare(0, 3, "zdf") == 0 || w == "3sat";
-}
-
 bool ardWord(const std::string &w)
 {
 	static const char *words[] = { "erste", "ard", "br", "hr", "mdr", "ndr", "bremen", "rbb", "sr", "swr", "wdr",
@@ -131,7 +126,7 @@ bool ardWord(const std::string &w)
 }
 
 /* the name of the programme the library calls it by: the title itself, or
-   failing that one that begins with it ("Terra X - die Einzeldokus") */
+   failing that one that begins with it ("tagesthemen mit Gebärdensprache") */
 int nameMatch(const std::string &name, const std::string &title)
 {
 	std::string n = lower(name), t = lower(title);
@@ -140,61 +135,6 @@ int nameMatch(const std::string &name, const std::string &title)
 	if (n.size() > t.size() && n.compare(0, t.size(), t) == 0 && !isalnum((unsigned char) n[t.size()]))
 		return 1;
 	return 0;
-}
-
-std::string zdfToken;	/* worker only */
-
-/* the token zdf.de hands its own pages, for the API */
-bool zdfFetchToken()
-{
-	std::string url = "https://www.zdf.de/", page;
-	zdfToken.clear();
-	if (!getUrl(url, page, AGENT, 20))
-		return false;
-	size_t pos = page.find("videoToken");
-	pos = pos == std::string::npos ? pos : page.find("apiToken", pos);
-	if (pos == std::string::npos)
-		return false;
-	pos += 8;
-	while (pos < page.size() && !isalnum((unsigned char) page[pos]))
-		pos++;
-	size_t end = pos;
-	while (end < page.size() && isalnum((unsigned char) page[end]))
-		end++;
-	zdfToken = page.substr(pos, end - pos);
-	return zdfToken.size() >= 16;
-}
-
-bool zdfPicture(const std::string &title, std::string &picture)
-{
-	std::string answer;
-	for (int attempt = 0; attempt < 2 && answer.empty(); attempt++) {
-		if ((zdfToken.empty() || attempt) && !zdfFetchToken())
-			return false;
-		std::string url = "https://api.zdf.de/search/documents?limit=10&q=" + encodeUrl(title);
-		std::string header = "Api-Auth: Bearer " + zdfToken;
-		getUrl(url, answer, AGENT, 20, header.c_str());
-	}
-	Json::Value root;
-	std::string err;
-	if (answer.empty() || !parseJsonFromString(answer, &root, &err))
-		return false;
-	const Json::Value &results = root["http://zdf.de/rels/search/results"];
-	int best = 0;
-	for (unsigned int i = 0; i < results.size(); i++) {
-		const Json::Value &t = results[i]["http://zdf.de/rels/target"];
-		if (t.get("contentType", "").asString() != "brand")
-			continue;
-		int m = nameMatch(t.get("teaserHeadline", "").asString(), title);
-		const Json::Value &layouts = t["teaserImageRef"]["layouts"];
-		/* its upright formats are cut out of the wide one, the title cut off */
-		std::string pic = layouts.get("768x432", "").asString();
-		if (m > best && !pic.empty()) {
-			best = m;
-			picture = pic;
-		}
-	}
-	return best > 0;
 }
 
 bool ardPicture(const std::string &title, std::string &picture)
@@ -226,18 +166,17 @@ bool ardPicture(const std::string &title, std::string &picture)
 	return best > 0;
 }
 
-/* the picture of the programme in the library of its channel's broadcaster */
+/* the picture of the programme in the ARD media library, for its channels;
+   the one of ZDF has no API open to others */
 const char *libraryPicture(const recording_cover::job &j, std::string &picture)
 {
-	if (channelWord(j.channel, zdfWord))
-		return zdfPicture(j.title, picture) ? "ZDF" : NULL;
 	if (channelWord(j.channel, ardWord))
 		return ardPicture(j.title, picture) ? "ARD" : NULL;
 	return NULL;
 }
 
-/* a picture as JPEG: ZDF hands out some as PNG with an alpha channel, a
-   megabyte where a JPEG takes a tenth of it */
+/* a picture as JPEG, whatever a library hands out: a PNG with an alpha
+   channel takes ten times the room */
 bool asJpeg(const std::string &file)
 {
 	unsigned char magic[2] = { 0, 0 };
