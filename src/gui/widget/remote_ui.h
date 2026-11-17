@@ -52,6 +52,13 @@ class CRemoteUi
 		virtual bool remoteWindow() { return false; }
 		/* a remote client may read it, but only the viewer works it */
 		virtual bool remoteReadOnly() { return false; }
+		/* what the speech output says, in the language of the OSD: the
+		 * title when the window comes, then what is selected in it */
+		virtual std::string remoteSpeakTitle() { return ""; }
+		virtual std::string remoteSpeakFocus() { return ""; }
+
+		/* a value as the speech output says it: a secret only as hidden */
+		static std::string speakValue(const std::string &value, bool secret);
 
 		/* the dialog on top, NULL when none is open */
 		static CRemoteUi *top();
@@ -96,6 +103,8 @@ class CRemoteView : public CRemoteUi
 		bool remoteSelect(const std::string &what, std::string &error);
 		bool remoteWindow() { return true; }
 		bool remoteReadOnly() { return read_only; }
+		std::string remoteSpeakTitle() { return title; }
+		std::string remoteSpeakFocus() { return text ? text() : ""; }
 
 	private:
 		std::string title;

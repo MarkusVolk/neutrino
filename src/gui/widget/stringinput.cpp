@@ -630,6 +630,17 @@ std::string CStringInput::remoteDescribe()
 	return out;
 }
 
+std::string CStringInput::remoteSpeakTitle()
+{
+	return name == NONEXISTANT_LOCALE ? head : g_Locale->getText(name);
+}
+
+std::string CStringInput::remoteSpeakFocus()
+{
+	std::string current = *valueString;
+	return speakValue(trim(current), remoteMasked() || remote_secret::title(name, remoteSpeakTitle()));
+}
+
 /* the text replaces what is there and is confirmed, as with OK */
 bool CStringInput::remoteInput(const std::string &text, std::string &error)
 {

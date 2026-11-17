@@ -941,6 +941,17 @@ std::string CMenuWidget::remoteDescribe(bool with_options)
 	return out;
 }
 
+/* the selected entry: its name and its value */
+std::string CMenuWidget::remoteSpeakFocus()
+{
+	if (selected < 0 || selected >= (int)items.size())
+		return "";
+	CMenuItem *item = items[selected];
+	std::string name = item->getName() ? item->getName() : "";
+	std::string value = speakValue(item->getValueText(), remote_secret::title(item->getNameLocale(), name));
+	return value.empty() ? name : name + ": " + value;
+}
+
 /* an entry by its number in remoteDescribe() or by its name:
  * the same name first, else the one name that contains the text */
 int CMenuWidget::remoteFind(const std::string &what, std::string &error)

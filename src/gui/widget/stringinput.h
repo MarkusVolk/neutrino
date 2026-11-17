@@ -128,6 +128,8 @@ class CStringInput : public CMenuTarget, public CRemoteUi
 
 		std::string remoteDescribe();
 		bool remoteInput(const std::string &text, std::string &error);
+		std::string remoteSpeakTitle();
+		std::string remoteSpeakFocus();
 };
 
 class CStringInputSMS : public CStringInput

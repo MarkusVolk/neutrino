@@ -126,6 +126,13 @@ CRemoteUi::ViewerOnly::~ViewerOnly()
 	viewer_only--;
 }
 
+std::string CRemoteUi::speakValue(const std::string &value, bool secret)
+{
+	if (!secret || value.empty())
+		return value;
+	return g_Locale->getText(LOCALE_SPEECH_HIDDEN);
+}
+
 CRemoteView::CRemoteView(const std::string &Title, text_fn Text, bool ReadOnly)
 	: title(Title), text(Text), read_only(ReadOnly), guard(this)
 {

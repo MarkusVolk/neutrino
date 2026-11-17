@@ -45,6 +45,8 @@ class CRemoteList : public CRemoteUi
 		std::string remoteDescribe();
 		bool remoteSelect(const std::string &what, std::string &error);
 		bool remoteWindow() { return true; }
+		std::string remoteSpeakTitle() { return access.title(); }
+		std::string remoteSpeakFocus();
 
 	private:
 		Access access;

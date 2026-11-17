@@ -677,6 +677,11 @@ std::string CCTextInputDialog::remoteDescribe()
 	return out;
 }
 
+std::string CCTextInputDialog::remoteSpeakFocus()
+{
+	return speakValue(cid_buffer.getText(), cid_password_mode || remote_secret::title(NONEXISTANT_LOCALE, ccw_caption));
+}
+
 /* checked the way save() checks, so the reason goes back to the client;
  * then saved as with the red key */
 bool CCTextInputDialog::remoteInput(const std::string &text, std::string &error)

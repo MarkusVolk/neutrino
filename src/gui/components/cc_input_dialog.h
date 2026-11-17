@@ -142,6 +142,8 @@ class CCTextInputDialog : public CCInputDialogBase, public CRemoteUi
 		virtual ~CCTextInputDialog() {};
 
 		std::string remoteDescribe();
+		std::string remoteSpeakTitle() { return ccw_caption; }
+		std::string remoteSpeakFocus();
 		bool remoteInput(const std::string &text, std::string &error);
 
 		void setHintText(const std::string &hint);

@@ -687,6 +687,8 @@ class CMenuWidget : public CMenuTarget, public CComponentsSignals, public CRemot
 		int getSelected()const { return selected; };
 		CMenuWidget *remoteMenu() { return this; }
 		std::string remoteDescribe() { return remoteDescribe(false); }
+		std::string remoteSpeakTitle() { return getName(); }
+		std::string remoteSpeakFocus();
 		/* with the values the choosers may take */
 		std::string remoteDescribe(bool with_options);
 		/* the index of an entry by its number in remoteDescribe() or its name, -1 when none */

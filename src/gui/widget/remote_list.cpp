@@ -62,6 +62,15 @@ std::string CRemoteList::remoteDescribe()
 	return out;
 }
 
+std::string CRemoteList::remoteSpeakFocus()
+{
+	size_t count = access.count();
+	if (!count)
+		return g_Locale->getText(LOCALE_SPEECH_EMPTY);
+	size_t selected = access.selected();
+	return selected < count ? access.text(selected) : "";
+}
+
 /* by its number in the whole list or by its text, then OK as the viewer would */
 bool CRemoteList::remoteSelect(const std::string &what, std::string &error)
 {

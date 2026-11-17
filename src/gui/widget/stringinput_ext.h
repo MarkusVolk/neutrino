@@ -96,6 +96,8 @@ class CExtendedInput : public CMenuTarget, public CRemoteUi
 
 		std::string remoteDescribe();
 		bool remoteInput(const std::string &text, std::string &error);
+		std::string remoteSpeakTitle();
+		std::string remoteSpeakFocus();
 };
 
 
@@ -237,6 +239,7 @@ class CIntInput : public CExtendedInput
 
 		std::string remoteDescribe();
 		bool remoteInput(const std::string &text, std::string &error);
+		std::string remoteSpeakFocus();
 };
 
 #endif

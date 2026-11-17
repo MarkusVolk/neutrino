@@ -310,6 +310,18 @@ std::string CMsgBox::remoteDescribe()
 	return out + "\n";
 }
 
+/* the button that OK presses */
+std::string CMsgBox::remoteSpeakFocus()
+{
+	CComponentsButton *button = ccw_footer ? ccw_footer->getSelectedButtonObject() : NULL;
+	if (!button)
+		return "";
+	std::string caption = button->getCaptionString();
+	if (caption.empty() && button->getCaptionLocale() != NONEXISTANT_LOCALE)
+		caption = g_Locale->getText(button->getCaptionLocale());
+	return caption;
+}
+
 bool CMsgBox::remoteSelect(const std::string &what, std::string &error)
 {
 	std::string want = what;

@@ -193,6 +193,16 @@ std::string CExtendedInput::remoteDescribe()
 	return out;
 }
 
+std::string CExtendedInput::remoteSpeakTitle()
+{
+	return name == NONEXISTANT_LOCALE ? nameString : g_Locale->getText(name);
+}
+
+std::string CExtendedInput::remoteSpeakFocus()
+{
+	return speakValue(*valueString, remote_secret::title(name, remoteSpeakTitle()));
+}
+
 /* the fields point into the value, so it changes in place, one character
  * per field, and is confirmed as with OK */
 bool CExtendedInput::remoteInput(const std::string &text, std::string &error)
@@ -799,6 +809,11 @@ std::string CIntInput::remoteDescribe()
 	if (hint_2 != NONEXISTANT_LOCALE)
 		out += std::string("Hint: ") + g_Locale->getText(hint_2) + "\n";
 	return out;
+}
+
+std::string CIntInput::remoteSpeakFocus()
+{
+	return speakValue(to_string(atoi(*valueString)), remote_secret::title(name, g_Locale->getText(name)));
 }
 
 /* the number goes into the fields right-aligned, as onBeforeExec puts it */

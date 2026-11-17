@@ -280,6 +280,8 @@ class CMsgBox : public CHintBox, public CRemoteUi
 		int exec();
 		std::string remoteDescribe();
 		bool remoteSelect(const std::string &what, std::string &error);
+		std::string remoteSpeakTitle() { return ccw_caption + ". " + hb_text; }
+		std::string remoteSpeakFocus();
 
 		/**
 		* returns current result as msg_result_t, result corresponds to the current result value of selected button

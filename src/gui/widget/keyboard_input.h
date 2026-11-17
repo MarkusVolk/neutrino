@@ -134,6 +134,8 @@ class CKeyboardInput : public CMenuTarget,  public sigc::trackable, public CRemo
 		int exec( CMenuTarget* parent, const std::string & actionKey );
 		std::string remoteDescribe();
 		bool remoteInput(const std::string &text, std::string &error);
+		std::string remoteSpeakTitle() { return title; }
+		std::string remoteSpeakFocus();
 
 		void forceSaveScreen(bool enable);
 		/* for secrets: every character shows as '*', also on the displays of the box */

@@ -665,6 +665,13 @@ std::string CKeyboardInput::remoteDescribe()
 	return out;
 }
 
+std::string CKeyboardInput::remoteSpeakFocus()
+{
+	if (!inputString)
+		return "";
+	return speakValue(inputString->c_str(), masked || remote_secret::title(NONEXISTANT_LOCALE, title));
+}
+
 /* the text replaces what is there and is confirmed, as with the red key */
 bool CKeyboardInput::remoteInput(const std::string &text, std::string &error)
 {
