@@ -164,7 +164,7 @@ assistant.tool_no_tuner is on another transponder, and the running recording hol
 assistant.tool_not_muted sound on
 assistant.tool_nothing_found Nothing found.
 assistant.tool_now Now
-assistant.tool_plugin_started Started
+assistant.tool_plugin_started Started:
 assistant.tool_record_times A recording needs an end that is after its start and not over yet.
 assistant.tool_removed removed
 assistant.tool_standby Going into standby.
