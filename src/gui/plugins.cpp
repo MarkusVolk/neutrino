@@ -440,10 +440,20 @@ int CPlugins::startFullscreenPlugin(int number)
 	g_RCInput->stopInput();
 	CNeutrinoApp::getInstance()->lockPlayBack();
 #ifdef ENABLE_LCD4LINUX
-	/* a game should not share the processor with the display */
-	std::string picture = plugin_list[number].hinticon;
-	if (picture.find('/') == std::string::npos)
-		picture = frameBuffer->getIconPath(picture);
+	/* a game should not share the processor with the display; it shows the
+	   program's own icon (kodi.svg for kodi.sh) where the system has one,
+	   else the hint icon of the plugin */
+	std::string base = plugin_list[number].pluginfile;
+	base = base.substr(base.rfind('/') + 1);
+	base = base.substr(0, base.rfind('.'));
+	std::string picture = "/usr/share/icons/hicolor/scalable/apps/" + base + ".svg";
+	if (access(picture.c_str(), R_OK) != 0)
+		picture = "/usr/share/icons/hicolor/256x256/apps/" + base + ".png";
+	if (access(picture.c_str(), R_OK) != 0) {
+		picture = plugin_list[number].hinticon;
+		if (picture.find('/') == std::string::npos)
+			picture = frameBuffer->getIconPath(picture);
+	}
 	CLCD4l::getInstance()->ShowStill(picture);
 #endif
 	frameBuffer->Lock();
