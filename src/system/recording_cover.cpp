@@ -131,13 +131,16 @@ bool ardWord(const std::string &w)
 }
 
 /* the name of the programme the library calls it by: the title itself, or
-   failing that one that begins with it ("tagesthemen mit Gebärdensprache") */
+   failing that one that begins with it ("tagesthemen mit Gebärdensprache")
+   or one the title begins with ("Bayerischer Kabarettpreis 2026") */
 int nameMatch(const std::string &name, const std::string &title)
 {
 	std::string n = lower(name), t = lower(title);
 	if (n == t)
 		return 2;
 	if (n.size() > t.size() && n.compare(0, t.size(), t) == 0 && !isalnum((unsigned char) n[t.size()]))
+		return 1;
+	if (n.size() >= 4 && t.size() > n.size() && t.compare(0, n.size(), n) == 0 && !isalnum((unsigned char) t[n.size()]))
 		return 1;
 	return 0;
 }
