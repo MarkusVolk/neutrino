@@ -2456,7 +2456,7 @@ int httpdPort()
 	return port;
 }
 
-bool getUrl(std::string &url, std::string &answer, std::string userAgent, unsigned int timeout, const char *header)
+bool getUrl(std::string &url, std::string &answer, std::string userAgent, unsigned int timeout)
 {
 	dprintf(DEBUG_NORMAL, "getUrl: url: %s\n", url.c_str());
 
@@ -2470,9 +2470,6 @@ bool getUrl(std::string &url, std::string &answer, std::string userAgent, unsign
 	curl_easy_setopt(curl_handle, CURLOPT_NOSIGNAL, (long)1);
 	curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYPEER, false);
 	curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, userAgent.c_str());
-	struct curl_slist *headers = header ? curl_slist_append(NULL, header) : NULL;
-	if (headers)
-		curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, headers);
 
 	/* Copied under the lock: the weather fetch reaches this from the front
 	   display threads, and the box's loop assigns to the same members from a
@@ -2495,8 +2492,6 @@ bool getUrl(std::string &url, std::string &answer, std::string userAgent, unsign
 	CURLcode httpres = curl_easy_perform(curl_handle);
 
 	curl_easy_cleanup(curl_handle);
-	if (headers)
-		curl_slist_free_all(headers);
 
 	if (httpres != 0 || answer.empty())
 	{
