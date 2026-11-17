@@ -56,6 +56,9 @@
 #include <algorithm>
 #include <dirent.h>
 #include <eitd/sectionsd.h>
+#include <daemonc/remotecontrol.h>
+
+extern CRemoteControl *g_RemoteControl; /* neutrino.cpp */
 
 namespace {
 
@@ -255,6 +258,14 @@ void COsdLangSetup::showLanguageSetup(CMenuWidget *osdl_setup)
 	}
 }
 
+/* the choice of the audio track of the running programme follows at once */
+bool CAudioDescriptionNotifier::changeNotify(const neutrino_locale_t, void *)
+{
+	if (CNeutrinoApp::getInstance()->getMode() != NeutrinoModes::mode_standby && g_RemoteControl)
+		g_RemoteControl->queryAPIDs();
+	return false;
+}
+
 //shows menue for prefered audio/epg languages
 void COsdLangSetup::showPrefMenu(CMenuWidget *prefMenu, CLangSelectNotifier *langNotifier)
 {
@@ -264,6 +275,11 @@ void COsdLangSetup::showPrefMenu(CMenuWidget *prefMenu, CLangSelectNotifier *lan
 
 	CMenuOptionChooser * mc = new CMenuOptionChooser(LOCALE_AUDIOMENU_AUTO_LANG, &g_settings.auto_lang, OPTIONS_OFF0_ON1_OPTIONS, OPTIONS_OFF0_ON1_OPTION_COUNT, true, NULL);
 	mc->setHint("", LOCALE_MENU_HINT_AUTO_LANG);
+	prefMenu->addItem(mc);
+
+	static CAudioDescriptionNotifier adNotifier;
+	mc = new CMenuOptionChooser(LOCALE_AUDIOMENU_AUDIO_DESCRIPTION, &g_settings.audio_description, OPTIONS_OFF0_ON1_OPTIONS, OPTIONS_OFF0_ON1_OPTION_COUNT, true, &adNotifier);
+	mc->setHint("", LOCALE_MENU_HINT_AUDIO_DESCRIPTION);
 	prefMenu->addItem(mc);
 
 	for(int i = 0; i < 3; i++)

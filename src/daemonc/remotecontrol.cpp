@@ -112,6 +112,7 @@ CRemoteControl::CRemoteControl()
 	//next_EPGid = 	0;
 	are_subchannels = false;
 	has_unresolved_ctags = false;
+	pids_fresh = false;
 }
 
 int CRemoteControl::handleMsg(const neutrino_msg_t msg, neutrino_msg_data_t data)
@@ -235,6 +236,7 @@ int CRemoteControl::handleMsg(const neutrino_msg_t msg, neutrino_msg_data_t data
 					// ist nur ein neues Programm, kein neuer Kanal
 					// PIDs neu holen
 					g_Zapit->getPIDS(current_PIDs);
+					pids_fresh = true;
 					// APID Bearbeitung neu anstossen
 					has_unresolved_ctags = true;
 					// infobar indicate on epg change
@@ -298,6 +300,7 @@ int CRemoteControl::handleMsg(const neutrino_msg_t msg, neutrino_msg_data_t data
 		{
 			CVFD::getInstance()->showServicename(current_channel_name, current_channel_num);
 			g_Zapit->getPIDS(current_PIDs);
+			pids_fresh = true;
 #if 1
 			//tuxtxt
 			tuxtxt_stop();
@@ -319,6 +322,7 @@ int CRemoteControl::handleMsg(const neutrino_msg_t msg, neutrino_msg_data_t data
 	else if (msg == NeutrinoMessages::EVT_PMT_CHANGED)
 	{
 		g_Zapit->getPIDS(current_PIDs);
+		pids_fresh = true;
 		processAPIDnames();
 		return messages_return::unhandled;
 	}
@@ -452,19 +456,36 @@ void CRemoteControl::getNVODs()
 	}
 }
 
+/* the tracks again from zapit, and the choice among them */
+void CRemoteControl::queryAPIDs()
+{
+	g_Zapit->getPIDS(current_PIDs);
+	pids_fresh = true;
+	processAPIDnames();
+}
+
+/* " (text)" once */
+static void addSuffix(std::string &desc, const char *text)
+{
+	std::string suffix = std::string(" (") + text + ")";
+	if (desc.find(suffix) == std::string::npos)
+		desc += suffix;
+}
+
 void CRemoteControl::processAPIDnames()
 {
 	has_unresolved_ctags = false;
 	has_ac3 = false; //use in infoviewer
 	int pref_found = -1;
-	int pref_ac3_found = -1;
-	int pref_idx = -1;
-	int pref_ac3_idx = -1;
+	int pref_score = -1;
 	int ac3_found = -1;
 	const char *desc;
 	char lang[4];
+	/* run again on names already written out, nothing is chosen anew */
+	bool fresh = pids_fresh;
+	pids_fresh = false;
 
-	if (g_settings.auto_lang && (current_PIDs.APIDs.size() > 1))
+	if (fresh && g_settings.auto_lang && (current_PIDs.APIDs.size() > 1))
 	{
 		// first we check prefs to find pid according to pref index
 		for (int i = 0; i < 3; i++)
@@ -480,7 +501,6 @@ void CRemoteControl::processAPIDnames()
 					lang[3] = 0;
 					desc = lang;
 				}
-				// processAPIDnames called 2 times, TODO find better way to detect second call
 				if (strlen(desc) != 3)
 					continue;
 				if (g_settings.pref_lang[i].empty())
@@ -492,17 +512,19 @@ void CRemoteControl::processAPIDnames()
 				{
 					if (temp == it->second && strcasecmp(desc, it->first.c_str()) == 0)
 					{
-						// remember first pref found index and pid
-						if (pref_found < 0)
+						/* the language first, then audio description as set,
+						 * then Dolby Digital; a track that is only the narration
+						 * of an audio description is no track of its own */
+						const CZapitClient::responseGetAPIDs &apid = current_PIDs.APIDs[j];
+						int score = (3 - i) * 4;
+						if (!apid.is_ad == !g_settings.audio_description)
+							score += 2;
+						if ((apid.is_ac3 || apid.is_eac3) && g_settings.audio_DolbyDigital)
+							score += 1;
+						if (!apid.is_receiver_mix && score > pref_score)
 						{
 							pref_found = j;
-							pref_idx = i;
-						}
-						if ((current_PIDs.APIDs[j].is_ac3 || current_PIDs.APIDs[j].is_eac3)
-							&& g_settings.audio_DolbyDigital && (pref_ac3_found < 0))
-						{
-							pref_ac3_found = j;
-							pref_ac3_idx = i;
+							pref_score = score;
 						}
 						break;
 					}
@@ -510,9 +532,6 @@ void CRemoteControl::processAPIDnames()
 			} // for all pids
 		} // for all prefs
 
-		// reset pref ac3, if it have lower priority
-		if ((pref_idx >= 0) && (pref_idx < pref_ac3_idx))
-			pref_ac3_found = -1;
 	}
 #ifdef APID_DEBUG
 	if (! current_PIDs.APIDs.empty())
@@ -534,13 +553,15 @@ void CRemoteControl::processAPIDnames()
 			// unresolved language
 			tmp_desc = iso;
 		}
+		if (current_PIDs.APIDs[count].is_ad)
+			addSuffix(tmp_desc, g_Locale->getText(LOCALE_AUDIOMENU_AD));
 
 		if (current_PIDs.APIDs[count].is_ac3)
 		{
 			if (!strstr(current_PIDs.APIDs[count].desc, " (AC3)"))
 				tmp_desc += " (AC3)";
 			has_ac3 = true;
-			if (g_settings.audio_DolbyDigital && (ac3_found < 0))
+			if (g_settings.audio_DolbyDigital && (ac3_found < 0) && !current_PIDs.APIDs[count].is_receiver_mix)
 				ac3_found = count;
 		}
 		else if (current_PIDs.APIDs[count].is_eac3)
@@ -548,7 +569,7 @@ void CRemoteControl::processAPIDnames()
 			if (!strstr(current_PIDs.APIDs[count].desc, " (EAC3)"))
 				tmp_desc += " (EAC3)";
 			has_ac3 = true;
-			if (g_settings.audio_DolbyDigital && (ac3_found < 0))
+			if (g_settings.audio_DolbyDigital && (ac3_found < 0) && !current_PIDs.APIDs[count].is_receiver_mix)
 				ac3_found = count;
 		}
 		else if (current_PIDs.APIDs[count].is_aac && !strstr(current_PIDs.APIDs[count].desc, " (AAC)"))
@@ -598,6 +619,8 @@ void CRemoteControl::processAPIDnames()
 							// workaround for buggy ZDF ctags / or buggy sectionsd/drivers , who knows...
 							if (!tags[i].component.empty())
 							{
+								/* the broadcaster's name says whether the
+								   programme has audio description */
 								std::string tmp_desc2 = tags[i].component.c_str();
 								if (current_PIDs.APIDs[j].is_ac3 && tmp_desc2.find(" (AC3)") == std::string::npos)
 									tmp_desc2 += " (AC3)";
@@ -620,23 +643,16 @@ void CRemoteControl::processAPIDnames()
 		}
 	}
 #ifdef APID_DEBUG
-	printf("Neutrino: pref_found %d pref_ac3_found %d ac3_found %d\n", pref_found, pref_ac3_found, ac3_found);
+	printf("Neutrino: pref_found %d ac3_found %d\n", pref_found, ac3_found);
 #endif
-	if (pref_ac3_found >= 0)
-	{
-#ifdef APID_DEBUG
-		printf("Neutrino: set apid name= %s pid= %X\n", current_PIDs.APIDs[pref_ac3_found].desc, current_PIDs.APIDs[pref_ac3_found].pid);
-#endif
-		setAPID(pref_ac3_found);
-	}
-	else if (pref_found >= 0)
+	if (pref_found >= 0)
 	{
 #ifdef APID_DEBUG
 		printf("Neutrino: set apid name= %s pid= %X\n", current_PIDs.APIDs[pref_found].desc, current_PIDs.APIDs[pref_found].pid);
 #endif
 		setAPID(pref_found);
 	}
-	else if (ac3_found >= 0)
+	else if (ac3_found >= 0 && fresh)
 	{
 #ifdef APID_DEBUG
 		printf("Neutrino: set apid name= %s pid= %X\n", current_PIDs.APIDs[ac3_found].desc, current_PIDs.APIDs[ac3_found].pid);

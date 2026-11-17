@@ -48,6 +48,12 @@ class CLangSelectNotifier : public CChangeObserver
 		bool changeNotify(const neutrino_locale_t, void * data);
 };
 
+class CAudioDescriptionNotifier : public CChangeObserver
+{
+	public:
+		bool changeNotify(const neutrino_locale_t, void *);
+};
+
 class COsdLangSetup : public CMenuTarget, CChangeObserver
 {	
 	private:				

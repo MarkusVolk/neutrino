@@ -822,6 +822,7 @@ int CNeutrinoApp::loadSetup(const char *fname)
 
 	// language
 	g_settings.auto_lang = configfile.getInt32("auto_lang", 1);
+	g_settings.audio_description = configfile.getBool("audio_description", false);
 	g_settings.auto_subs = configfile.getInt32("auto_subs", 0);
 
 	for (int i = 0; i < 3; i++)
@@ -1899,6 +1900,7 @@ void CNeutrinoApp::saveSetup(const char *fname)
 
 	// language
 	configfile.setInt32("auto_lang", g_settings.auto_lang);
+	configfile.setBool("audio_description", g_settings.audio_description);
 	configfile.setInt32("auto_subs", g_settings.auto_subs);
 	for (int i = 0; i < 3; i++)
 	{

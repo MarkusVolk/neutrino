@@ -27,6 +27,8 @@
 #include <espeak-ng/speak_lib.h>
 
 #include <global.h>
+#include <neutrino.h>
+#include <daemonc/remotecontrol.h>
 #include <driver/abstime.h>
 #include <eitd/sectionsd.h>
 #include <gui/widget/remote_path.h>
@@ -36,6 +38,8 @@
 #include <system/settings.h>
 #include <zapit/getservices.h>
 #include <zapit/zapit.h>
+
+extern CRemoteControl *g_RemoteControl; /* neutrino.cpp */
 
 /* how much sound ALSA holds: a key cuts the sentence off after at most this */
 #define SPEECH_LATENCY_US	100000
@@ -164,6 +168,12 @@ void CSpeech::settled()
 void CSpeech::toggle()
 {
 	g_settings.speech_enabled = !g_settings.speech_enabled;
+	/* whoever needs speech is helped by audio description, too */
+	if (g_settings.speech_enabled && !g_settings.audio_description) {
+		g_settings.audio_description = true;
+		if (CNeutrinoApp::getInstance()->getMode() != NeutrinoModes::mode_standby && g_RemoteControl)
+			g_RemoteControl->queryAPIDs();
+	}
 	last_ui = NULL;
 	say(g_Locale->getText(g_settings.speech_enabled ? LOCALE_SPEECH_ON : LOCALE_SPEECH_OFF), 0, true);
 }

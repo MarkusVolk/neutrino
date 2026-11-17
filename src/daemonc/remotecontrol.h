@@ -91,6 +91,9 @@ class CRemoteControl
 		// APID - Details
 		bool has_ac3;
 		bool has_unresolved_ctags;
+		/* current_PIDs come fresh from zapit: the next processAPIDnames()
+		   chooses the track; after it the names are written out */
+		bool pids_fresh;
 
 		// SubChannel/NVOD - Details
 		CSubServiceListSorted subChannels;

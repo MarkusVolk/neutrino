@@ -623,6 +623,8 @@ struct SNeutrinoSettings
 
 	// language
 	int auto_lang;
+	/* tracks with audio description first */
+	int audio_description;
 	int auto_subs;
 	std::string pref_lang[3];
 	std::string pref_subs[3];
