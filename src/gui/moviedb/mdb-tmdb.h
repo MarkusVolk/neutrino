@@ -61,6 +61,10 @@ class CTMDB
 		CTMDB();
 		~CTMDB();
 		static CTMDB *getInstance();
+		/* the poster of the film or series of this title, for a thread that
+		   shows nothing: only a result whose title is the same counts;
+		   type becomes "movie" or "tv", name what TMDB found */
+		static bool findPoster(const std::string &title, int year, std::string &url, std::string &type, std::string &name);
 		void setTitle(std::string epgtitle);
 		std::string getEPGText();
 		std::string getMovieText();

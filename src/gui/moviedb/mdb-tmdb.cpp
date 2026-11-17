@@ -279,3 +279,103 @@ void CTMDB::selectResult(Json::Value elements, int results, int &use_result)
 	delete m;
 	use_result = select;
 }
+
+/* lower case, letters and digits only: "Der Herr der Ringe: Die Gefährten"
+   and "Der Herr der Ringe - Die Gefährten" are the same title */
+static std::string titleKey(const std::string &title)
+{
+	std::string key;
+	for (size_t i = 0; i < title.size(); i++) {
+		unsigned char ch = title[i];
+		if (ch == 0xc3 && i + 1 < title.size()) {
+			unsigned char next = title[i + 1];
+			if (next >= 0x80 && next <= 0x9e && next != 0x97)
+				next += 0x20;
+			key += (char)ch;
+			key += (char)next;
+			i++;
+		} else if (ch >= 0x80)
+			key += (char)ch;
+		else if (isalnum(ch))
+			key += (char)tolower(ch);
+	}
+	return key;
+}
+
+static bool tmdbSearch(const std::string &url, const std::string &want, std::string &poster, std::string &kind)
+{
+	std::string answer, err;
+	std::string u = url;
+	Json::Value root;
+	if (!getUrl(u, answer, AGENT, 20) || !parseJsonFromString(answer, &root, &err))
+		return false;
+	const Json::Value &results = root["results"];
+	for (unsigned int i = 0; i < results.size() && i < 10; i++) {
+		const Json::Value &r = results[i];
+		std::string type = r.get("media_type", "movie").asString();
+		if (type != "movie" && type != "tv")
+			continue;
+		/* the poster, else the wide backdrop: the same picture for every
+		   episode either way */
+		std::string path = r.get("poster_path", "").asString();
+		if (!path.empty())
+			path = "w342" + path;
+		else if (!r.get("backdrop_path", "").asString().empty())
+			path = "w780" + r.get("backdrop_path", "").asString();
+		else
+			continue;
+		const char *names[] = { "title", "name", "original_title", "original_name" };
+		for (unsigned int n = 0; n < 4; n++)
+			if (r.isMember(names[n]) && titleKey(r[names[n]].asString()) == want) {
+				poster = path;
+				kind = type;
+				return true;
+			}
+	}
+	return false;
+}
+
+bool CTMDB::findPoster(const std::string &title, int year, std::string &url, std::string &type, std::string &name)
+{
+	std::string key = settingsText(g_settings.tmdb_api_key);
+	if (key.empty() || key.compare(0, 4, "XXXX") == 0)
+		return false;
+	std::string language = settingsText(g_settings.language);
+	std::string lang = Lang2ISO639_1(language);
+	if (lang.empty())
+		lang = "en";
+
+	std::string query = title;
+	size_t open = query.find_last_of('(');
+	if (open != std::string::npos && open > 0 && query.find(')', open) != std::string::npos)
+		query = query.substr(0, open);
+	while (!query.empty() && query[query.size() - 1] == ' ')
+		query.erase(query.size() - 1);
+	std::string want = titleKey(query);
+	if (want.empty())
+		return false;
+
+	const std::string api = "http://api.themoviedb.org/3/";
+	std::string common = "?api_key=" + key + "&language=" + lang + "&query=" + encodeUrl(query);
+	std::string poster;
+	bool found = (year > 1900 && tmdbSearch(api + "search/movie" + common + "&year=" + to_string(year), want, poster, type))
+		|| tmdbSearch(api + "search/multi" + common, want, poster, type);
+	/* "Tatort: Ein Freund, ein guter Freund": the series, then its episode */
+	size_t cut = query.find(": ");
+	if (cut == std::string::npos)
+		cut = query.find(" - ");
+	if (!found && cut != std::string::npos && cut >= 3) {
+		std::string series = query.substr(0, cut);
+		common = "?api_key=" + key + "&language=" + lang + "&query=" + encodeUrl(series);
+		found = tmdbSearch(api + "search/tv" + common, titleKey(series), poster, type);
+		if (found) {
+			type = "tv";
+			query = series;
+		}
+	}
+	if (!found)
+		return false;
+	name = query;
+	url = "http://image.tmdb.org/t/p/" + poster;
+	return true;
+}
