@@ -278,7 +278,8 @@ std::string decodeUrl(std::string url);
 /* the port nhttpd listens on */
 int httpdPort();
 
-bool getUrl(std::string &url, std::string &answer, const std::string userAgent = AGENT, unsigned int timeout = 60);
+/* header: one more request header such as "Api-Auth: Bearer ...", or none */
+bool getUrl(std::string &url, std::string &answer, const std::string userAgent = AGENT, unsigned int timeout = 60, const char *header = NULL);
 bool downloadUrl(std::string url, std::string file, const std::string userAgent = AGENT, unsigned int timeout = 60);
 
 bool isDigitWord(std::string str);
