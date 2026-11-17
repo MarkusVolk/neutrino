@@ -906,17 +906,25 @@ async function viewRecordings(main) {
 			h("span", { class: "caption" }, name),
 			h("span", { class: "dim small" }, episodes(list.length)));
 	};
-	/* shelves as in the media libraries: the newest, films, series, then
-	   one per genre, the fullest first, and what has no genre at the end */
+	/* shelves as in the media libraries: the newest, films, series,
+	   documentaries (a series of them as one tile there), then one per genre,
+	   the fullest first, and what has no genre at the end */
 	const wall = () => {
 		const shelf = (title, tiles) => h("section", { class: "shelf" }, h("h2", {}, title), shelfStrip(tiles));
 		const count = new Map();
 		for (const r of items)
 			count.set(r.title, (count.get(r.title) || 0) + 1);
-		const movies = [], series = new Map(), groups = new Map();
+		const movies = [], series = new Map(), docs = new Map(), groups = new Map();
+		const add = (map, key, r) => {
+			if (!map.has(key))
+				map.set(key, []);
+			map.get(key).push(r);
+		};
 		for (const r of items) {
 			const name = seriesOf(r, count);
-			if (name) {
+			if (r.documentary)
+				add(docs, name || `\u0000${r.id}`, r);
+			else if (name) {
 				if (!series.has(name))
 					series.set(name, []);
 				series.get(name).push(r);
@@ -935,6 +943,9 @@ async function viewRecordings(main) {
 			shelves.push(shelf("Movies", movies.map(tile)));
 		if (series.size)
 			shelves.push(shelf("Series", [...series.entries()].map(([name, list]) => seriesTile(name, list))));
+		if (docs.size)
+			shelves.push(shelf("Documentaries", [...docs.entries()].map(([name, list]) =>
+				name.startsWith("\u0000") ? tile(list[0]) : seriesTile(name, list))));
 		shelves.push(...named.map(([k, list]) => shelf(k, list.map(tile))));
 		if (groups.has(""))
 			shelves.push(shelf("Other", groups.get("").map(tile)));

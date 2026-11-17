@@ -3003,6 +3003,9 @@ Json::Value recording_json(const std::string &rel)
 		v["genre"] = GetGenre(e.genre & 0xf0);
 		if (e.genre & 0x0f)
 			v["genre_detail"] = GetGenre(e.genre);
+		/* education and science, or the documentary of the news group */
+		if ((e.genre >> 4) == 0x9 || e.genre == 0x23)
+			v["documentary"] = true;
 	}
 	v["time"] = (Json::Int64) e.time;
 	v["size"] = Json::UInt64(e.size);
