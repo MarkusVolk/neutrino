@@ -39,11 +39,16 @@ export function trx(key, nodes) {
 		.map((part) => { const m = part.match(/^\{(\w+)\}$/); return m && m[1] in nodes ? nodes[m[1]] : part; });
 }
 
+/* an error of the API in the language of the box where it has words for
+ * the code, else as the API put it */
 export class ApiError extends Error {
 	constructor(status, problem) {
-		super(problem.detail || problem.title || `HTTP ${status}`);
+		const code = (problem.type || "").replace("/errors/", "");
+		const own = texts[`error.${code.replace(/-/g, "_")}`];
+		super(own || problem.detail || problem.title || `HTTP ${status}`);
 		this.status = status;
-		this.code = (problem.type || "").replace("/errors/", "");
+		this.code = code;
+		this.problem = problem;
 	}
 }
 

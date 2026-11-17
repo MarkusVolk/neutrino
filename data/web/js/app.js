@@ -135,7 +135,7 @@ async function record(channel, ev) {
 		/* the box sees no tuner for it beside the timers there are, as its own menus ask */
 		if (!(e instanceof ApiError && e.code === "timer-conflict"))
 			throw e;
-		const what = e.message.replace(/^overlaps with /, "");
+		const what = (e.problem.conflicts || []).map((c) => `"${c.title}" ${hm(c.start)}-${hm(c.stop)}`).join(", ");
 		if (!await confirmDialog(tr("timer.conflict", { title: ev.title, other: what }), tr("timer.set_anyway")))
 			return null;
 		r = await api("timers", { method: "POST", body: { ...body, force: true } });

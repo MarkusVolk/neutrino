@@ -199,9 +199,12 @@ const char *status_title(int status)
 	}
 }
 
-void problem(yapi::Response &out, int status, const std::string &code, const std::string &detail)
+/* extra: members that tell the web interface what the detail says in
+   English, for its own words */
+void problem(yapi::Response &out, int status, const std::string &code, const std::string &detail,
+	     const Json::Value &extra = Json::Value(Json::objectValue))
 {
-	Json::Value v(Json::objectValue);
+	Json::Value v = extra;
 	v["type"] = "/errors/" + code;
 	v["title"] = status_title(status);
 	v["status"] = status;
@@ -1646,6 +1649,8 @@ void ep_timer_new(Call &c)
 		CTimerd::TimerList conflicts = timerConflicts(start, stop, channel);
 		if (!conflicts.empty()) {
 			std::string detail;
+			Json::Value extra(Json::objectValue);
+			extra["conflicts"] = Json::Value(Json::arrayValue);
 			for (size_t i = 0; i < conflicts.size(); i++) {
 				char span[32];
 				struct tm a, b;
@@ -1656,8 +1661,13 @@ void ep_timer_new(Call &c)
 				strftime(span, sizeof(span), "%H:%M", &b);
 				std::string what = conflicts[i].epgTitle[0] ? conflicts[i].epgTitle : kind_name(conflicts[i].eventType);
 				detail += (detail.empty() ? "overlaps with " : ", ") + std::string("\"") + what + "\" " + from + "-" + span;
+				Json::Value one(Json::objectValue);
+				one["title"] = what;
+				one["start"] = (Json::Int64) conflicts[i].alarmTime;
+				one["stop"] = (Json::Int64) conflicts[i].stopTime;
+				extra["conflicts"].append(one);
 			}
-			problem(c.out, 409, "timer-conflict", detail);
+			problem(c.out, 409, "timer-conflict", detail, extra);
 			return;
 		}
 	}
