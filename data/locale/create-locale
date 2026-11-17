@@ -98,12 +98,10 @@ check_locale() {
 
 sort_locale() {
 	local l
-	local tmp
 
+	# in place: the file keeps its mode, a temporary file would come with 0600
 	for l in "${locale_files[@]}"; do
-		tmp=$(mktemp "${l}.XXXXXX")
-		LC_ALL=C sort -k1,1 "${l}" > "${tmp}"
-		mv "${tmp}" "${l}"
+		LC_ALL=C sort -k1,1 -o "${l}" "${l}"
 	done
 }
 
