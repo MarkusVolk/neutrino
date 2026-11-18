@@ -27,6 +27,7 @@
 #include <config.h>
 #endif
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <climits>
@@ -249,7 +250,7 @@ Font::Font(FBFontRenderClass *render, FTC_FaceID faceid, const int isize, const 
 	scaler.y_res   = render->yres;
 
 	setSize(isize);
-	fg_red = 0, fg_green = 0, fg_blue = 0;
+	fg_pixel = 0;
 	memset((void*)colors, '\0', sizeof(colors));
 	colors_bg = colors_fg = 0;
 	colors_valid = false;
@@ -501,35 +502,42 @@ static std::string fribidi_shape_char(const char * text)
 }
 #endif
 
+/* Light adds up in linear values, not in the framebuffer's. Mixed there,
+ * the half covered pixels at the edge of a light glyph on a dark ground
+ * come out too dark and thin it, and those of a dark one too light. The
+ * tables keep the conversion out of the loops. */
+static struct LinearLight
+{
+	uint16_t to[256];
+	uint8_t from[4096];
+	LinearLight()
+	{
+		for (int i = 0; i < 256; i++)
+			to[i] = (uint16_t)lroundf(powf(i / 255.0f, 2.2f) * 4095.0f);
+		for (int i = 0; i < 4096; i++)
+			from[i] = (uint8_t)lroundf(powf(i / 4095.0f, 1.0f / 2.2f) * 255.0f);
+	}
+} linear;
+
+/* A pixel of a glyph: the text's colour on the ground it is painted on, by
+ * the part of the pixel the glyph covers, of 256. Each counts by its
+ * alpha as in CFrameBuffer::mixPixel(), so text on a transparent ground
+ * keeps its colour and gets the cover as alpha. */
+static fb_pixel_t mixText(const fb_pixel_t ground, const fb_pixel_t text, const unsigned int part)
+{
+	const unsigned int wg = (256 - part) * (ground >> 24), wt = part * 255;
+	const unsigned int w = wg + wt, alpha = (w + 128) >> 8;
+	if (!alpha)
+		return 0;
+	fb_pixel_t mix = alpha << 24;
+	for (int shift = 0; shift < 24; shift += 8)
+		mix |= (fb_pixel_t)linear.from[(wg * linear.to[(ground >> shift) & 0xff] + wt * linear.to[(text >> shift) & 0xff]) / w] << shift;
+	return mix;
+}
+
 void Font::paintFontPixel(fb_pixel_t *td, uint8_t src)
 {
-#define DST_BLUE  0x80
-#define DST_GREEN 0x80
-#define DST_RED   0x80
-#define DST_TRANS 0x80
-	if (useFullBG) {
-		uint8_t *dst = (uint8_t *)td;
-		if (*td == (fb_pixel_t)0) {
-			*dst = DST_BLUE  + ((fg_blue  - DST_BLUE)  * src) / 256;
-			dst++;
-			*dst = DST_GREEN + ((fg_green - DST_GREEN) * src) / 256;
-			dst++;
-			*dst = DST_RED   + ((fg_red   - DST_RED)   * src) / 256;
-			dst++;
-			*dst = (uint8_t)int_min(255, DST_TRANS + src);
-		}
-		else {
-			*dst = *dst + ((fg_blue  - *dst) * src) / 256;
-			dst++;
-			*dst = *dst + ((fg_green - *dst) * src) / 256;
-			dst++;
-			*dst = *dst + ((fg_red   - *dst) * src) / 256;
-			dst++;
-			*dst = (uint8_t)int_min(0xFF, *dst + src);
-		}
-	}
-	else
-		*td = colors[src];
+	*td = useFullBG ? mixText(*td, fg_pixel, src) : colors[src];
 }
 
 void Font::RenderString(int x, int y, const int width, const char *text, const fb_pixel_t color, const int boxheight, const unsigned int flags, fb_pixel_t *buffer, int _stride)
@@ -632,9 +640,7 @@ void Font::RenderString(int x, int y, const int width, const char *text, const f
 	FT_Vector kerning;
 	int pen1 = -1; // "pen" positions for kerning, pen2 is "x"
 
-	fg_red     = (color & 0x00FF0000) >> 16;
-	fg_green   = (color & 0x0000FF00) >>  8;
-	fg_blue    = color  & 0x000000FF;
+	fg_pixel = color | 0xFF000000;
 	fb_pixel_t bg_color = 0;
 
 	if (y < 0)
@@ -653,20 +659,9 @@ void Font::RenderString(int x, int y, const int width, const char *text, const f
 		if (x >= 0 && x < buf_width && y < max_y)
 			bg_color = *(buff + x + y * stride / sizeof(fb_pixel_t));
 
-		if (bg_color == (fb_pixel_t)0)
-			bg_color = 0x80808080;
-
 		if (!colors_valid || colors_bg != bg_color || colors_fg != color) {
-			uint8_t bg_trans = (bg_color & 0xFF000000) >> 24;
-			uint8_t bg_red   = (bg_color & 0x00FF0000) >> 16;
-			uint8_t bg_green = (bg_color & 0x0000FF00) >>  8;
-			uint8_t bg_blue  =  bg_color & 0x000000FF;
-			for (int i = 0; i < 256; i++) {
-				colors[i] = (((int_min(0xFF, bg_trans + i))           << 24) & 0xFF000000) |
-					    (((bg_red  +((fg_red  -bg_red)  * i)/256) << 16) & 0x00FF0000) |
-					    (((bg_green+((fg_green-bg_green)* i)/256) <<  8) & 0x0000FF00) |
-					     ((bg_blue +((fg_blue -bg_blue) * i)/256)        & 0x000000FF);
-			}
+			for (int i = 0; i < 256; i++)
+				colors[i] = mixText(bg_color, fg_pixel, i);
 			colors_bg = bg_color;
 			colors_fg = color;
 			colors_valid = true;

@@ -263,6 +263,21 @@ class CFrameBuffer : public sigc::trackable
 				mix |= ((wa * ((a >> shift) & 0xff) + wb * ((b >> shift) & 0xff) + w / 2) / w) << shift;
 			return mix;
 		}
+		/* a pixel laid over another one by its alpha */
+		static inline fb_pixel_t overPixel(const fb_pixel_t under, const fb_pixel_t over)
+		{
+			const unsigned int ao = over >> 24;
+			if (ao == 0xff)
+				return over;
+			if (!ao)
+				return under;
+			const unsigned int wo = ao * 255, wu = (under >> 24) * (255 - ao);
+			const unsigned int w = wo + wu;
+			fb_pixel_t pix = ((w + 127) / 255) << 24;
+			for (int shift = 0; shift < 24; shift += 8)
+				pix |= ((wo * ((over >> shift) & 0xff) + wu * ((under >> shift) & 0xff) + w / 2) / w) << shift;
+			return pix;
+		}
 
 		fb_pixel_t* paintBoxRel(const int x, const int y, const int dx, const int dy, const fb_pixel_t col, gradientData_t *gradientData, int radius = 0, int type = CORNER_ALL);
 
