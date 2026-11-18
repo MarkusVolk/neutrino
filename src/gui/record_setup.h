@@ -55,4 +55,16 @@ class CRecordSetup : public CMenuTarget, public CChangeObserver
 		bool changeNotify(const neutrino_locale_t OptionName, void * /*data*/);
 };
 
+/* the series timers: the rules that record every broadcast of a title, to
+   look at and to delete */
+class CSeriesTimerMenu : public CMenuTarget
+{
+	private:
+		bool removed;
+
+	public:
+		CSeriesTimerMenu() : removed(false) {}
+		int exec(CMenuTarget *parent, const std::string &actionKey);
+};
+
 #endif

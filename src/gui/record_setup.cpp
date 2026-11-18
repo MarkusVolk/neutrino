@@ -41,6 +41,8 @@
 #include "record_setup.h"
 #include <gui/filebrowser.h>
 #include <gui/followscreenings.h>
+#include <zapit/getservices.h>
+#include <system/series_timers.h>
 
 #include <gui/widget/icons.h>
 #include <gui/widget/menue_options.h>
@@ -336,6 +338,12 @@ void CRecordSetup::showRecordTimerSetup(CMenuWidget *menu_timersettings)
 	CMenuOptionChooser* followscreenings = new CMenuOptionChooser(LOCALE_TIMERSETTINGS_FOLLOWSCREENINGS, &g_settings.timer_followscreenings, timer_followscreenings_options, timer_followscreenings_options_count, true);
 	followscreenings->setHint("", LOCALE_MENU_HINT_TIMER_FOLLOWSCREENINGS);
 	menu_timersettings->addItem(followscreenings);
+
+	//the rules that record every episode of a series
+	static CSeriesTimerMenu series_menu;
+	CMenuForwarder *series = new CMenuForwarder(LOCALE_TIMER_SERIES, true, NULL, &series_menu);
+	series->setHint("", LOCALE_MENU_HINT_TIMER_SERIES);
+	menu_timersettings->addItem(series);
 }
 
 
@@ -422,4 +430,35 @@ bool CRecordSetup::changeNotify(const neutrino_locale_t OptionName, void * /*dat
 				(g_settings.recording_audio_pids_ac3 ? TIMERD_APIDS_AC3 : 0));
 	}
 	return false;
+}
+
+int CSeriesTimerMenu::exec(CMenuTarget *parent, const std::string &actionKey)
+{
+	if (!actionKey.empty()) {
+		if (ShowMsg(LOCALE_TIMER_SERIES, LOCALE_TIMER_SERIES_DELETE_ASK, CMsgBox::mbrNo, CMsgBox::mbYes | CMsgBox::mbNo) != CMsgBox::mbrYes)
+			return menu_return::RETURN_REPAINT;
+		series_timers::remove(actionKey);
+		/* the list is made anew without it */
+		removed = true;
+		return menu_return::RETURN_EXIT;
+	}
+	if (parent)
+		parent->hide();
+	int res;
+	do {
+		removed = false;
+		CMenuWidget m(LOCALE_TIMER_SERIES, NEUTRINO_ICON_SETTINGS);
+		m.addIntroItems();
+		std::vector<series_timers::rule> rules = series_timers::list();
+		for (size_t i = 0; i < rules.size(); i++) {
+			std::string channel = CServiceManager::getInstance()->GetServiceName(rules[i].channel_id);
+			CMenuForwarder *item = new CMenuForwarder(rules[i].title, true, channel, this, rules[i].id.c_str());
+			item->setHint("", LOCALE_MENU_HINT_TIMER_SERIES);
+			m.addItem(item);
+		}
+		if (rules.empty())
+			m.addItem(new CMenuForwarder(LOCALE_TIMER_SERIES_NONE, false));
+		res = m.exec(NULL, "");
+	} while (removed);
+	return res;
 }
