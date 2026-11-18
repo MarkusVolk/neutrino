@@ -891,6 +891,7 @@ int CEpgData::show(const t_channel_id channel_id, uint64_t a_id, time_t* a_start
 
 	COSDFader fader(g_settings.theme.menu_Content_alpha);
 	fader.StartFadeIn();
+	CVideoDim dim(this);
 
 	// show the epg
 	// header + logo

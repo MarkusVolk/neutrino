@@ -370,6 +370,7 @@ int CMsgBox::exec()
 
 	CRemoteUi::Guard remote_guard(this);
 	remote_answered = false;
+	CVideoDim dim(this);
 
 	bool loop = true;
 	while (loop)

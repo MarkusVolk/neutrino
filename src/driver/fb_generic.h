@@ -478,4 +478,15 @@ class CFrameBuffer : public sigc::trackable
 		const char *fb_name;
 };
 
+/* darkens the picture behind a window for as long as it lives, see
+ * CFrameBuffer::addDim() */
+class CVideoDim
+{
+	private:
+		const void *owner;
+	public:
+		CVideoDim(const void *_owner) : owner(_owner) { CFrameBuffer::getInstance()->addDim(owner); }
+		~CVideoDim() { CFrameBuffer::getInstance()->removeDim(owner); }
+};
+
 #endif
