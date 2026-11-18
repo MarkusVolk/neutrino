@@ -480,6 +480,7 @@ colormenu.shadow_color Shadow color
 colormenu.textcolor Text color
 colormenu.themeselect Select theme
 colormenu.timing Timeouts, display behavior
+colormenu.video_dim Dim picture behind menus
 colormenusetup.menucontent Content
 colormenusetup.menucontent_inactive Content inactive
 colormenusetup.menucontent_selected Content selected
@@ -1988,6 +1989,7 @@ menu.hint_video_brightness Change picture brightness
 menu.hint_video_cinch_mode Select analog output mode for\ncomposite video out
 menu.hint_video_contrast Change picture contrast
 menu.hint_video_dbdr MPEG2 enhancement filters
+menu.hint_video_dim How much the TV picture is darkened while a menu is open; 0 turns it off
 menu.hint_video_format TV aspect ratio
 menu.hint_video_hdmi_colorimetry Selects the color profile for HDMI output
 menu.hint_video_mode HDMI output video mode

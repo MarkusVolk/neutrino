@@ -196,6 +196,9 @@ struct SNeutrinoTheme
 
 	// details line in menu and lists
 	int show_menu_hints_line;
+
+	// how dark the picture is behind the menus, in percent
+	int video_dim;
 };
 
 struct timer_remotebox_item

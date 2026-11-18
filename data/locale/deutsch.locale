@@ -480,6 +480,7 @@ colormenu.shadow_color Schattenfarbe
 colormenu.textcolor Textfarbe
 colormenu.themeselect Theme auswählen
 colormenu.timing Timeouts, Anzeigeverhalten
+colormenu.video_dim Bild hinter Menüs abdunkeln
 colormenusetup.menucontent Fensterinhalt
 colormenusetup.menucontent_inactive Fensterinhalt deaktiviert
 colormenusetup.menucontent_selected Fensterinhalt selektiert
@@ -1988,6 +1989,7 @@ menu.hint_video_brightness Ändert die Helligkeit
 menu.hint_video_cinch_mode Wählen Sie den Modus des Ausgangssignals für den Composite-Video-Anschluss
 menu.hint_video_contrast Ändert den Kontrast
 menu.hint_video_dbdr Verwendeter MPEG2 Filter
+menu.hint_video_dim Wie stark das Fernsehbild abgedunkelt wird, solange ein Menü offen ist; 0 schaltet es aus
 menu.hint_video_format Wählen Sie das Bildschirmformat ihres Fernsehgerätes
 menu.hint_video_hdmi_colorimetry Wählt das Farbprofil für die HDMI Ausgabe
 menu.hint_video_mode Wählen Sie den Modus des Ausgangssignals für den HDMI-Anschluss

@@ -480,6 +480,7 @@ colormenu.shadow_color Farba tieňa
 colormenu.textcolor Farba textu
 colormenu.themeselect Výber tém
 colormenu.timing Čas zobrazenia OSD
+colormenu.video_dim Stmaviť obraz za menu
 colormenusetup.menucontent Obsahové okno
 colormenusetup.menucontent_inactive Neaktívne v obsahovom okne
 colormenusetup.menucontent_selected Vybrané v obsahovom okne
@@ -1988,6 +1989,7 @@ menu.hint_video_brightness Zmena jasu obrazu
 menu.hint_video_cinch_mode Výber režimu analógového výstupu pre\nkompozitný obrazový výstup
 menu.hint_video_contrast Zmena kontrastu obrazu
 menu.hint_video_dbdr MPEG2 rozšírené filtre
+menu.hint_video_dim O koľko sa stmaví televízny obraz, kým je otvorené menu; 0 = vypnuté
 menu.hint_video_format Pomer TV obrazu
 menu.hint_video_hdmi_colorimetry Výber farebného profilu pre výstup HDMI
 menu.hint_video_mode Obrazový režim HDMI výstupu

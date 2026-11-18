@@ -175,10 +175,14 @@ class CFbAccelGLFB
 		bool blit_wanted;
 		/* what mark() was told since the last blit; empty when xe <= xs */
 		int damage[4];
+		/* goes out with the next blit, so that the picture gets dark in the
+		 * frame that shows the menu */
+		int dim;
 		OpenThreads::Condition blit_cond;
 		OpenThreads::Mutex blit_mutex;
 		fb_pixel_t *backbuffer;
 		void shadowShown() { blit(); }
+		void setDim(int percent);
 	public:
 		CFbAccelGLFB();
 		~CFbAccelGLFB();

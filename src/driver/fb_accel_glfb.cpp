@@ -53,6 +53,7 @@ CFbAccelGLFB::CFbAccelGLFB()
 	fb_name = "GL ramebuffer";
 	blit_wanted = false;
 	memset(damage, 0, sizeof(damage));
+	dim = 0;
 }
 
 void CFbAccelGLFB::init(const char *)
@@ -164,9 +165,12 @@ void CFbAccelGLFB::run()
 		memset(damage, 0, sizeof(damage));
 		blit_wanted = false;
 		blit_pending = false;
+		const int dim_now = dim;
 		blit_mutex.unlock();
-		if (glfb)
+		if (glfb) {
+			glfb->setDim(dim_now);
 			glfb->blit(known ? rect : NULL);
+		}
 		blit_mutex.lock();
 		if (!known)
 			last_full = now;
@@ -182,6 +186,16 @@ void CFbAccelGLFB::blit()
 	blit_wanted = true;
 	blit_cond.signal();
 	blit_mutex.unlock();
+}
+
+void CFbAccelGLFB::setDim(int percent)
+{
+	OpenThreads::ScopedLock<OpenThreads::Mutex> lock(blit_mutex);
+	if (dim == percent)
+		return;
+	dim = percent;
+	blit_wanted = true;
+	blit_cond.signal();
 }
 
 void CFbAccelGLFB::mark(int xs, int ys, int xe, int ye)

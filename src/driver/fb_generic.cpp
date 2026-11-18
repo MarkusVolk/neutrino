@@ -1707,6 +1707,12 @@ void CFrameBuffer::paintBackground()
 	}
 	checkFbArea(0, 0, xRes, yRes, false);
 	mark(0, 0, xRes, yRes);
+	{
+		/* nothing is up any more */
+		std::lock_guard<std::mutex> lock(dim_mutex);
+		dim_owners.clear();
+		setDim(0);
+	}
 }
 
 void CFrameBuffer::SaveScreen(int x, int y, int dx, int dy, fb_pixel_t * const memp)
@@ -2187,6 +2193,22 @@ bool CFrameBuffer::_checkFbArea(const int& _x, const int& _y, const int& _dx, co
 /* dummy, can be implemented in CFbAccel */
 void CFrameBuffer::mark(int , int , int , int )
 {
+}
+
+void CFrameBuffer::addDim(const void *owner)
+{
+	std::lock_guard<std::mutex> lock(dim_mutex);
+	if (std::find(dim_owners.begin(), dim_owners.end(), owner) == dim_owners.end())
+		dim_owners.push_back(owner);
+	setDim(g_settings.theme.video_dim);
+}
+
+void CFrameBuffer::removeDim(const void *owner)
+{
+	std::lock_guard<std::mutex> lock(dim_mutex);
+	dim_owners.erase(std::remove(dim_owners.begin(), dim_owners.end(), owner), dim_owners.end());
+	if (dim_owners.empty())
+		setDim(0);
 }
 
 void CFrameBuffer::addOverlay(const void *owner, int x, int y, int dx, int dy)

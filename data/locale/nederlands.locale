@@ -480,6 +480,7 @@ colormenu.shadow_color Schaduwkleur
 colormenu.textcolor Tekst kleur
 colormenu.themeselect Selecteer thema
 colormenu.timing Timeouts, weergavegedrag
+colormenu.video_dim Beeld achter menu's dimmen
 colormenusetup.menucontent Vensterinhoud
 colormenusetup.menucontent_inactive Inactieve content
 colormenusetup.menucontent_selected Geselecteerde content
@@ -1988,6 +1989,7 @@ menu.hint_video_brightness Wijzig helderheid van beeld
 menu.hint_video_cinch_mode Selecteer analoge output modus voor\ncomposiet video uitgang
 menu.hint_video_contrast Wijzig contrast van beeld
 menu.hint_video_dbdr Gebruikt MPEG2-filter
+menu.hint_video_dim Hoe sterk het tv-beeld wordt gedimd zolang een menu open is; 0 schakelt het uit
 menu.hint_video_format Kies de beeldverhouding van uw televisie
 menu.hint_video_hdmi_colorimetry Kiest het kleurprofiel voor de HDMI-uitgang
 menu.hint_video_mode HDMI output video modus

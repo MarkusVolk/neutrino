@@ -1026,6 +1026,12 @@ void COsdSetup::showOsdMenueColorSetup(CMenuWidget *menu_colors)
 	oj->OnAfterChangeOption.connect(sigc::mem_fun(menu_colors, &CMenuWidget::hide));
 	oj->setHint("", LOCALE_MENU_HINT_ROUNDED_CORNERS);
 	menu_colors->addItem(oj);
+
+	// the picture behind the menus
+	CMenuOptionNumberChooser *nc = new CMenuOptionNumberChooser(LOCALE_COLORMENU_VIDEO_DIM, &g_settings.theme.video_dim, true, 0, 80);
+	nc->setNumberFormat("%d%%");
+	nc->setHint("", LOCALE_MENU_HINT_VIDEO_DIM);
+	menu_colors->addItem(nc);
 }
 
 /* for font size setup */

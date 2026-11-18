@@ -764,6 +764,7 @@ CMenuWidget::~CMenuWidget()
 {
 	/* the registry must not keep a pointer to an object that is going away */
 	frameBuffer->removeOverlay(this);
+	frameBuffer->removeDim(this);
 	resetWidget(true);
 	ResetModules();
 }
@@ -1477,6 +1478,7 @@ void CMenuWidget::hide()
 	/* setActive() paints item for hidden parent menu, if called from child menu */
 	for (unsigned int count = 0; count < items.size(); count++) 
 		items[count]->init(-1, 0, 0, 0);
+	frameBuffer->removeDim(this);
 	hint_painted	= false;
 	washidden = true;
 	if (CInfoClock::getInstance()->isRun())
@@ -1702,8 +1704,10 @@ void CMenuWidget::paint()
 
 	calcSize();
 
-	if (!remote_path::hidden())
+	if (!remote_path::hidden()) {
 		CVFD::getInstance()->setMode(CVFD::MODE_MENU_UTF8 /*, nameString.c_str()*/);
+		frameBuffer->addDim(this);
+	}
 
 
 	/* prepare footer:

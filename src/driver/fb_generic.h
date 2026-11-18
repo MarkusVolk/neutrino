@@ -96,6 +96,11 @@ class CFrameBuffer : public sigc::trackable
 		};
 		std::vector<overlay_t> overlays;
 		std::mutex overlays_mutex;
+		std::vector<const void *> dim_owners;
+		std::mutex dim_mutex;
+		/* the picture behind the OSD that much darker, in percent, for a
+		 * display that can do it */
+		virtual void setDim(int) {}
 
 		struct rgbData
 		{
@@ -369,6 +374,13 @@ class CFrameBuffer : public sigc::trackable
 		 * isObscured() first and skip the paint; the next update draws normally
 		 * once the overlay is gone.
 		 */
+		/*
+		 * Windows that want the picture behind the OSD darkened while they
+		 * are up, by the theme's video_dim. Each owner counts once;
+		 * paintBackground() lets go of all of them.
+		 */
+		void addDim(const void *owner);
+		void removeDim(const void *owner);
 		void addOverlay(const void *owner, int x, int y, int dx, int dy);
 		void removeOverlay(const void *owner);
 		bool isObscured(int x, int y, int dx, int dy);

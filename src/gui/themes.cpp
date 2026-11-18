@@ -465,6 +465,7 @@ void CThemes::setTheme(CConfigFile &configfile)
 
 	// corners
 	configfile.setInt32( "rounded_corners", t.rounded_corners);
+	configfile.setInt32( "video_dim", t.video_dim);
 
 	// message frames
 	configfile.setInt32( "message_frame_enable", t.message_frame_enable);
@@ -614,6 +615,7 @@ void CThemes::getTheme(CConfigFile &configfile)
 
 	// corners
 	t.rounded_corners = configfile.getInt32( "rounded_corners", 0);
+	t.video_dim = configfile.getInt32( "video_dim", 30);
 
 	// message frames
 	t.message_frame_enable = configfile.getInt32( "message_frame_enable", 0);
