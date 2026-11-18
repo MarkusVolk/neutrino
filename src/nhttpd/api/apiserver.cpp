@@ -3030,6 +3030,8 @@ Json::Value recording_json(const std::string &rel)
 	v["length"] = e.length;
 	if (!e.serie.empty())
 		v["serie"] = e.serie;
+	if (e.episode)
+		v["episode"] = true;
 	/* the group as the shelf of the wall, the kind within it for the tile */
 	if (e.genre >= 0x10 && e.genre < 0xb0) {
 		v["genre_class"] = e.genre >> 4;

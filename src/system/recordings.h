@@ -39,6 +39,7 @@ namespace recordings
 		int length;		// minutes
 		int genre;		// DVB content: class in the high nibble, 0 if unknown
 		std::string serie;	// the series it is an episode of
+		bool episode;		// the EPG numbers it as an episode ("Staffel 2, Folge 5", "S01E02")
 		time_t time;
 		uint64_t size;
 		bool cover;

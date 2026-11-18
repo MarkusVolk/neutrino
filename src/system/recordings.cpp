@@ -123,6 +123,59 @@ bool recordings::busy(const std::string &path)
 	return stat(path.c_str(), &st) == 0 && time(NULL) - st.st_mtime < 30;
 }
 
+/* whether the EPG numbers a programme as an episode: "Staffel 2, Folge 5",
+   "Folge 1234", "Episode 7", "S17E4", or a part "(12)" of the second title;
+   DVB has no mark for a series, so this is what tells one */
+static bool numbered(const std::string &info1, const std::string &info2)
+{
+	const char *words[] = { "staffel", "folge", "episode", "season" };
+	for (const std::string *text : { &info1, &info2 }) {
+		std::string t = *text;
+		for (size_t i = 0; i < t.size(); i++)
+			t[i] = tolower((unsigned char) t[i]);
+		for (const char *w : words) {
+			size_t len = strlen(w);
+			for (size_t at = t.find(w); at != std::string::npos; at = t.find(w, at + len)) {
+				size_t d = at + len;
+				while (d < t.size() && t[d] == ' ')
+					d++;
+				if ((at == 0 || !isalnum((unsigned char) t[at - 1])) && d > at + len && d < t.size() && isdigit((unsigned char) t[d]))
+					return true;
+			}
+		}
+		for (size_t at = 0; at + 3 < t.size(); at++) {
+			if (t[at] != 's' || (at > 0 && isalnum((unsigned char) t[at - 1])) || !isdigit((unsigned char) t[at + 1]))
+				continue;
+			size_t e = at + 1;
+			while (e < t.size() && isdigit((unsigned char) t[e]))
+				e++;
+			while (e < t.size() && t[e] == ' ')
+				e++;
+			if (e + 1 < t.size() && t[e] == 'e' && isdigit((unsigned char) t[e + 1]))
+				return true;
+		}
+	}
+	/* "(12) ║ Der Fall X": a number alone as one part of the second title */
+	std::string parts = info1;
+	for (size_t at = parts.find("\xe2\x95\x91"); at != std::string::npos; at = parts.find("\xe2\x95\x91"))	/* ║ */
+		parts.replace(at, 3, "|");
+	for (size_t start = 0; start <= parts.size();) {
+		size_t end = parts.find('|', start);
+		std::string part = parts.substr(start, end == std::string::npos ? std::string::npos : end - start);
+		size_t a = part.find_first_not_of(' '), b = part.find_last_not_of(' ');
+		if (a != std::string::npos) {
+			part = part.substr(a, b - a + 1);
+			if (part.size() > 2 && part.front() == '(' && part.back() == ')'
+			    && part.find_first_not_of("0123456789", 1) == part.size() - 1)
+				return true;
+		}
+		if (end == std::string::npos)
+			break;
+		start = end + 1;
+	}
+	return false;
+}
+
 recordings::entry recordings::describe(const std::string &rel)
 {
 	std::string path = dir() + "/" + rel;
@@ -144,6 +197,7 @@ recordings::entry recordings::describe(const std::string &rel)
 	e.length = have_info ? mi.length : 0;
 	e.genre = have_info ? mi.genreMajor : 0;
 	e.serie = have_info ? mi.serieName : "";
+	e.episode = have_info && numbered(mi.epgInfo1, mi.epgInfo2);
 	e.time = st.st_mtime;
 	e.size = st.st_size;
 	std::string cover = without_ts(path) + ".jpg";
