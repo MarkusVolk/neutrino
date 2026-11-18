@@ -253,6 +253,22 @@ static bool zapper_ready = false;
 /* the saved EPG is on a drive Neutrino has not mounted yet */
 static bool epg_read_pending = false;
 static std::vector<std::pair<neutrino_msg_t, neutrino_msg_data_t> > early_timer_msgs;
+/* Recordings that are due right after the start, while the record drive is
+   not mounted yet: Neutrino mounts it itself, an USB drive some thirty
+   seconds on. They wait for the drive instead of failing on a directory
+   that is not there yet, but not longer than RECORD_DRIVE_WAIT. */
+#define RECORD_DRIVE_WAIT 90
+static std::vector<std::pair<neutrino_msg_t, neutrino_msg_data_t> > late_record_msgs;
+static time_t zapper_ready_at = 0;
+static uint32_t record_drive_timer = 0;
+
+static bool recordDriveAwaited(const CTimerd::RecordingInfo *info)
+{
+	if (!zapper_ready_at || time_monotonic() - zapper_ready_at >= RECORD_DRIVE_WAIT)
+		return false;
+	const char *dir = info->recordingDir[0] ? info->recordingDir : g_settings.network_nfs_recordingdir.c_str();
+	return check_dir(dir) != 0;
+}
 
 CBouquetList   * AllFavBouquetList;
 
@@ -3443,6 +3459,7 @@ TIMER_START();
 
 	InitZapper();
 	zapper_ready = true;
+	zapper_ready_at = time_monotonic();
 	/* once the saved guide is read; new EPG and a late drive look again */
 	series_timers::kick(180);
 
@@ -4406,6 +4423,15 @@ int CNeutrinoApp::handleMsg(const neutrino_msg_t _msg, neutrino_msg_data_t data)
 		early_timer_msgs.push_back(std::make_pair(msg, data));
 		return messages_return::handled;
 	}
+	if (msg == NeutrinoMessages::RECORD_START && recordDriveAwaited((CTimerd::RecordingInfo *) data)) {
+		printf("[neutrino] recording waits for the record drive\n");
+		late_record_msgs.push_back(std::make_pair(msg, data));
+		if (!record_drive_timer) {
+			time_t left = RECORD_DRIVE_WAIT - (time_monotonic() - zapper_ready_at) + 1;
+			record_drive_timer = g_RCInput->addTimer((uint64_t) left * 1000 * 1000, true);
+		}
+		return messages_return::handled;
+	}
 
 	if(msg == NeutrinoMessages::EVT_WEBTV_RESTART) {
 		t_channel_id chid = *(t_channel_id *) data;
@@ -4570,6 +4596,12 @@ int CNeutrinoApp::handleMsg(const neutrino_msg_t _msg, neutrino_msg_data_t data)
 			// periodic safety re-check: resolve a deferred deep-standby once
 			// no recording/record timer remains (also catches deleted timers)
 			tryDeferredDeepStandby();
+			return messages_return::handled;
+		}
+		if (record_drive_timer && data == record_drive_timer) {
+			/* waited long enough: they start now, or fail as they would have */
+			record_drive_timer = 0;
+			startLateRecordings();
 			return messages_return::handled;
 		}
 		if(webchannels_retry_timer && data == webchannels_retry_timer) {
@@ -5624,6 +5656,25 @@ void CNeutrinoApp::readEpgLate()
 	epg_read_pending = false;
 	g_Sectionsd->readSIfromXML(g_settings.epg_dir.c_str());
 	series_timers::kick(120);
+}
+
+/* the recordings that waited for the record drive, once a drive event has
+   brought their directory or the wait is over */
+void CNeutrinoApp::startLateRecordings()
+{
+	if (late_record_msgs.empty())
+		return;
+	if (record_drive_timer && recordDriveAwaited((CTimerd::RecordingInfo *) late_record_msgs[0].second))
+		return;
+	if (record_drive_timer) {
+		g_RCInput->killTimer(record_drive_timer);
+		record_drive_timer = 0;
+	}
+	std::vector<std::pair<neutrino_msg_t, neutrino_msg_data_t> > msgs;
+	msgs.swap(late_record_msgs);
+	for (size_t i = 0; i < msgs.size(); i++)
+		if (!g_RCInput->postMsg(msgs[i].first, msgs[i].second, false))
+			delete[] (unsigned char*) msgs[i].second;
 }
 
 void CNeutrinoApp::saveEpg(int _mode)
