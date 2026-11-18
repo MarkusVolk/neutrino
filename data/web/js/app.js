@@ -881,50 +881,54 @@ async function viewRecordings(main) {
 		r.busy ? h("span", { class: "badge live" }, "REC") : null,
 		h("span", { class: "caption" }, r.serie || r.title),
 		h("span", { class: "dim small" }, episodeName(r) || `${day(r.time)} ${hm(r.time)}`));
-	/* a series: named so (by TMDB or by hand), a title recorded more than
-	   once, or fiction too short for a film */
-	const seriesOf = (r, count) => r.serie
-		|| (count.get(r.title) > 1 ? r.title : "")
-		|| (r.genre_class === 1 && r.length > 0 && r.length < 70 ? r.title : "");
-	const episodeList = (name, list) => {
+	/* a series: named so (by TMDB or by hand), or numbered as an episode
+	   by the EPG; DVB has no other mark for one */
+	const seriesOf = (r) => r.serie || (r.episode ? r.title : "");
+	const parts = (n) => trn("recordings.parts", n);
+	const episodeList = (name, list, count = episodes) => {
 		const d = h("dialog", { class: "recording-details episodes" });
 		const close = () => d.close();
 		const pick = (r) => h("div", { class: "card recording" }, tilePicture(r),
 			h("div", {}, h("strong", {}, episodeName(r) || r.title), h("div", { class: "dim small" }, meta(r))),
 			actions(r, close));
-		d.append(h("h2", {}, name), h("div", { class: "dim small" }, episodes(list.length)),
+		d.append(h("h2", {}, name), h("div", { class: "dim small" }, count(list.length)),
 			h("div", { class: "list" }, ...list.map(pick)),
 			h("div", { class: "buttons" }, h("button", { class: "btn", onclick: close }, tr("close"))));
 		d.addEventListener("close", () => d.remove());
 		document.body.append(d);
 		d.showModal();
 	};
-	const seriesTile = (name, list) => {
+	const seriesTile = (name, list, count = episodes) => {
 		const pic = list.find((r) => r.cover && !r.cover_wide) || list.find((r) => r.cover);
-		return h("button", { class: "tile", title: name, onclick: () => episodeList(name, list) },
+		return h("button", { class: "tile", title: name, onclick: () => episodeList(name, list, count) },
 			tilePicture(pic),
 			list.some((r) => r.busy) ? h("span", { class: "badge live" }, "REC") : null,
 			h("span", { class: "caption" }, name),
-			h("span", { class: "dim small" }, episodes(list.length)));
+			h("span", { class: "dim small" }, count(list.length)));
+	};
+	/* one tile per title: the episodes of a series, or the parts and
+	   repeats of anything else, in the shelf where it belongs */
+	const titleTiles = (list) => {
+		const byTitle = new Map();
+		for (const r of list) {
+			const key = seriesOf(r) || r.title;
+			if (!byTitle.has(key))
+				byTitle.set(key, []);
+			byTitle.get(key).push(r);
+		}
+		return [...byTitle.entries()].map(([name, rs]) =>
+			rs.length === 1 ? tile(rs[0]) : seriesTile(name, rs, seriesOf(rs[0]) ? episodes : parts));
 	};
 	/* shelves as in the media libraries: the newest, films, series,
 	   documentaries (a series of them as one tile there), then one per genre,
 	   the fullest first, and what has no genre at the end */
 	const wall = () => {
 		const shelf = (title, tiles) => h("section", { class: "shelf" }, h("h2", {}, title), shelfStrip(tiles));
-		const count = new Map();
-		for (const r of items)
-			count.set(r.title, (count.get(r.title) || 0) + 1);
-		const movies = [], series = new Map(), docs = new Map(), groups = new Map();
-		const add = (map, key, r) => {
-			if (!map.has(key))
-				map.set(key, []);
-			map.get(key).push(r);
-		};
+		const movies = [], series = new Map(), docs = [], groups = new Map();
 		for (const r of items) {
-			const name = seriesOf(r, count);
+			const name = seriesOf(r);
 			if (r.documentary)
-				add(docs, name || `\u0000${r.id}`, r);
+				docs.push(r);
 			else if (name) {
 				if (!series.has(name))
 					series.set(name, []);
@@ -941,15 +945,14 @@ async function viewRecordings(main) {
 		const named = [...groups.entries()].filter(([k]) => k).sort((a, b) => b[1].length - a[1].length);
 		const shelves = [shelf(tr("wall.newest"), items.slice(0, 12).map(tile))];
 		if (movies.length)
-			shelves.push(shelf(tr("wall.movies"), movies.map(tile)));
+			shelves.push(shelf(tr("wall.movies"), titleTiles(movies)));
 		if (series.size)
 			shelves.push(shelf(tr("wall.series"), [...series.entries()].map(([name, list]) => seriesTile(name, list))));
-		if (docs.size)
-			shelves.push(shelf(tr("wall.documentaries"), [...docs.entries()].map(([name, list]) =>
-				name.startsWith("\u0000") ? tile(list[0]) : seriesTile(name, list))));
-		shelves.push(...named.map(([k, list]) => shelf(k, list.map(tile))));
+		if (docs.length)
+			shelves.push(shelf(tr("wall.documentaries"), titleTiles(docs)));
+		shelves.push(...named.map(([k, list]) => shelf(k, titleTiles(list))));
 		if (groups.has(""))
-			shelves.push(shelf(tr("wall.other"), groups.get("").map(tile)));
+			shelves.push(shelf(tr("wall.other"), titleTiles(groups.get(""))));
 		return h("div", { class: "wall" }, ...shelves);
 	};
 	const render = () => {
