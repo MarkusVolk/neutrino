@@ -499,13 +499,14 @@ bool zdfFetchToken()
 	return zdfToken.size() >= 16;
 }
 
-bool zdfPicture(const std::string &title, std::string &picture)
+/* what the search of the ZDF media library finds for a query */
+bool zdfSearch(const std::string &query, Json::Value &results)
 {
 	std::string answer;
 	for (int attempt = 0; attempt < 2 && answer.empty(); attempt++) {
 		if ((zdfToken.empty() || attempt) && !zdfFetchToken())
 			return false;
-		std::string url = "https://api.zdf.de/search/documents?limit=10&q=" + encodeUrl(title);
+		std::string url = "https://api.zdf.de/search/documents?limit=10&q=" + encodeUrl(query);
 		std::string header = "Api-Auth: Bearer " + zdfToken;
 		getUrl(url, answer, AGENT, 20, header.c_str());
 	}
@@ -513,7 +514,34 @@ bool zdfPicture(const std::string &title, std::string &picture)
 	std::string err;
 	if (answer.empty() || !parseJsonFromString(answer, &root, &err))
 		return false;
-	const Json::Value &results = root["http://zdf.de/rels/search/results"];
+	results = root["http://zdf.de/rels/search/results"];
+	return true;
+}
+
+/* the picture of one episode of a ZDF series, found by series and episode
+   title together and taken only when the episode title is the very one */
+bool zdfEpisodePicture(const std::string &series, const std::string &episode, std::string &picture)
+{
+	Json::Value results;
+	if (episode.empty() || episode.size() > 80 || !zdfSearch(series + " " + episode, results))
+		return false;
+	for (unsigned int i = 0; i < results.size(); i++) {
+		const Json::Value &t = results[i]["http://zdf.de/rels/target"];
+		if (t.get("contentType", "").asString() != "episode"
+		    || nameMatch(t.get("teaserHeadline", "").asString(), episode) < 2)
+			continue;
+		picture = t["teaserImageRef"]["layouts"].get("768x432", "").asString();
+		if (!picture.empty())
+			return true;
+	}
+	return false;
+}
+
+bool zdfPicture(const std::string &title, std::string &picture)
+{
+	Json::Value results;
+	if (!zdfSearch(title, results))
+		return false;
 	int best = 0;
 	for (unsigned int i = 0; i < results.size(); i++) {
 		const Json::Value &t = results[i]["http://zdf.de/rels/target"];
@@ -673,6 +701,12 @@ void fetch(const recording_cover::job &j)
 				source = "ARD episode";
 		}
 	}
+	/* from a ZDF channel: the picture of this episode in the library */
+	if (!source && channelWord(j.channel, zdfWord) && zdfEpisodePicture(j.title, j.episode, picture)) {
+		unlink(tmp.c_str());
+		if (downloadUrl(picture, tmp, AGENT, 30) && usable(tmp) && asJpeg(tmp))
+			source = "ZDF episode";
+	}
 	if (!source && tmdb) {
 		unlink(tmp.c_str());
 		if (downloadUrl(found.url, tmp, AGENT, 30) && usable(tmp))
@@ -741,6 +775,7 @@ void recording_cover::queue(const std::string &ts, bool running)
 	j.start = running;
 	if (info.loadMovieInfo(&mi)) {
 		j.title = mi.epgTitle;
+		j.episode = mi.epgInfo1;
 		j.channel = mi.channelName;
 		j.year = mi.productionDate;
 		j.length = mi.length;
