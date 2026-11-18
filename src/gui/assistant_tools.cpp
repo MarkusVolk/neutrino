@@ -42,6 +42,7 @@
 #include <system/helpers.h>
 #include <system/main_call.h>
 #include <system/recordings.h>
+#include <system/series_timers.h>
 #include <driver/framebuffer.h>
 #include <driver/pictureviewer/pictureviewer.h>
 #include <hardware/video.h>
@@ -137,6 +138,26 @@ static const struct
 		"tv_timer_remove",
 		"Remove a timer by its id from tv_timers.",
 		"{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"integer\"}},\"required\":[\"id\"]}"
+	},
+	{
+		"tv_series_timers",
+		"List the series timers: rules that record every coming broadcast of a title on a channel.",
+		"{\"type\":\"object\",\"properties\":{}}"
+	},
+	{
+		"tv_series_timer_add",
+		"Record every episode of a series: a rule that sets a record timer for each coming broadcast of the title on one channel, "
+		"also for those the programme guide gets later, and skips repeats of episodes recorded or planned already. "
+		"Without a channel it takes the channel of the next programme with that title.",
+		"{\"type\":\"object\",\"properties\":{"
+		"\"title\":{\"type\":\"string\",\"description\":\"the title of the series as the programme guide has it\"},"
+		"\"channel\":{\"type\":\"string\",\"description\":\"channel name or number\"}},"
+		"\"required\":[\"title\"]}"
+	},
+	{
+		"tv_series_timer_remove",
+		"Remove a series timer by its id from tv_series_timers. The timers it has set stay; remove them with tv_timer_remove.",
+		"{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"}},\"required\":[\"id\"]}"
 	},
 	{
 		"tv_volume",
@@ -860,6 +881,88 @@ static bool timer_add(const Json::Value &input, std::string &result)
 	return true;
 }
 
+static std::string series_line(const series_timers::rule &rule)
+{
+	std::string line = std::string(tr(LOCALE_TIMER_SERIES)) + " " + rule.id + ":  " + rule.title + "  " +
+			   CServiceManager::getInstance()->GetServiceName(rule.channel_id) + "  Timer: " + to_string(rule.timers);
+	if (rule.conflicts)
+	{
+		char left_out[128];
+		snprintf(left_out, sizeof(left_out), tr(LOCALE_TIMER_SERIES_CONFLICTS), rule.conflicts);
+		line += std::string("  ") + left_out;
+	}
+	return line;
+}
+
+static bool series_timers_list(std::string &result)
+{
+	std::vector<series_timers::rule> rules = series_timers::list();
+	for (size_t i = 0; i < rules.size(); i++)
+		result += series_line(rules[i]) + "\n";
+	if (rules.empty())
+		result = tr(LOCALE_TIMER_SERIES_NONE);
+	return true;
+}
+
+static bool series_timer_add(const Json::Value &input, std::string &result)
+{
+	std::string title = input["title"].isString() ? input["title"].asString() : "";
+	if (title.empty())
+	{
+		result = "title: the title of the series";
+		return false;
+	}
+	CZapitChannel *channel = NULL;
+	if (input["channel"].isString() && !input["channel"].asString().empty())
+	{
+		channel = find_channel(input["channel"].asString(), result);
+		if (!channel)
+			return false;
+	}
+	else
+	{
+		/* the channel that shows the title next */
+		CChannelEventList events;
+		std::map<t_channel_id, CZapitChannel *> known;
+		find_title(title, events, known);
+		time_t now = time(NULL);
+		for (size_t i = 0; i < events.size() && !channel; i++)
+		{
+			std::map<t_channel_id, CZapitChannel *>::iterator it = known.find(events[i].channelID & 0xFFFFFFFFFFFFULL);
+			if (it == known.end() || events[i].startTime + (time_t) events[i].duration <= now ||
+			    lower(series_timers::name(events[i].description)) != lower(series_timers::name(title)))
+				continue;
+			channel = it->second;
+		}
+		if (!channel)
+		{
+			result = tr(LOCALE_ASSISTANT_TOOL_NOTHING_FOUND);
+			return false;
+		}
+	}
+	series_timers::rule rule;
+	int added = 0;
+	if (!series_timers::add(title, channel->getChannelID(), rule, added))
+	{
+		result = rule.id.empty() ? std::string(tr(LOCALE_TIMER_SERIES_FAILED)) : "there is one already: " + series_line(rule);
+		return false;
+	}
+	result = series_line(rule) + "\ntimers set now: " + to_string(added);
+	return true;
+}
+
+static bool series_timer_remove(const Json::Value &input, std::string &result)
+{
+	std::string id = input["id"].isString() ? input["id"].asString() : "";
+	if (!series_timers::remove(id))
+	{
+		result = "no series timer with that id; tv_series_timers lists them";
+		return false;
+	}
+	result = std::string(tr(LOCALE_TIMER_SERIES)) + " " + id + " " + tr(LOCALE_ASSISTANT_TOOL_REMOVED);
+	return true;
+}
+
 static bool timer_remove(const Json::Value &input, std::string &result)
 {
 	int id = input["id"].isInt() ? input["id"].asInt() : -1;
@@ -1507,6 +1610,12 @@ bool CAssistantTools::call(const std::string &name, const Json::Value &input, st
 		return timer_add(input, result);
 	if (name == "tv_timer_remove")
 		return timer_remove(input, result);
+	if (name == "tv_series_timers")
+		return series_timers_list(result);
+	if (name == "tv_series_timer_add")
+		return series_timer_add(input, result);
+	if (name == "tv_series_timer_remove")
+		return series_timer_remove(input, result);
 	if (name == "tv_volume")
 		return volume(input, result);
 	if (name == "tv_standby")
