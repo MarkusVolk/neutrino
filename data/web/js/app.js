@@ -865,13 +865,13 @@ async function viewRecordings(main) {
 	const details = (r) => {
 		const d = h("dialog", { class: "recording-details" });
 		const close = () => d.close();
-		d.append(r.cover ? h("img", { class: r.cover_wide ? "wide" : "", src: coverUrl(r), alt: "" }) : null,
+		d.append(...[r.cover ? h("img", { class: r.cover_wide ? "wide" : "", src: coverUrl(r), alt: "" }) : null,
 			h("h2", {}, r.title),
 			episodeName(r) && !r.title.includes(episodeName(r)) ? h("div", {}, episodeName(r)) : null,
 			h("div", { class: "dim small" }, meta(r)),
 			r.info ? h("p", { class: "small" }, r.info) : null,
 			actions(r, close),
-			h("div", { class: "buttons" }, h("button", { class: "btn", onclick: close }, tr("close"))));
+			h("div", { class: "buttons" }, h("button", { class: "btn", onclick: close }, tr("close")))].filter(Boolean));
 		d.addEventListener("close", () => d.remove());
 		document.body.append(d);
 		d.showModal();
