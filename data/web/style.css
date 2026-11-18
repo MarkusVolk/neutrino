@@ -387,7 +387,7 @@ dialog {
 }
 
 dialog::backdrop { background: rgb(0 0 0 / .55); }
-dialog .buttons { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+dialog .buttons { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-top: 16px; }
 
 .toast {
 	position: fixed;
