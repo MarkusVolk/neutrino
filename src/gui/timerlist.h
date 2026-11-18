@@ -39,6 +39,7 @@
 #include <gui/widget/menue.h>
 #include <gui/widget/listhelpers.h>
 
+#include <set>
 #include <string>
 #include <vector>
 
@@ -65,6 +66,7 @@ class CTimerList : public CMenuTarget, public CListHelpers
 
 		CTimerdClient *Timer;
 		CTimerd::TimerList timerlist; // List of timers
+		std::set<int> of_series; // the timers a series timer has set: shown as "all episodes"
 		CTimerd::responseGetTimer timerNew;
 		int timerNew_standby_on;
 		std::string timerNew_channel_name;

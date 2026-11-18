@@ -68,6 +68,7 @@
 #include <system/settings.h>
 #include <system/fsmounter.h>
 #include <system/helpers.h>
+#include <system/series_timers.h>
 #include <system/helpers-json.h>
 #include <system/httptool.h>
 
@@ -163,6 +164,20 @@ class CTimerListNewNotifier : public CChangeObserver
 		}
 };
 
+/* the entry of a series timer whose next episode the EPG does not have yet:
+   no timer of timerd, its message holds the id of the rule */
+#define SERIES_ENTRY (-1)
+
+/* the title of the programme a timer records, as the EPG has it; the timer
+   itself keeps only its beginning */
+static std::string timerTitle(const CTimerd::responseGetTimer &timer)
+{
+	CEPGData epg;
+	if (timer.epg_id && CEitManager::getInstance()->getEPGid(timer.epg_id, timer.epg_starttime, &epg))
+		return epg.title;
+	return timer.epgTitle;
+}
+
 class CTimerListRepeatNotifier : public CChangeObserver
 {
 	private:
@@ -192,7 +207,7 @@ class CTimerListRepeatNotifier : public CChangeObserver
 				m1->setActive(false);
 				*weekdays = "-------";
 			}
-			if (*iRepeat != (int)CTimerd::TIMERREPEAT_ONCE)
+			if (*iRepeat != (int)CTimerd::TIMERREPEAT_ONCE && *iRepeat != (int)CTimerd::TIMERREPEAT_BYEVENTDESCRIPTION)
 				m2->setActive(true);
 			else
 				m2->setActive(false);
@@ -721,6 +736,44 @@ void CTimerList::updateEvents(void)
 	RemoteBoxTimerList(timerlist);
 	sort(timerlist.begin(), timerlist.end());
 
+	/* The series timers: what they have set reads "all episodes", and a
+	   series without a timer, its next episode not in the EPG yet, has an
+	   entry of its own at the end. So a series stays in the list between
+	   two episodes, as a weekly timer does. */
+	of_series.clear();
+	std::vector<series_timers::rule> rules = series_timers::list();
+	std::vector<bool> has_timer(rules.size(), false);
+	for (size_t i = 0; i < timerlist.size() && !rules.empty(); i++)
+	{
+		const CTimerd::responseGetTimer &t = timerlist[i];
+		if (t.eventType != CTimerd::TIMER_RECORD || t.eventRepeat != CTimerd::TIMERREPEAT_ONCE)
+			continue;
+		std::string series = series_timers::name(timerTitle(t));
+		for (size_t r = 0; r < rules.size(); r++)
+		{
+			if (rules[r].channel_id == t.channel_id && strcasecmp(series.c_str(), rules[r].title.c_str()) == 0)
+			{
+				of_series.insert(t.eventID);
+				has_timer[r] = true;
+			}
+		}
+	}
+	for (size_t r = 0; r < rules.size(); r++)
+	{
+		if (has_timer[r])
+			continue;
+		CTimerd::responseGetTimer waiting;
+		memset(&waiting, 0, sizeof(waiting));
+		waiting.eventID = SERIES_ENTRY;
+		waiting.eventType = CTimerd::TIMER_RECORD;
+		waiting.eventRepeat = CTimerd::TIMERREPEAT_BYEVENTDESCRIPTION;
+		waiting.channel_id = rules[r].channel_id;
+		waiting.apids = TIMERD_APIDS_CONF;
+		strncpy(waiting.epgTitle, rules[r].title.c_str(), sizeof(waiting.epgTitle) - 1);
+		strncpy(waiting.message, rules[r].id.c_str(), sizeof(waiting.message) - 1);
+		timerlist.push_back(waiting);
+	}
+
 	header_height = g_Font[SNeutrinoSettings::FONT_TYPE_MENU_TITLE]->getHeight();
 	font_height = g_Font[SNeutrinoSettings::FONT_TYPE_MENU]->getHeight();
 	item_height = 2 * font_height + 1; // + 1 for separationline
@@ -1009,6 +1062,25 @@ int CTimerList::show()
 			}
 			paintFoot();
 		}
+		else if (!timerlist.empty() && timerlist[selected].eventID == SERIES_ENTRY && (
+				   msg == CRCInput::RC_ok
+				|| msg == CRCInput::RC_right
+				|| msg == CRCInput::RC_blue
+				|| msg == CRCInput::RC_red
+				|| msg == CRCInput::RC_play
+				|| msg == CRCInput::RC_playpause
+				|| msg == CRCInput::RC_help
+				|| msg == CRCInput::RC_info
+			)
+		)
+		{
+			/* a series waiting for its next episode has nothing to edit;
+			   it can be deleted, which ends the series timer */
+			if ((msg == CRCInput::RC_red || msg == CRCInput::RC_ok) &&
+			    ShowMsg(LOCALE_TIMER_SERIES, LOCALE_TIMER_SERIES_DELETE_ASK, CMsgBox::mbrNo, CMsgBox::mbYes | CMsgBox::mbNo) == CMsgBox::mbrYes)
+				series_timers::remove(timerlist[selected].message);
+			update = true;
+		}
 		else if (!timerlist.empty() && (
 				   msg == CRCInput::RC_ok
 				|| msg == CRCInput::RC_right
@@ -1283,17 +1355,24 @@ void CTimerList::paintItem(int pos)
 		strftime(zStopTime, 20, "%d.%m. %H:%M", stopTime);
 
 		// paint start/stop times
-		g_Font[SNeutrinoSettings::FONT_TYPE_MENU]->RenderString(x + OFFSET_INNER_MID, line1_y, time_width, zAlarmTime, color, font_height);
+		bool waiting = timer.eventID == SERIES_ENTRY;
+		if (!waiting)
+			g_Font[SNeutrinoSettings::FONT_TYPE_MENU]->RenderString(x + OFFSET_INNER_MID, line1_y, time_width, zAlarmTime, color, font_height);
 		if (timer.stopTime != 0)
 			g_Font[SNeutrinoSettings::FONT_TYPE_MENU]->RenderString(x + OFFSET_INNER_MID, line2_y, time_width, zStopTime, color, font_height);
 
 		// paint timer-type
 		std::string t_type = (timer.eventType == CTimerd::TIMER_REMOTEBOX) ? std::string(convertTimerType2String(timer.eventType)) + " (" + std::string(timer.remotebox_name) + ")" : convertTimerType2String(timer.eventType);
+		if (waiting)
+			t_type = g_Locale->getText(LOCALE_TIMER_SERIES_WAITING);
 		g_Font[SNeutrinoSettings::FONT_TYPE_MENU]->RenderString(x + OFFSET_INNER_MID + time_width + OFFSET_INNER_MID, line1_y, real_width - time_width - 3 * OFFSET_INNER_MID, t_type, color, font_height);
 
 		// paint repeat-type/count
 		std::string t_repeat = convertTimerRepeat2String(timer.eventRepeat);
-		if (timer.eventRepeat != CTimerd::TIMERREPEAT_ONCE)
+		/* of a series timer: "all episodes", though it records but once */
+		if (waiting || of_series.count(timer.eventID))
+			t_repeat = convertTimerRepeat2String(CTimerd::TIMERREPEAT_BYEVENTDESCRIPTION);
+		else if (timer.eventRepeat != CTimerd::TIMERREPEAT_ONCE)
 		{
 			if (timer.repeatCount == 0)
 				t_repeat += ", oo"; // Unicode 8734 (hex: 221E) not available in all fonts
@@ -1645,6 +1724,21 @@ const CMenuOptionChooser::keyval TIMERLIST_REPEAT_OPTIONS[TIMERLIST_REPEAT_OPTIO
 	{ CTimerd::TIMERREPEAT_WEEKDAYS,	LOCALE_TIMERLIST_REPEAT_WEEKDAYS }
 };
 
+/* for a recording of a programme: "all episodes" as well, which is no repeat
+   of this timer but the series timer for its title */
+#define TIMERLIST_REPEAT_SERIES_OPTION_COUNT 8
+const CMenuOptionChooser::keyval TIMERLIST_REPEAT_SERIES_OPTIONS[TIMERLIST_REPEAT_SERIES_OPTION_COUNT] =
+{
+	{ CTimerd::TIMERREPEAT_ONCE,			LOCALE_TIMERLIST_REPEAT_ONCE },
+	{ CTimerd::TIMERREPEAT_BYEVENTDESCRIPTION,	LOCALE_TIMERLIST_REPEAT_BYEVENTDESCRIPTION },
+	{ CTimerd::TIMERREPEAT_DAILY,			LOCALE_TIMERLIST_REPEAT_DAILY },
+	{ CTimerd::TIMERREPEAT_WEEKLY,			LOCALE_TIMERLIST_REPEAT_WEEKLY },
+	{ CTimerd::TIMERREPEAT_BIWEEKLY,		LOCALE_TIMERLIST_REPEAT_BIWEEKLY },
+	{ CTimerd::TIMERREPEAT_FOURWEEKLY,		LOCALE_TIMERLIST_REPEAT_FOURWEEKLY },
+	{ CTimerd::TIMERREPEAT_MONTHLY,			LOCALE_TIMERLIST_REPEAT_MONTHLY },
+	{ CTimerd::TIMERREPEAT_WEEKDAYS,		LOCALE_TIMERLIST_REPEAT_WEEKDAYS }
+};
+
 #define TIMERLIST_STANDBY_OPTION_COUNT 2
 const CMenuOptionChooser::keyval TIMERLIST_STANDBY_OPTIONS[TIMERLIST_STANDBY_OPTION_COUNT] =
 {
@@ -1709,8 +1803,20 @@ int CTimerList::modifyTimer()
 
 	CMenuForwarder *m5 = new CMenuForwarder(LOCALE_TIMERLIST_REPEATCOUNT, timer->eventRepeat != (int)CTimerd::TIMERREPEAT_ONCE, timerSettings_repeatCount.getValue(), &timerSettings_repeatCount);
 
+	/* the series this timer records an episode of */
+	std::string series_title;
+	if (timer->eventType == CTimerd::TIMER_RECORD)
+		series_title = timerTitle(*timer);
+	series_timers::rule series_rule;
+	bool had_series = !series_title.empty() && series_timers::find(series_title, timer->channel_id, series_rule);
+	/* a timer of a series is shown as "all episodes"; to timerd it stays a single one */
+	if (had_series && timer->eventRepeat == CTimerd::TIMERREPEAT_ONCE)
+		timer->eventRepeat = CTimerd::TIMERREPEAT_BYEVENTDESCRIPTION;
+
 	CTimerListRepeatNotifier notifier((int *)&timer->eventRepeat, m4, m5, &m_weekdaysStr);
-	CMenuOptionChooser *m3 = new CMenuOptionChooser(LOCALE_TIMERLIST_REPEAT, (int *)&timer->eventRepeat, TIMERLIST_REPEAT_OPTIONS, TIMERLIST_REPEAT_OPTION_COUNT, true, &notifier);
+	CMenuOptionChooser *m3 = series_title.empty()
+		? new CMenuOptionChooser(LOCALE_TIMERLIST_REPEAT, (int *)&timer->eventRepeat, TIMERLIST_REPEAT_OPTIONS, TIMERLIST_REPEAT_OPTION_COUNT, true, &notifier)
+		: new CMenuOptionChooser(LOCALE_TIMERLIST_REPEAT, (int *)&timer->eventRepeat, TIMERLIST_REPEAT_SERIES_OPTIONS, TIMERLIST_REPEAT_SERIES_OPTION_COUNT, true, &notifier);
 
 	//printf("TIMER: rec dir %s len %s\n", timer->recordingDir, strlen(timer->recordingDir));
 
@@ -1758,6 +1864,20 @@ int CTimerList::modifyTimer()
 	}
 
 	int res = timerSettings.exec(this, "");
+
+	/* "all episodes" makes the series timer, any other choice deletes the
+	   one there was; the timer itself records once either way */
+	bool want_series = timer->eventRepeat == CTimerd::TIMERREPEAT_BYEVENTDESCRIPTION;
+	if (want_series)
+		timer->eventRepeat = CTimerd::TIMERREPEAT_ONCE;
+	if (want_series && !had_series)
+	{
+		int added = 0;
+		if (!series_timers::add(series_title, timer->channel_id, series_rule, added))
+			DisplayErrorMessage(g_Locale->getText(LOCALE_TIMER_SERIES_FAILED));
+	}
+	else if (!want_series && had_series)
+		series_timers::remove(series_rule.id);
 
 	bool modified = (
 			   timer->alarmTime   != t_old.alarmTime
