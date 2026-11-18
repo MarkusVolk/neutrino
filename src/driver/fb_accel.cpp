@@ -48,38 +48,13 @@ void CFbAccel::paintBoxRel(const int x, const int y, const int dx, const int dy,
 
 	checkFbArea(x, y, dx, dy, true);
 
-	if (!type || !radius)
-	{
-		paintRect(x, y, dx, dy, col);
-		checkFbArea(x, y, dx, dy, false);
-		return;
-	}
-
-	setCornerFlags(type);
-	/* limit the radius */
-	radius = limitRadius(dx, dy, radius);
-	if (radius < 1)		/* dx or dy = 0... */
-		radius = 1;	/* avoid div by zero below */
-
-	int line = 0;
-	while (line < dy) {
-		int ofl, ofr;
-		if (calcCorners(NULL, &ofl, &ofr, dy, line, radius, type)) {
-			int height = dy - ((corner_tl || corner_tr)?radius: 0 ) - ((corner_bl || corner_br) ? radius : 0);
-			paintRect(x, y + line, dx, height, col);
-			line += height;
-			continue;
-		}
-		if (dx - ofr - ofl < 1) {
-			//printf("FB-NG::%s:%d x %d y %d dx %d dy %d l %d r %d\n", __func__, __LINE__, x,y,dx,dy, ofl, ofr);
-			line++;
-			continue;
-		}
-		paintHLineRelInternal(x + ofl, dx - ofl - ofr, y + line, col);
-		line++;
-	}
+	int top = 0, bottom = 0;
+	if (type && radius > 0)
+		paintCornerLines(x, y, dx, dy, col, radius, type, top, bottom);
+	paintRect(x, y + top, dx, dy - top - bottom, col);
 	checkFbArea(x, y, dx, dy, false);
-	mark(x, y, x+dx, y+dy);
+	if (top || bottom)
+		mark(x, y, x+dx, y+dy);
 }
 
 /* the part of the rectangle that is on the screen, filled by the CPU */

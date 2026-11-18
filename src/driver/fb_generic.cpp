@@ -584,65 +584,103 @@ void CFrameBuffer::paletteSet(struct fb_cmap *map)
 	OnAfterSetPallette();
 }
 
-void CFrameBuffer::paintHLineRelInternal2Buf(const int& x, const int& dx, const int& y, const int& box_dx, const fb_pixel_t& col, fb_pixel_t* buf)
+/* the radius a box with these corners has room for */
+int CFrameBuffer::fitRadius(const int dx, const int dy, int radius, const int type)
 {
-	fb_pixel_t * pos = buf + x + box_dx * y;
-	fb_pixel_t * dest = (fb_pixel_t *)pos;
-	for (int i = 0; i < dx; i++)
-		*(dest++) = col;
+	radius = std::min({ radius, dx, dy, (int)corner_radius_limit });
+	if ((type & CORNER_TOP) == CORNER_TOP || (type & CORNER_BOTTOM) == CORNER_BOTTOM)
+		radius = std::min(radius, dx / 2);
+	if ((type & CORNER_TOP) && (type & CORNER_BOTTOM))
+		radius = std::min(radius, dy / 2);
+	return std::max(radius, 0);
 }
 
-fb_pixel_t* CFrameBuffer::paintBoxRel2Buf(const int dx, const int dy, const int w_align, const int offs_align, const fb_pixel_t col, fb_pixel_t* buf/* = NULL*/, int radius/* = 0*/, int type/* = CORNER_ALL*/)
+/* One of the lines a round corner takes, row 0 the outermost: `in` is how
+ * far the line's solid part is in from the side of the box, and cov[] the
+ * part inside the arc, of 256, of the pixels before it that the arc runs
+ * through, from the one `first` columns in. */
+void CFrameBuffer::cornerLine(const int radius, const int row, int &first, int &in, uint16_t *cov)
 {
-	if (!getActive())
-		return buf;
-	if (dx < 1 || dy < 1) {
-		dprintf(DEBUG_INFO, "[CFrameBuffer] [%s - %d]: radius %d, dx %d dy %d\n", __func__, __LINE__, radius, dx, dy);
-		return buf;
+	/* a pixel's centre from the centre of the arc */
+	const float dy = radius - row - 0.5f;
+	const float reach = sqrtf((radius + 0.5f) * (radius + 0.5f) - dy * dy);
+	first = std::max(0, (int)(radius - 0.5f - reach));
+	for (in = first; in < radius; in++) {
+		const float dx = radius - in - 0.5f;
+		const float part = radius + 0.5f - sqrtf(dx * dx + dy * dy);
+		if (part >= 1.0f)
+			break;
+		cov[in - first] = part > 0.0f ? (uint16_t)(part * 256.0f) : 0;
 	}
+	/* the pixel in the very corner stays out, see cornerUnder() */
+	if (!row && !first)
+		cov[0] = 0;
+}
 
-	fb_pixel_t* pixBuf = buf;
-	if (pixBuf == NULL) {
-		pixBuf = (fb_pixel_t*) cs_malloc_uncached(w_align*dy*sizeof(fb_pixel_t));
-		if (pixBuf == NULL) {
-			dprintf(DEBUG_NORMAL, "[%s #%d] Error cs_malloc_uncached\n", __func__, __LINE__);
-			return NULL;
-		}
-	}
-	memset((void*)pixBuf, '\0', w_align*dy*sizeof(fb_pixel_t));
+/* What a box with round corners lies on: the pixel in the very corner of
+ * its rectangle, which no arc reaches. The pixels an arc runs through are
+ * mixed with that and not with what they held before, so painting a box
+ * again, in another colour too, leaves nothing of the old one behind. */
+fb_pixel_t CFrameBuffer::cornerUnder(const int x, const int y, const int dx, const int dy, const bool top, const bool left) const
+{
+	const int cx = left ? x : x + dx - 1, cy = top ? y : y + dy - 1;
+	if (cx < 0 || cx >= (int)xRes || cy < 0 || cy >= (int)yRes)
+		return 0;
+	return getFrameBufferPointer()[cx + swidth * cy];
+}
 
-	if (type && radius) {
-		setCornerFlags(type);
-		radius = limitRadius(dx, dy, radius);
+/* The lines that the round corners of a box take at its top and bottom,
+ * `top` and `bottom` of them. solid() gets the columns of each line that
+ * are inside all the way, cut() each pixel an arc runs through with the
+ * part of it that is inside, of 256. */
+template <class Solid, class Cut>
+void CFrameBuffer::cornerLines(const int dx, const int dy, int radius, const int type, int &top, int &bottom, Solid solid, Cut cut)
+{
+	const bool tl = type & CORNER_TOP_LEFT, tr = type & CORNER_TOP_RIGHT;
+	const bool bl = type & CORNER_BOTTOM_LEFT, br = type & CORNER_BOTTOM_RIGHT;
+	radius = fitRadius(dx, dy, radius, type);
+	top = (tl || tr) ? radius : 0;
+	bottom = (bl || br) ? radius : 0;
 
-		int line = 0;
-		while (line < dy) {
-			int ofl, ofr;
-			calcCorners(NULL, &ofl, &ofr, dy, line, radius, type);
-			if (dx-ofr-ofl < 1) {
-				if (dx-ofr-ofl == 0) {
-					dprintf(DEBUG_INFO, "[%s - %d]: radius %d, end x %d y %d\n", __func__, __LINE__, radius, dx-ofr-ofl, line);
-				}
-				else {
-					dprintf(DEBUG_INFO, "[%s - %04d]: Calculated width: %d\n		      (radius %d, dx %d, offsetLeft %d, offsetRight %d).\n		      Width can not be less than 0, abort.\n",
-					       __func__, __LINE__, dx-ofr-ofl, radius, dx, ofl, ofr);
-				}
-				line++;
+	uint16_t cov[corner_radius_limit];
+	for (int row = 0; row < radius; row++) {
+		int first, in;
+		cornerLine(radius, row, first, in, cov);
+		for (int side = 0; side < 2; side++) {
+			const bool l = side ? bl : tl, r = side ? br : tr;
+			if (!l && !r)
 				continue;
+			const int line = side ? dy - 1 - row : row;
+			solid(line, l ? in : 0, dx - (r ? in : 0));
+			for (int i = first; i < in; i++) {
+				const int part = cov[i - first];
+				if (!part)
+					continue;
+				if (l)
+					cut(line, i, part, !side, true);
+				if (r)
+					cut(line, dx - 1 - i, part, !side, false);
 			}
-			paintHLineRelInternal2Buf(ofl+offs_align, dx-ofl-ofr, line, w_align, col, pixBuf);
-			line++;
-		}
-	} else {
-		fb_pixel_t *bp = pixBuf;
-		for (int pos = offs_align; pos < dx+offs_align; pos++)
-			*(bp + pos) = col;
-		for (int line = 1; line < dy; line++) {
-			bp += w_align;
-			memcpy(bp + offs_align, pixBuf + offs_align, dx * sizeof(fb_pixel_t));
 		}
 	}
-	return pixBuf;
+}
+
+/* the lines of a box in one colour that its round corners take */
+void CFrameBuffer::paintCornerLines(const int x, const int y, const int dx, const int dy, const fb_pixel_t col, const int radius, const int type, int &top, int &bottom)
+{
+	fb_pixel_t *fb = getFrameBufferPointer();
+	/* a transparent colour clears: all that an arc touches goes */
+	const bool clear = !(col >> 24);
+	cornerLines(dx, dy, radius, type, top, bottom,
+		[&](int line, int from, int to) {
+			paintHLineRelInternal(x + from, to - from, y + line, col);
+		},
+		[&](int line, int column, int part, bool at_top, bool at_left) {
+			const int px = x + column, py = y + line;
+			if (px < 0 || px >= (int)xRes || py < 0 || py >= (int)yRes)
+				return;
+			fb[px + swidth * py] = clear ? col : mixPixel(cornerUnder(x, y, dx, dy, at_top, at_left), col, part);
+		});
 }
 
 fb_pixel_t* CFrameBuffer::paintBoxRel(const int x, const int y, const int dx, const int dy,
@@ -651,10 +689,11 @@ fb_pixel_t* CFrameBuffer::paintBoxRel(const int x, const int y, const int dx, co
 {
 	if (!getActive())
 		return NULL;
+	if (dx < 1 || dy < 1)
+		return NULL;
 
 	checkFbArea(x, y, dx, dy, true);
 
-	fb_pixel_t MASK = 0xFFFFFFFF;
 	int _dx = dx;
 	int w_align;
 	int offs_align;
@@ -677,40 +716,36 @@ fb_pixel_t* CFrameBuffer::paintBoxRel(const int x, const int y, const int dx, co
 	offs_align = 0;
 #endif
 
-	fb_pixel_t* boxBuf    = paintBoxRel2Buf(_dx, dy, w_align, offs_align, MASK, NULL, radius, type);
+	fb_pixel_t* boxBuf = (fb_pixel_t*) cs_malloc_uncached(w_align*dy*sizeof(fb_pixel_t));
 	if (boxBuf == NULL) {
+		dprintf(DEBUG_NORMAL, "[%s #%d] Error cs_malloc_uncached\n", __func__, __LINE__);
 		checkFbArea(x, y, dx, dy, false);
 		return NULL;
 	}
-	fb_pixel_t *bp        = boxBuf;
-	fb_pixel_t *gra       = gradientData->gradientBuf;
+	memset((void*)boxBuf, '\0', w_align*dy*sizeof(fb_pixel_t));
+	const fb_pixel_t *gra = gradientData->gradientBuf;
+	const bool vertical   = gradientData->direction == gradientVertical;
 	gradientData->boxBuf  = boxBuf;
 	gradientData->x       = x - offs_align;
 	gradientData->dx      = w_align;
 
-	if (gradientData->direction == gradientVertical) {
-		// vertical
-		for (int pos = offs_align; pos < _dx+offs_align; pos++) {
-			for(int count = 0; count < dy; count++) {
-				if (*(bp + pos) == MASK)
-					*(bp + pos) = (fb_pixel_t)(*(gra + count));
-				bp += w_align;
-			}
-			bp = boxBuf;
-		}
-	} else {
-		// horizontal
-		for (int line = 0; line < dy; line++) {
-			int gra_pos = 0;
-			for (int pos = 0; pos < w_align; pos++) {
-				if ((*(bp + pos) == MASK) && (pos >= offs_align) && (gra_pos < _dx)) {
-					*(bp + pos) = (fb_pixel_t)(*(gra + gra_pos));
-					gra_pos++;
-				}
-			}
-			bp += w_align;
-		}
-	}
+	/* the columns of a line, each line in its colour or each column in its */
+	auto fill = [&](int line, int from, int to) {
+		fb_pixel_t *bp = boxBuf + w_align * line + offs_align;
+		if (vertical)
+			std::fill(bp + from, bp + to, gra[line]);
+		else
+			memcpy(bp + from, gra + from, (to - from) * sizeof(fb_pixel_t));
+	};
+	int top = 0, bottom = 0;
+	if (type && radius)
+		cornerLines(_dx, dy, radius, type, top, bottom, fill,
+			[&](int line, int column, int part, bool at_top, bool at_left) {
+				boxBuf[w_align * line + offs_align + column] =
+					mixPixel(cornerUnder(x, y, _dx, dy, at_top, at_left), gra[vertical ? line : column], part);
+			});
+	for (int line = top; line < dy - bottom; line++)
+		fill(line, 0, _dx);
 
 	if ((gradientData->mode & pbrg_noPaint) == pbrg_noPaint) {
 		checkFbArea(x, y, dx, dy, false);
@@ -746,53 +781,31 @@ void CFrameBuffer::paintBoxRel(const int x, const int y, const int dx, const int
 
 	checkFbArea(x, y, dx, dy, true);
 
-	if (type && radius) {
-		setCornerFlags(type);
-		radius = limitRadius(dx, dy, radius);
+	int top = 0, bottom = 0;
+	if (type && radius > 0)
+		paintCornerLines(x, y, dx, dy, col, radius, type, top, bottom);
 
-		int line = 0;
-		while (line < dy) {
-			int ofl, ofr;
-			if (calcCorners(NULL, &ofl, &ofr, dy, line, radius, type)) {
-				//printf("3: x %d y %d dx %d dy %d rad %d line %d\n", x, y, dx, dy, radius, line);
-			}
-
-			if (dx-ofr-ofl < 1) {
-				if (dx-ofr-ofl == 0){
-					dprintf(DEBUG_INFO, "[CFrameBuffer] [%s - %d]: radius %d, start x %d y %d end x %d y %d\n", __func__, __LINE__, radius, x, y, x+dx-ofr-ofl, y+line);
-				}else{
-					dprintf(DEBUG_INFO, "[CFrameBuffer] [%s - %04d]: Calculated width: %d\n                      (radius %d, dx %d, offsetLeft %d, offsetRight %d).\n                      Width can not be less than 0, abort.\n",
-						__func__, __LINE__, dx-ofr-ofl, radius, dx, ofl, ofr);
-				}
-				line++;
-				continue;
-			}
-			paintHLineRelInternal(x+ofl, dx-ofl-ofr, y+line, col);
-			line++;
-		}
-	} else {
-		// clip to visible framebuffer area to avoid out-of-bounds writes
-		int x0 = x, x1 = x + dx;
-		int y0 = y, y1 = y + dy;
-		if (x0 < 0)
-			x0 = 0;
-		if (y0 < 0)
-			y0 = 0;
-		if (x1 > (int)xRes)
-			x1 = (int)xRes;
-		if (y1 > (int)yRes)
-			y1 = (int)yRes;
-		if (x0 < x1 && y0 < y1) {
-			/* fill the first line, then replicate it */
-			fb_pixel_t *fbp = getFrameBufferPointer() + (swidth * y0);
-			fb_pixel_t *first = fbp + x0;
-			size_t len = (x1 - x0) * sizeof(fb_pixel_t);
-			for (int pos = x0; pos < x1; pos++)
-				*(fbp + pos) = col;
-			fbp += swidth;
-			for (int line = y0 + 1; line < y1; line++, fbp += swidth)
-				memcpy(fbp + x0, first, len);
-		}
+	// clip to visible framebuffer area to avoid out-of-bounds writes
+	int x0 = x, x1 = x + dx;
+	int y0 = y + top, y1 = y + dy - bottom;
+	if (x0 < 0)
+		x0 = 0;
+	if (y0 < 0)
+		y0 = 0;
+	if (x1 > (int)xRes)
+		x1 = (int)xRes;
+	if (y1 > (int)yRes)
+		y1 = (int)yRes;
+	if (x0 < x1 && y0 < y1) {
+		/* fill the first line, then replicate it */
+		fb_pixel_t *fbp = getFrameBufferPointer() + (swidth * y0);
+		fb_pixel_t *first = fbp + x0;
+		size_t len = (x1 - x0) * sizeof(fb_pixel_t);
+		for (int pos = x0; pos < x1; pos++)
+			*(fbp + pos) = col;
+		fbp += swidth;
+		for (int line = y0 + 1; line < y1; line++, fbp += swidth)
+			memcpy(fbp + x0, first, len);
 	}
 	checkFbArea(x, y, dx, dy, false);
 }
@@ -1206,13 +1219,6 @@ void CFrameBuffer::paintPixel(const int x, const int y, const fb_pixel_t col)
 	mark(x, y, x + 1, y + 1);
 }
 
-void CFrameBuffer::paintShortHLineRelInternal(const int& x, const int& dx, const int& y, const fb_pixel_t& col)
-{
-	fb_pixel_t *dest = getFrameBufferPointer() + x + swidth * y;
-	for (int i = 0; i < dx; i++)
-		*(dest++) = col;
-}
-
 int CFrameBuffer::limitRadius(const int& dx, const int& dy, int& radius)
 {
 	if (radius > dx)
@@ -1317,58 +1323,57 @@ void CFrameBuffer::paintBoxFrame(const int x, const int y, const int dx, const i
 	}
 	if (radius < 0)
 		dprintf(DEBUG_NORMAL, "[CFrameBuffer] [%s - %d]: WARNING! radius < 0 [%d] FIXIT\n", __func__, __LINE__, radius);
+	if (px < 1)
+		return;
 
-	setCornerFlags(type);
-	int rad_tl = 0, rad_tr = 0, rad_bl = 0, rad_br = 0;
-	if (type && radius) {
-		int x_rad = radius - 1;
-		if (corner_tl) rad_tl = x_rad;
-		if (corner_tr) rad_tr = x_rad;
-		if (corner_bl) rad_bl = x_rad;
-		if (corner_br) rad_br = x_rad;
-	}
+	radius = type ? fitRadius(dx, dy, radius, type) : 0;
+	const bool tl = radius && (type & CORNER_TOP_LEFT), tr = radius && (type & CORNER_TOP_RIGHT);
+	const bool bl = radius && (type & CORNER_BOTTOM_LEFT), br = radius && (type & CORNER_BOTTOM_RIGHT);
+	const int rad_tl = tl ? radius : 0, rad_tr = tr ? radius : 0;
+	const int rad_bl = bl ? radius : 0, rad_br = br ? radius : 0;
 	paintBoxRel(x + rad_tl , y          , dx - rad_tl - rad_tr, px                  , col); // top horizontal
 	paintBoxRel(x + rad_bl , y + dy - px, dx - rad_bl - rad_br, px                  , col); // bottom horizontal
 	paintBoxRel(x          , y + rad_tl , px                  , dy - rad_tl - rad_bl, col); // left vertical
 	paintBoxRel(x + dx - px, y + rad_tr , px                  , dy - rad_tr - rad_br, col); // right vertical
 
-	if (type && radius) {
-		radius = limitRadius(dx, dy, radius);
-		int line = 0;
+	if (tl || tr || bl || br) {
 		waitForIdle("CFrameBuffer::paintBoxFrame");
-		while (line < dy) {
-			int ofs = 0, ofs_i = 0;
-			// inner box
-			if ((line >= px) && (line < (dy - px)))
-				ofs_i = calcCornersOffset(dy - 2*px, line-px, radius-px, type);
-			// outer box
-			ofs = calcCornersOffset(dy, line, radius, type);
-
-			int _x     = x + ofs;
-			int _x_end = x + dx;
-			int _y     = y + line;
-			if ((line < px) || (line >= (dy - px))) {
-				// left
-				if (((corner_tl) && (line < radius)) || ((corner_bl) && (line >= dy - radius)))
-					paintShortHLineRelInternal(_x, radius - ofs, _y, col);
-				// right
-				if (((corner_tr) && (line < radius)) || ((corner_br) && (line >= dy - radius)))
-					paintShortHLineRelInternal(_x_end - radius, radius - ofs, _y, col);
+		fb_pixel_t *fb = getFrameBufferPointer();
+		const bool clear = !(col >> 24);
+		/* a corner is the ring between two arcs around one centre; where
+		 * the frame is thicker than the radius, its inner edge is square */
+		const bool arc = radius > px;
+		for (int row = 0; row < radius; row++) {
+			for (int i = 0; i < radius; i++) {
+				const float fx = radius - i - 0.5f, fy = radius - row - 0.5f;
+				const float d = sqrtf(fx * fx + fy * fy);
+				const float outer = std::min(1.0f, radius + 0.5f - d);
+				const float inner = arc ? std::max(0.0f, std::min(1.0f, radius - px + 0.5f - d)) : (row >= px && i >= px);
+				if (outer <= 0.0f || inner >= 1.0f || (!row && !i))
+					continue;
+				for (int c = 0; c < 4; c++) {
+					const bool at_top = c < 2, at_left = !(c & 1);
+					if (!(at_top ? (at_left ? tl : tr) : (at_left ? bl : br)))
+						continue;
+					const int column = at_left ? i : dx - 1 - i, line = at_top ? row : dy - 1 - row;
+					const int cx = x + column, cy = y + line;
+					if (cx < 0 || cx >= (int)xRes || cy < 0 || cy >= (int)yRes)
+						continue;
+					fb_pixel_t pix = col;
+					if (clear)
+						;
+					else if (outer < 1.0f)
+						pix = mixPixel(cornerUnder(x, y, dx, dy, at_top, at_left), col, (unsigned int)(outer * 256.0f));
+					else if (inner > 0.0f) {
+						/* what the frame goes around, taken from the centre of
+						 * the arc for the same reason */
+						const int ix = at_left ? x + radius : x + dx - 1 - radius, iy = at_top ? y + radius : y + dy - 1 - radius;
+						const bool on = ix >= 0 && ix < (int)xRes && iy >= 0 && iy < (int)yRes;
+						pix = mixPixel(fb[on ? ix + swidth * iy : cx + swidth * cy], col, (unsigned int)((1.0f - inner) * 256.0f));
+					}
+					fb[cx + swidth * cy] = pix;
+				}
 			}
-			else if (line < (dy - px)) {
-				int _dx = (ofs_i-ofs) + px;
-				// left
-				if (((corner_tl) && (line < radius)) || ((corner_bl) && (line >= dy - radius)))
-					paintShortHLineRelInternal(_x, _dx, _y, col);
-				// right
-				if (((corner_tr) && (line < radius)) || ((corner_br) && (line >= dy - radius)))
-					paintShortHLineRelInternal(_x_end - ofs_i - px, _dx, _y, col);
-			}
-			if ((line == radius) && (dy > 2*radius))
-				// line outside the rounded corners
-				line = dy - radius;
-			else
-				line++;
 		}
 	}
 	mark(x, y, x + dx, y + dy);

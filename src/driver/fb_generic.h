@@ -168,13 +168,19 @@ class CFrameBuffer : public sigc::trackable
 		void paintHLineRelInternal(int x, int dx, int y, const fb_pixel_t col);
 		void paintVLineRelInternal(int x, int y, int dy, const fb_pixel_t col);
 
-		inline void paintHLineRelInternal2Buf(const int& x, const int& dx, const int& y, const int& box_dx, const fb_pixel_t& col, fb_pixel_t* buf);
-		void paintShortHLineRelInternal(const int& x, const int& dx, const int& y, const fb_pixel_t& col);
 		int  limitRadius(const int& dx, const int& dy, int& radius);
 		void setCornerFlags(const int& type);
 		void initQCircle();
-		inline int calcCornersOffset(const int& dy, const int& line, const int& radius, const int& type) { int ofs = 0; calcCorners(&ofs, NULL, NULL, dy, line, radius, type); return ofs; }
 		bool calcCorners(int *ofs, int *ofl, int *ofr, const int& dy, const int& line, const int& radius, const int& type);
+
+		/* round corners with smooth edges */
+		enum { corner_radius_limit = 540 };
+		static int fitRadius(const int dx, const int dy, int radius, const int type);
+		static void cornerLine(const int radius, const int row, int &first, int &in, uint16_t *cov);
+		fb_pixel_t cornerUnder(const int x, const int y, const int dx, const int dy, const bool top, const bool left) const;
+		template <class Solid, class Cut>
+		void cornerLines(const int dx, const int dy, int radius, const int type, int &top, int &bottom, Solid solid, Cut cut);
+		void paintCornerLines(const int x, const int y, const int dx, const int dy, const fb_pixel_t col, const int radius, const int type, int &top, int &bottom);
 
 	public:
 		///gradient direction
@@ -242,7 +248,22 @@ class CFrameBuffer : public sigc::trackable
 			};
 		virtual void paintPixel(int x, int y, const fb_pixel_t col);
 
-		fb_pixel_t* paintBoxRel2Buf(const int dx, const int dy, const int w_align, const int offs_align, const fb_pixel_t col, fb_pixel_t* buf = NULL, int radius = 0, int type = CORNER_ALL);
+		/* Two pixels mixed, `part` of 256 of it the second. The colours in
+		 * the framebuffer are not multiplied with their alpha, so each
+		 * counts by its alpha here: a transparent pixel thins the other
+		 * one out and does not darken it. */
+		static inline fb_pixel_t mixPixel(const fb_pixel_t a, const fb_pixel_t b, const unsigned int part)
+		{
+			const unsigned int wa = (256 - part) * (a >> 24), wb = part * (b >> 24);
+			const unsigned int w = wa + wb, alpha = (w + 128) >> 8;
+			if (!alpha)
+				return 0;
+			fb_pixel_t mix = alpha << 24;
+			for (int shift = 0; shift < 24; shift += 8)
+				mix |= ((wa * ((a >> shift) & 0xff) + wb * ((b >> shift) & 0xff) + w / 2) / w) << shift;
+			return mix;
+		}
+
 		fb_pixel_t* paintBoxRel(const int x, const int y, const int dx, const int dy, const fb_pixel_t col, gradientData_t *gradientData, int radius = 0, int type = CORNER_ALL);
 
 		virtual void paintBoxRel(const int x, const int y, const int dx, const int dy, const fb_pixel_t col, int radius = 0, int type = CORNER_ALL);
