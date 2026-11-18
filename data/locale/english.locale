@@ -1959,6 +1959,7 @@ menu.hint_theme Select pre-defined color theme\nSave or load theme from files
 menu.hint_timeouts Customize display behavior and timeouts for messages, windows, menus, infobar, etc.
 menu.hint_timeouts_static_messages Timeout for specific messages with user interaction
 menu.hint_timer_followscreenings Show selection with followscreenings for timer programming. "Always" shows selection even if just one event is found.
+menu.hint_timer_series Rules that record every episode of a series. OK deletes a rule, the timers it has set stay.
 menu.hint_timers Add/Remove/Edit scheduled\nrecording, reminders etc.
 menu.hint_timezone Select your timezone
 menu.hint_tmdb_api_key Type your TMDb API key. An empty input disables TMDb support
@@ -2967,6 +2968,12 @@ timer.eventrecord.msg The event is scheduled for recording.\nTo edit the schedul
 timer.eventrecord.title Schedule Record
 timer.eventtimed.msg The event is scheduled.\nThe box will power on and \nswitch to this channel at the given time.
 timer.eventtimed.title Schedule Event
+timer.series Series timers
+timer.series.conflicts Left out, no tuner free: %d
+timer.series.delete_ask Delete the series timer? The timers it has set stay.
+timer.series.failed The series timer could not be made.
+timer.series.none No series timers
+timer.series.waiting waiting for the next episode
 timerbar.channelswitch Schedule
 timerbar.recordevent Record
 timerlist.alarmtime Alarm time
@@ -2994,7 +3001,7 @@ timerlist.recording_dir recording directory
 timerlist.reload Reload
 timerlist.repeat Repeat
 timerlist.repeat.biweekly biweekly
-timerlist.repeat.byeventdescription see timer
+timerlist.repeat.byeventdescription all episodes
 timerlist.repeat.daily daily
 timerlist.repeat.fourweekly fourweekly
 timerlist.repeat.friday Fr
@@ -3261,6 +3268,7 @@ web.error.no_such_device There is no such device.
 web.error.no_such_drive There is no such drive.
 web.error.no_such_event The guide has no such programme.
 web.error.no_such_recording There is no such recording.
+web.error.no_such_series_rule There is no such series timer.
 web.error.no_such_share There is no such share.
 web.error.no_such_timer There is no such timer.
 web.error.not_deleted The recording could not be deleted.
@@ -3274,6 +3282,8 @@ web.error.recording_without_duration A recording needs an end after its start.
 web.error.refused The TV did not allow it.
 web.error.screen_for_the_viewer A question for the viewer at the TV is open.
 web.error.screen_not_captured A screenshot is already being taken.
+web.error.series_rule_exists This programme has a series timer already.
+web.error.series_rule_not_created The series timer could not be made.
 web.error.timer_in_the_past A one-time timer cannot start in the past.
 web.error.timer_list_unavailable The timer service does not answer.
 web.error.timer_not_created The timer service did not take the timer.
@@ -3462,6 +3472,22 @@ web.saved Saved
 web.screenshot.saved Screenshot saved
 web.screenshot.title Screenshot of the TV
 web.send Send
+web.series.conflicts.few {n} episodes left out, no tuner free
+web.series.conflicts.one {n} episode left out, no tuner free
+web.series.conflicts.other {n} episodes left out, no tuner free
+web.series.delete Delete series timer
+web.series.delete_ask Delete the series timer “{title}”? The timers it has set stay.
+web.series.deleted Series timer deleted
+web.series.heading Series timers
+web.series.hint Records every new episode as soon as the EPG has it
+web.series.record_all Record all episodes
+web.series.set.few Series timer made, {n} timers set
+web.series.set.one Series timer made, {n} timer set
+web.series.set.other Series timer made, {n} timers set
+web.series.tag series
+web.series.waiting.few {n} timers waiting
+web.series.waiting.one {n} timer waiting
+web.series.waiting.other {n} timers waiting
 web.sign_out Sign out
 web.signin.button Sign in
 web.signin.has_access This browser already has {level} access. {link}

@@ -1959,6 +1959,7 @@ menu.hint_theme Select voorgedefinieerde thema\n Opslaan of laad thema van besta
 menu.hint_timeouts Time-outs en weergavegedrag aanpassen voor meldingen, vensters, menu's, infobalk enz.
 menu.hint_timeouts_static_messages Weergaveduur van bepaalde meldingen met gebruikersinteractie
 menu.hint_timer_followscreenings Keuze van herhalingen tonen bij het programmeren van een timer. "Altijd" toont de keuze ook als maar één uitzending is gevonden.
+menu.hint_timer_series Regels die elke aflevering van een serie opnemen. OK wist een regel, de ingestelde timers blijven.
 menu.hint_timers Toevoegen/Verplaats/Bewerk \ngeplande opnames of timers etc.
 menu.hint_timezone Selecteer uw tijdzone
 menu.hint_tmdb_api_key Voer uw TMDb API-sleutel in. Leeg laten schakelt TMDb uit
@@ -2967,6 +2968,12 @@ timer.eventrecord.msg Het programma bevat een opname reservering.\nOm de reserve
 timer.eventrecord.title Opname reservering
 timer.eventtimed.msg Het programma is gereserveerd. Uw ontvanger \nzal automatisch inschakelen en afstemmen\n op het kanaal op de opgegeven tijd.
 timer.eventtimed.title Reserveer programma
+timer.series Serietimers
+timer.series.conflicts Overgeslagen, geen tuner vrij: %d
+timer.series.delete_ask Serietimer wissen? De ingestelde timers blijven.
+timer.series.failed De serietimer kon niet worden gemaakt.
+timer.series.none Geen serietimers
+timer.series.waiting wacht op de volgende aflevering
 timerbar.channelswitch Reservering
 timerbar.recordevent Opname
 timerlist.alarmtime Start tijd
@@ -2994,7 +3001,7 @@ timerlist.recording_dir Opname folder
 timerlist.reload Herladen
 timerlist.repeat Herhaal
 timerlist.repeat.biweekly twee wekelijks
-timerlist.repeat.byeventdescription zie timer
+timerlist.repeat.byeventdescription alle afleveringen
 timerlist.repeat.daily dagelijks
 timerlist.repeat.fourweekly vier wekelijks
 timerlist.repeat.friday Vrij
@@ -3261,6 +3268,7 @@ web.error.no_such_device Dit apparaat bestaat niet.
 web.error.no_such_drive Deze schijf bestaat niet.
 web.error.no_such_event Dit programma staat niet in de gids.
 web.error.no_such_recording Deze opname bestaat niet.
+web.error.no_such_series_rule Deze serietimer bestaat niet.
 web.error.no_such_share Deze share bestaat niet.
 web.error.no_such_timer Deze timer bestaat niet.
 web.error.not_deleted De opname kon niet worden verwijderd.
@@ -3274,6 +3282,8 @@ web.error.recording_without_duration Een opname heeft een einde na het begin nod
 web.error.refused De tv heeft het niet toegestaan.
 web.error.screen_for_the_viewer Op de tv staat een vraag voor de kijker open.
 web.error.screen_not_captured Er wordt al een schermafbeelding gemaakt.
+web.error.series_rule_exists Voor dit programma bestaat al een serietimer.
+web.error.series_rule_not_created De serietimer kon niet worden gemaakt.
 web.error.timer_in_the_past Een eenmalige timer kan niet in het verleden beginnen.
 web.error.timer_list_unavailable De timerdienst antwoordt niet.
 web.error.timer_not_created De timerdienst heeft de timer niet aangenomen.
@@ -3462,6 +3472,22 @@ web.saved Opgeslagen
 web.screenshot.saved Schermafbeelding opgeslagen
 web.screenshot.title Schermafbeelding van de tv
 web.send Versturen
+web.series.conflicts.few {n} afleveringen overgeslagen, geen tuner vrij
+web.series.conflicts.one {n} aflevering overgeslagen, geen tuner vrij
+web.series.conflicts.other {n} afleveringen overgeslagen, geen tuner vrij
+web.series.delete Serietimer wissen
+web.series.delete_ask De serietimer “{title}” wissen? De ingestelde timers blijven.
+web.series.deleted Serietimer gewist
+web.series.heading Serietimers
+web.series.hint Neemt elke nieuwe aflevering op zodra die in de EPG staat
+web.series.record_all Alle afleveringen opnemen
+web.series.set.few Serietimer gemaakt, {n} timers ingesteld
+web.series.set.one Serietimer gemaakt, {n} timer ingesteld
+web.series.set.other Serietimer gemaakt, {n} timers ingesteld
+web.series.tag serie
+web.series.waiting.few {n} timers wachten
+web.series.waiting.one {n} timer wacht
+web.series.waiting.other {n} timers wachten
 web.sign_out Afmelden
 web.signin.button Aanmelden
 web.signin.has_access Deze browser heeft al toegang ({level}). {link}

@@ -1959,6 +1959,7 @@ menu.hint_theme Výber prednastavených farebných vzhľadov\nUloženie alebo na
 menu.hint_timeouts Konfigurácia času zmiznutia GUI okien\nv sekundách
 menu.hint_timeouts_static_messages Časový limit pre konkrétne správy s interakciou používateľa
 menu.hint_timer_followscreenings Zobrazenie výberu s nasledujúcimi zobrazeniami pre programovanie časovača. "Vždy" zobrazuje výber, aj keď je nájdená len jedna udalosť
+menu.hint_timer_series Pravidlá, ktoré nahrajú každú epizódu seriálu. OK zmaže pravidlo, nastavené časovače zostanú.
 menu.hint_timers Pridanie/Odstránenie/Upravenie plánovaného\nnahrávania, pripomienky atď.
 menu.hint_timezone Výber časového pásma
 menu.hint_tmdb_api_key Zadajte váš TMDb API kľúč. Prázdne zadanie vypína podporu TMDb
@@ -2967,6 +2968,12 @@ timer.eventrecord.msg Udalosť je naplánovaná na nahrávanie.\nPre úpravu pl�
 timer.eventrecord.title Plánovač nahrávania
 timer.eventtimed.msg Plánované pripomenutie.\nPrijímač sa v stanovenom čase zapne\na prepne na zvolený kanál.
 timer.eventtimed.title Plánovač udalostí
+timer.series Časovače seriálov
+timer.series.conflicts Vynechané, žiadny voľný tuner: %d
+timer.series.delete_ask Zmazať časovač seriálu? Nastavené časovače zostanú.
+timer.series.failed Časovač seriálu sa nepodarilo vytvoriť.
+timer.series.none Žiadne časovače seriálov
+timer.series.waiting čaká na ďalšiu epizódu
 timerbar.channelswitch Prepnúť
 timerbar.recordevent Nahrať
 timerlist.alarmtime Čas spustenia
@@ -2994,7 +3001,7 @@ timerlist.recording_dir Priečinok nahrávania
 timerlist.reload Obnoviť
 timerlist.repeat Opakovať
 timerlist.repeat.biweekly V dňoch voľna
-timerlist.repeat.byeventdescription pozrieť plán
+timerlist.repeat.byeventdescription všetky epizódy
 timerlist.repeat.daily denne
 timerlist.repeat.fourweekly 4-krát týždenne
 timerlist.repeat.friday Pi
@@ -3261,6 +3268,7 @@ web.error.no_such_device Toto zariadenie neexistuje.
 web.error.no_such_drive Tento disk neexistuje.
 web.error.no_such_event Tento program v sprievodcovi nie je.
 web.error.no_such_recording Táto nahrávka neexistuje.
+web.error.no_such_series_rule Taký časovač seriálu neexistuje.
 web.error.no_such_share Toto zdieľanie neexistuje.
 web.error.no_such_timer Tento časovač neexistuje.
 web.error.not_deleted Nahrávku sa nepodarilo vymazať.
@@ -3274,6 +3282,8 @@ web.error.recording_without_duration Nahrávanie potrebuje koniec po začiatku.
 web.error.refused TV to nepovolila.
 web.error.screen_for_the_viewer Na TV je otvorená otázka pre diváka.
 web.error.screen_not_captured Snímka obrazovky sa už vytvára.
+web.error.series_rule_exists Táto relácia už má časovač seriálu.
+web.error.series_rule_not_created Časovač seriálu sa nepodarilo vytvoriť.
 web.error.timer_in_the_past Jednorazový časovač nemôže začať v minulosti.
 web.error.timer_list_unavailable Služba časovačov neodpovedá.
 web.error.timer_not_created Služba časovačov časovač neprijala.
@@ -3462,6 +3472,22 @@ web.saved Uložené
 web.screenshot.saved Snímka obrazovky uložená
 web.screenshot.title Snímka obrazovky TV
 web.send Odoslať
+web.series.conflicts.few {n} epizódy vynechané, žiadny voľný tuner
+web.series.conflicts.one {n} epizóda vynechaná, žiadny voľný tuner
+web.series.conflicts.other {n} epizód vynechaných, žiadny voľný tuner
+web.series.delete Zmazať časovač seriálu
+web.series.delete_ask Zmazať časovač seriálu „{title}“? Nastavené časovače zostanú.
+web.series.deleted Časovač seriálu zmazaný
+web.series.heading Časovače seriálov
+web.series.hint Nahrá každú novú epizódu, hneď ako je v EPG
+web.series.record_all Nahrať všetky epizódy
+web.series.set.few Časovač seriálu vytvorený, nastavené {n} časovače
+web.series.set.one Časovač seriálu vytvorený, nastavený {n} časovač
+web.series.set.other Časovač seriálu vytvorený, nastavených {n} časovačov
+web.series.tag seriál
+web.series.waiting.few {n} časovače čakajú
+web.series.waiting.one {n} časovač čaká
+web.series.waiting.other {n} časovačov čaká
 web.sign_out Odhlásiť
 web.signin.button Prihlásiť sa
 web.signin.has_access Tento prehliadač už má prístup ({level}). {link}
