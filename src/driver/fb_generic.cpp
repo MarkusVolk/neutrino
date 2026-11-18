@@ -1778,6 +1778,11 @@ bool CFrameBuffer::showFrame(const std::string & filename, int fallback_mode)
 		return ret;
 	}
 
+	/* the video decoders scale a raster picture up from its own size; a vector
+	   picture is drawn on the OSD at the size of the screen instead */
+	if (picture.size() > 4 && picture.compare(picture.size() - 4, 4, ".svg") == 0)
+		return g_PicViewer->DisplayImage(picture, 0, 0, getScreenWidth(true), getScreenHeight(true), TM_NONE);
+
 	if (!(fallback_mode & SHOW_FRAME_FALLBACK_MODE_IMAGE_UNSCALED))
 	{
 		if (videoDecoder)

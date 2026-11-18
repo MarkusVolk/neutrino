@@ -5500,7 +5500,7 @@ void CNeutrinoApp::ExitRun(int exit_code, bool ask)
 	stopPlayBack();
 
 	frameBuffer->paintBackground();
-	frameBuffer->showFrame("shutdown.jpg");
+	frameBuffer->showFrame("shutdown.svg");
 
 	delete cHddStat::getInstance();
 	delete CRecordManager::getInstance();

@@ -1310,7 +1310,7 @@ void cGLCD::Run(void)
 		}
 		if (doExit)
 		{
-			if (imageShow(DATADIR "/neutrino/icons/shutdown.jpg", 0, 0, 0, 0, false, true, true, false, false))
+			if (imageShow(DATADIR "/neutrino/icons/shutdown.svg", 0, 0, 0, 0, false, true, true, false, false))
 			{
 				lcd->SetScreen(bitmap->Data(), bitmap->Width(), bitmap->Height());
 				lcd->Refresh(false);
