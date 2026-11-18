@@ -100,6 +100,7 @@
 #include <system/netshares.h>
 #include <system/recording_cover.h>
 #include <system/recordings.h>
+#include <system/series_timers.h>
 #include <gui/hdd_menu.h>
 #include <gui/timerlist.h>
 #include <gui/movieplayer.h>
@@ -1741,6 +1742,75 @@ void ep_timer_delete(Call &c)
 }
 
 //-----------------------------------------------------------------------------
+// series timers: rules that record every broadcast of a title on a channel
+//-----------------------------------------------------------------------------
+Json::Value series_json(const series_timers::rule &r)
+{
+	Json::Value v(Json::objectValue);
+	v["id"] = r.id;
+	v["title"] = r.title;
+	v["channel_id"] = hex_id(r.channel_id);
+	v["channel"] = CServiceManager::getInstance()->GetServiceName(r.channel_id);
+	v["created"] = (Json::Int64) r.created;
+	/* as the last look at the EPG left them */
+	v["timers"] = r.timers;
+	v["conflicts"] = r.conflicts;
+	return v;
+}
+
+void ep_series(Call &c)
+{
+	std::vector<series_timers::rule> rules = series_timers::list();
+	Json::Value v(Json::objectValue);
+	v["items"] = Json::Value(Json::arrayValue);
+	for (size_t i = 0; i < rules.size(); i++)
+		v["items"].append(series_json(rules[i]));
+	send_json(c.out, 200, v);
+}
+
+void ep_series_new(Call &c)
+{
+	static const char *members[] = { "title", "channel_id", NULL };
+	std::string title;
+	uint64_t channel;
+	if (!read_body(c, members) || !body_string(c, "title", true, 512, title) || !body_hex(c, "channel_id", true, channel))
+		return;
+	{
+		CServiceManager::ChannelGuard guard;
+		if (!CServiceManager::getInstance()->FindChannel(channel)) {
+			problem(c.out, 404, "no-such-channel", "no channel with that id");
+			return;
+		}
+	}
+	series_timers::rule rule;
+	int added = 0;
+	if (!series_timers::add(title, channel, rule, added)) {
+		if (rule.id.empty()) {
+			problem(c.out, 500, "series-rule-not-created", "the series timer could not be made");
+			return;
+		}
+		Json::Value extra(Json::objectValue);
+		extra["id"] = rule.id;
+		problem(c.out, 409, "series-rule-exists", "that title has a series timer on this channel already", extra);
+		return;
+	}
+	Json::Value v = series_json(rule);
+	/* the timers set for what the EPG has now */
+	v["added"] = added;
+	send_json(c.out, 201, v);
+	c.out.headers.push_back(std::make_pair("Location", "/api/v1/timers/series/" + rule.id));
+}
+
+void ep_series_delete(Call &c)
+{
+	if (!series_timers::remove(c.args[0])) {
+		problem(c.out, 404, "no-such-series-rule", "no series timer with that id");
+		return;
+	}
+	send_empty(c.out, 204);
+}
+
+//-----------------------------------------------------------------------------
 // streams
 //-----------------------------------------------------------------------------
 void ep_stream(Call &c)
@@ -2298,7 +2368,7 @@ void ep_mcp_clients_delete(Call &c)
  * the others operate the box */
 const struct { const char *name; Level level; } tool_levels[] = {
 	{ "tv_status", L_READ }, { "tv_channels", L_READ }, { "tv_epg", L_READ }, { "tv_epg_search", L_READ },
-	{ "tv_timers", L_READ }, { "tv_plugins", L_READ }, { "tv_screen", L_READ }, { "tv_screenshot", L_READ }, { "tv_recordings", L_READ }, { "tv_media", L_READ },
+	{ "tv_timers", L_READ }, { "tv_series_timers", L_READ }, { "tv_plugins", L_READ }, { "tv_screen", L_READ }, { "tv_screenshot", L_READ }, { "tv_recordings", L_READ }, { "tv_media", L_READ },
 	{ "tv_recording_rename", L_SYSTEM },
 };
 
@@ -3215,6 +3285,9 @@ const Route routes[] = {
 	{ "GET",	"/api/v1/epg/events/{}",	L_READ,		ep_epg_event },
 	{ "GET",	"/api/v1/timers",		L_READ,		ep_timers },
 	{ "POST",	"/api/v1/timers",		L_WRITE,	ep_timer_new },
+	{ "GET",	"/api/v1/timers/series",	L_READ,		ep_series },
+	{ "POST",	"/api/v1/timers/series",	L_WRITE,	ep_series_new },
+	{ "DELETE",	"/api/v1/timers/series/{}",	L_WRITE,	ep_series_delete },
 	{ "DELETE",	"/api/v1/timers/{}",		L_WRITE,	ep_timer_delete },
 	{ "GET",	"/api/v1/recordings",		L_READ,		ep_recordings },
 	{ "GET",	"/api/v1/recordings/{}/file",	L_READ,		ep_recording_file },
