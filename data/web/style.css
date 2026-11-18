@@ -243,6 +243,7 @@ svg.remote .key .glyph .line { fill: none; stroke: #d7dce5; stroke-width: 1.6; s
 .toolbar h1 { margin: 0; flex: 1; }
 
 .list { display: flex; flex-direction: column; gap: 6px; }
+.list > h2 { margin: 24px 0 4px; }
 
 .channel {
 	display: grid;

@@ -14,6 +14,7 @@ const ICONS = {
 	record: '<circle cx="12" cy="12" r="6" fill="currentColor" stroke="none"/>',
 	stream: '<path d="M8 5v14l11-7z" fill="currentColor" stroke="none"/>',
 	trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+	series: '<path d="M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3"/>',
 	refresh: '<path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/>',
 	phone: '<rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/>',
 	camera: '<path d="M4 8h3l1.5-2.5h7L17 8h3a1 1 0 0 1 1 1v9.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/>',
@@ -141,6 +142,27 @@ async function record(channel, ev) {
 		r = await api("timers", { method: "POST", body: { ...body, force: true } });
 	}
 	toast(tr("timer.recording_set", { title: ev.title }));
+	return r;
+}
+
+/* a series timer: the rule that records every broadcast of a title on a
+ * channel, also those the guide gets later */
+/* the series in a title, as the box takes it: without the number of the
+ * episode, "Hubert ohne Staller (199)", "Lost Places - Folge 119" */
+const seriesName = (title) => {
+	let t = String(title).trim();
+	for (let before; before !== t;) {
+		before = t;
+		t = t.replace(/\s*\(\d+(\/\d+)?\)$/, "").replace(/\s*[-–:,]?\s*Folge\s*\d+$/i, "").trim();
+	}
+	return (t || String(title).trim()).toLowerCase();
+};
+const sameSeries = (rule, channel, title) => rule.channel_id === channel && seriesName(rule.title) === seriesName(title);
+const seriesRules = () => api("timers/series").then((r) => r.items || [], () => []);
+
+async function recordSeries(channel, ev) {
+	const r = await api("timers/series", { method: "POST", body: { title: ev.title, channel_id: channel } });
+	toast([trn("series.set", r.added), r.conflicts ? trn("series.conflicts", r.conflicts) : ""].filter(Boolean).join(" - "));
 	return r;
 }
 
@@ -326,8 +348,10 @@ function shortText(text, max) {
 	return `${text.slice(0, cut > max / 2 ? cut : max)} …`;
 }
 
-/* el is the programme in the guide; el.timerId the recording set for it */
-function eventDialog(ch, ev, el) {
+/* el is the programme in the guide; el.timerId the recording set for it.
+ * series: the rules of the series timers and how to draw the guide anew
+ * once a rule has set its timers */
+function eventDialog(ch, ev, el, series) {
 	const end = ev.start + ev.duration;
 	const running = ev.start <= now() && now() < end;
 	const timerId = el?.timerId;
@@ -355,6 +379,25 @@ function eventDialog(ch, ev, el) {
 			}).catch(fail);
 			d.close();
 		} }, tr("record"));
+	let seriesButton = null;
+	const rule = series?.rules.find((r) => sameSeries(r, ch.id, ev.title));
+	if (may("write") && rule)
+		seriesButton = h("button", { class: "btn danger", onclick: async () => {
+			d.close();
+			try {
+				await api(`timers/series/${rule.id}`, { method: "DELETE" });
+				series.rules.splice(series.rules.indexOf(rule), 1);
+				toast(tr("series.deleted"));
+			} catch (e) { fail(e); }
+		} }, tr("series.delete"));
+	else if (may("write") && series)
+		seriesButton = h("button", { class: "btn", title: tr("series.hint"), onclick: () => {
+			d.close();
+			recordSeries(ch.id, ev).then((r) => {
+				series.rules.push(r);
+				return series.refresh();
+			}).catch(fail);
+		} }, tr("series.record_all"));
 	const d = h("dialog", {},
 		h("h2", {}, ev.title),
 		h("p", { class: "dim small" }, `${ch.name} - ${day(ev.start)} ${hm(ev.start)}-${hm(ev.start + ev.duration)}`),
@@ -363,7 +406,7 @@ function eventDialog(ch, ev, el) {
 			h("button", { class: "btn", onclick: () => d.close() }, tr("close")),
 			onBox ? null : h("button", { class: "btn", onclick: () => { stream(ch.id).catch(fail); d.close(); } }, tr("stream")),
 			may("write") ? h("button", { class: "btn", onclick: () => { zap(ch).catch(fail); d.close(); } }, tr("zap")) : null,
-			timerButton));
+			seriesButton, timerButton));
 	d.addEventListener("close", () => d.remove());
 	document.body.append(d);
 	d.showModal();
@@ -382,11 +425,19 @@ async function viewEpg(main) {
 		const start = Math.floor(now() / 1800) * 1800;
 		/* as many hours as the window shows, and two more to scroll to */
 		const hours = Math.min(24, Math.max(8, Math.ceil((box.clientWidth - 150) / (60 * PX_PER_MIN)) + 2));
-		const [channels, grid, timers] = await Promise.all([
+		const [channels, grid, timers, rules] = await Promise.all([
 			all(`channels?bouquet=${id}&limit=500`),
 			all(`epg/grid?bouquet=${id}&from=${start}&to=${start + hours * 3600}&limit=100`),
 			api("timers").then((r) => r.items || [], () => []),
+			seriesRules(),
 		]);
+		/* a new rule has set timers: the guide anew, where it was scrolled to */
+		const series = { rules, refresh: async () => {
+			const [left, top] = [box.scrollLeft, box.scrollTop];
+			await show(id);
+			box.scrollLeft = left;
+			box.scrollTop = top;
+		} };
 		/* a programme a recording is set for: by its event, or covered more than half */
 		const records = timers.filter((tm) => tm.kind === "record");
 		const recordFor = (ch, ev, end) => records.find((tm) => tm.channel_id === ch.id &&
@@ -422,13 +473,13 @@ async function viewEpg(main) {
 					title: tip(""),
 					onclick: () => {
 						if (!direct)
-							eventDialog(ch, ev, el);
+							eventDialog(ch, ev, el, series);
 						else if (onBox)
 							zap(ch).catch(fail);
 						else
 							stream(ch.id).catch(fail);
 					},
-					oncontextmenu: (e) => { e.preventDefault(); eventDialog(ch, ev, el); } }, ev.title);
+					oncontextmenu: (e) => { e.preventDefault(); eventDialog(ch, ev, el, series); } }, ev.title);
 				if (timer)
 					el.timerId = timer.id;
 				/* the long description comes on the first hover, the grid has only the short one */
@@ -462,9 +513,59 @@ const timerKind = (kind) => {
 
 async function viewTimers(main) {
 	const list = h("div", { class: "list" });
-	main.append(h("div", { class: "toolbar" }, h("h1", {}, tr("nav.timers"))), list);
+	const series = h("div", { class: "list" });
+	main.append(h("div", { class: "toolbar" }, h("h1", {}, tr("nav.timers"))), list, series);
+	let rules = [];
+	/* the series timers below the timers: what they wait for, and the way to delete one */
+	const showSeries = () => {
+		if (!rules.length) {
+			series.replaceChildren();
+			return;
+		}
+		series.replaceChildren(h("h2", {}, tr("series.heading")), ...rules.map((r) => h("div", { class: "card timer" },
+			h("div", {},
+				h("div", {}, h("strong", {}, r.title)),
+				h("div", { class: "dim small" },
+					[r.channel, trn("series.waiting", r.timers), r.conflicts ? trn("series.conflicts", r.conflicts) : ""].filter(Boolean).join(" - "))),
+			may("write") ? h("button", { class: "btn icon danger", title: tr("series.delete"), html: icon("trash"),
+				onclick: async () => {
+					if (!await confirmDialog(tr("series.delete_ask", { title: r.title }), tr("delete"), true))
+						return;
+					try {
+						await api(`timers/series/${r.id}`, { method: "DELETE" });
+						await show();
+					} catch (e) { fail(e); }
+				} }) : null)));
+	};
+	/* the timer list cuts long titles off */
+	const ruleOf = (t) => t.kind !== "record" || !t.title ? undefined : rules.find((r) => r.channel_id === t.channel_id &&
+		(sameSeries(r, t.channel_id, t.title) || (t.title.length >= 40 && seriesName(r.title).startsWith(t.title.trim().toLowerCase()))));
+	/* all episodes of what a timer records, as "repeat: all episodes" in the
+	   timer menu of the box; the title in full comes from the guide */
+	const seriesButton = (t) => {
+		const rule = ruleOf(t);
+		return h("button", { class: `btn icon${rule ? " primary" : ""}`, html: icon("series"),
+			title: rule ? tr("series.delete") : tr("series.record_all"),
+			onclick: async () => {
+				try {
+					if (rule) {
+						if (!await confirmDialog(tr("series.delete_ask", { title: rule.title }), tr("delete"), true))
+							return;
+						await api(`timers/series/${rule.id}`, { method: "DELETE" });
+					} else {
+						const ev = t.epg_id && t.epg_id !== "0"
+							? await api(`epg/events/${t.epg_id}?start=${t.epg_start}`).catch(() => null) : null;
+						await recordSeries(t.channel_id, { title: ev?.title || t.title });
+					}
+					await show();
+				} catch (e) { fail(e); }
+			} });
+	};
 	const show = async () => {
-		const items = ((await api("timers")).items || []).sort((a, b) => a.start - b.start);
+		let items;
+		[items, rules] = await Promise.all([api("timers").then((r) => r.items || []), seriesRules()]);
+		items.sort((a, b) => a.start - b.start);
+		showSeries();
 		if (!items.length) {
 			list.replaceChildren(h("div", { class: "empty" }, tr("timers.none")));
 			return;
@@ -476,16 +577,19 @@ async function viewTimers(main) {
 				h("div", {},
 					h("div", {}, h("strong", {}, t.title || timerKind(t.kind))),
 					h("div", { class: "dim small" },
-						`${timerKind(t.kind)} - ${day(t.start)} ${hm(t.start)}${t.stop ? `-${hm(t.stop)}` : ""}${channel ? ` - ${channel}` : ""}`)),
-				may("write") ? h("button", { class: "btn icon danger", title: tr("delete"), html: icon("trash"),
-					onclick: async () => {
-						if (!await confirmDialog(tr("timer.delete_ask", { title: t.title || timerKind(t.kind) }), tr("delete"), true))
-							return;
-						try {
-							await api(`timers/${t.id}`, { method: "DELETE" });
-							await show();
-						} catch (e) { fail(e); }
-					} }) : null));
+						`${timerKind(t.kind)} - ${day(t.start)} ${hm(t.start)}${t.stop ? `-${hm(t.stop)}` : ""}${channel ? ` - ${channel}` : ""}` +
+						`${ruleOf(t) ? ` - ${tr("series.tag")}` : ""}`)),
+				may("write") ? h("div", { class: "row" },
+					t.kind === "record" && t.title ? seriesButton(t) : null,
+					h("button", { class: "btn icon danger", title: tr("delete"), html: icon("trash"),
+						onclick: async () => {
+							if (!await confirmDialog(tr("timer.delete_ask", { title: t.title || timerKind(t.kind) }), tr("delete"), true))
+								return;
+							try {
+								await api(`timers/${t.id}`, { method: "DELETE" });
+								await show();
+							} catch (e) { fail(e); }
+						} })) : null));
 		}
 		list.replaceChildren(...rows);
 	};
