@@ -148,6 +148,7 @@
 #include <system/hddstat.h>
 #include <system/main_call.h>
 #include <system/secrets.h>
+#include <system/series_timers.h>
 #include <system/udev_hotplug.h>
 #include <system/setting_helpers.h>
 #include <system/settings.h>
@@ -3442,6 +3443,8 @@ TIMER_START();
 
 	InitZapper();
 	zapper_ready = true;
+	/* once the saved guide is read; new EPG and a late drive look again */
+	series_timers::kick(180);
 
 	/* the start logo stays until the channel is on its way */
 	if (startlogo)
@@ -4392,6 +4395,11 @@ int CNeutrinoApp::handleMsg(const neutrino_msg_t _msg, neutrino_msg_data_t data)
 {
 	int res = 0;
 	neutrino_msg_t msg = _msg;
+
+	/* the guide of a transponder is read: the series timers look at it,
+	   two minutes on, so that a scan through all of them asks them seldom */
+	if (msg == NeutrinoMessages::EVT_EIT_COMPLETE)
+		series_timers::kick(120);
 
 	if (!zapper_ready && (msg == NeutrinoMessages::ANNOUNCE_RECORD || msg == NeutrinoMessages::RECORD_START ||
 	    msg == NeutrinoMessages::ANNOUNCE_ZAPTO || msg == NeutrinoMessages::ZAPTO)) {
@@ -5615,6 +5623,7 @@ void CNeutrinoApp::readEpgLate()
 		return;
 	epg_read_pending = false;
 	g_Sectionsd->readSIfromXML(g_settings.epg_dir.c_str());
+	series_timers::kick(120);
 }
 
 void CNeutrinoApp::saveEpg(int _mode)
