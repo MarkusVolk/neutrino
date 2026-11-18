@@ -249,6 +249,7 @@ public:
 	bool SDTreloadChannels;
 
 	void saveEpg(int _mode);
+	void readEpgLate();
 	void stopDaemonsForFlash();
 	int showChannelList(const neutrino_msg_t msg, bool from_menu = false);
 	void allowChannelList(bool allow){channelList_allowed = allow;}

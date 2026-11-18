@@ -452,6 +452,8 @@ int CHDDMenuHandler::handleMsg(const neutrino_msg_t msg, neutrino_msg_data_t dat
 		changed = added(dev);
 	else if (action == "remove")
 		changed = removed(dev);
+	/* the EPG saved on the record drive, now that it is there */
+	CNeutrinoApp::getInstance()->readEpgLate();
 
 	if (changed && in_menu) {
 		show_menu = true;

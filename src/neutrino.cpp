@@ -249,6 +249,8 @@ CBouquetList   * RADIOwebList;
    has the channel lists their zap needs: a message box on the way, the
    start wizard or the hint on missing settings, hands them on already */
 static bool zapper_ready = false;
+/* the saved EPG is on a drive Neutrino has not mounted yet */
+static bool epg_read_pending = false;
 static std::vector<std::pair<neutrino_msg_t, neutrino_msg_data_t> > early_timer_msgs;
 
 CBouquetList   * AllFavBouquetList;
@@ -2963,10 +2965,9 @@ void CNeutrinoApp::InitZapper()
 
 	g_InfoViewer->start();
 	SendSectionsdConfig();
-	if (g_settings.epg_read) {
-		if(stat(g_settings.epg_dir.c_str(), &my_stat) == 0)
-			g_Sectionsd->readSIfromXML(g_settings.epg_dir.c_str());
-	}
+	epg_read_pending = g_settings.epg_read && stat(g_settings.epg_dir.c_str(), &my_stat) != 0;
+	if (g_settings.epg_read && !epg_read_pending)
+		g_Sectionsd->readSIfromXML(g_settings.epg_dir.c_str());
 	int tvmode = CZapit::getInstance()->getMode() & CZapitClient::MODE_TV;
 	lastChannelMode = tvmode ? g_settings.channel_mode : g_settings.channel_mode_radio;
 	mode = tvmode ? NeutrinoModes::mode_tv : NeutrinoModes::mode_radio;
@@ -5605,13 +5606,24 @@ void CNeutrinoApp::ExitRun(int exit_code, bool ask)
 	_exit(status);
 }
 
+/* the EPG saved on a drive mounted after the start; before it is read, a
+   save would put the little there is in its place */
+void CNeutrinoApp::readEpgLate()
+{
+	struct stat st;
+	if (!epg_read_pending || stat(g_settings.epg_dir.c_str(), &st) != 0)
+		return;
+	epg_read_pending = false;
+	g_Sectionsd->readSIfromXML(g_settings.epg_dir.c_str());
+}
+
 void CNeutrinoApp::saveEpg(int _mode)
 {
 	struct stat my_stat;
 	/* InitZapper starts reading the saved guide; a save before it would
 	   keep only what came on air since and delete the files of the rest.
 	   A save while the guide is being read sectionsd refuses itself. */
-	if (!zapper_ready) {
+	if (!zapper_ready || epg_read_pending) {
 		printf("[neutrino] guide not read yet, not saved\n");
 		return;
 	}
