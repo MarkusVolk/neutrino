@@ -94,7 +94,7 @@ void CHourGlass::initImageFiles()
 	std::string filename = "";
 	hg_img_files.clear();
 
-	path = frameBuffer->getIconPath(hg_image_basename, "png");
+	path = frameBuffer->getIconPath(hg_image_basename);
 	if (file_exists(path))
 		hg_img_files.push_back(hg_image_basename);
 
@@ -102,7 +102,7 @@ void CHourGlass::initImageFiles()
 	{
 		filename = hg_image_basename;
 		filename += to_string(i);
-		path = frameBuffer->getIconPath(filename, "png");
+		path = frameBuffer->getIconPath(filename);
 		if (file_exists(path))
 			hg_img_files.push_back(filename);
 		else
@@ -120,7 +120,7 @@ void CHourGlass::paint(const bool &do_save_bg)
 	if (hg_file_num > hg_img_files.size()-1)
 		hg_file_num = 0;
 
-	cc_bg_image = frameBuffer->getIconPath(hg_img_files.at(hg_file_num), "png");
+	cc_bg_image = frameBuffer->getIconPath(hg_img_files.at(hg_file_num));
 
 	if (do_save_bg)
 		hide();
