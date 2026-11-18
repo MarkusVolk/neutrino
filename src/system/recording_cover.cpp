@@ -1,7 +1,7 @@
 /*
 	Recording covers: a picture beside each recording, the poster of the
 	film or series from TMDB, else the picture of the programme in the media
-	library of ARD or arte, else a frame of the recording itself
+	library of ARD, ZDF or arte, else a frame of the recording itself
 
 	License: GPL
 
@@ -100,7 +100,7 @@ bool usable(const std::string &file)
 	return stat(file.c_str(), &st) == 0 && st.st_size > 0;
 }
 
-/* ---- the media libraries of ARD and arte ---- */
+/* ---- the media libraries of ARD, ZDF and arte ---- */
 
 std::string lower(std::string s)
 {
@@ -109,7 +109,7 @@ std::string lower(std::string s)
 	return s;
 }
 
-/* the words of a channel name: "Das Erste HD", "BR Fernsehen Süd HD" */
+/* the words of a channel name: "ZDFneo HD", "BR Fernsehen Süd HD" */
 bool channelWord(const std::string &channel, bool (*match)(const std::string &))
 {
 	std::string word;
@@ -124,6 +124,11 @@ bool channelWord(const std::string &channel, bool (*match)(const std::string &))
 		word.clear();
 	}
 	return false;
+}
+
+bool zdfWord(const std::string &w)
+{
+	return w.compare(0, 3, "zdf") == 0;
 }
 
 bool ardWord(const std::string &w)
@@ -471,10 +476,72 @@ bool artePicture(const std::string &title, std::string &picture)
 	return best > 0;
 }
 
-/* the picture of the programme in the media library of its channel, where
-   the library's search is open: ARD and arte; the one of ZDF is not */
+std::string zdfToken;	/* worker only */
+
+/* the token zdf.de hands its own pages, for the API */
+bool zdfFetchToken()
+{
+	std::string url = "https://www.zdf.de/", page;
+	zdfToken.clear();
+	if (!getUrl(url, page, AGENT, 20))
+		return false;
+	size_t pos = page.find("videoToken");
+	pos = pos == std::string::npos ? pos : page.find("apiToken", pos);
+	if (pos == std::string::npos)
+		return false;
+	pos += 8;
+	while (pos < page.size() && !isalnum((unsigned char) page[pos]))
+		pos++;
+	size_t end = pos;
+	while (end < page.size() && isalnum((unsigned char) page[end]))
+		end++;
+	zdfToken = page.substr(pos, end - pos);
+	return zdfToken.size() >= 16;
+}
+
+bool zdfPicture(const std::string &title, std::string &picture)
+{
+	std::string answer;
+	for (int attempt = 0; attempt < 2 && answer.empty(); attempt++) {
+		if ((zdfToken.empty() || attempt) && !zdfFetchToken())
+			return false;
+		std::string url = "https://api.zdf.de/search/documents?limit=10&q=" + encodeUrl(title);
+		std::string header = "Api-Auth: Bearer " + zdfToken;
+		getUrl(url, answer, AGENT, 20, header.c_str());
+	}
+	Json::Value root;
+	std::string err;
+	if (answer.empty() || !parseJsonFromString(answer, &root, &err))
+		return false;
+	const Json::Value &results = root["http://zdf.de/rels/search/results"];
+	int best = 0;
+	for (unsigned int i = 0; i < results.size(); i++) {
+		const Json::Value &t = results[i]["http://zdf.de/rels/target"];
+		/* "default" is the page of a series without a brand, such as the
+		   ones of ZDFinfo; an episode counts only by its very title */
+		std::string type = t.get("contentType", "").asString();
+		bool episode = type == "episode";
+		if (type != "brand" && type != "default" && !episode)
+			continue;
+		int m = nameMatch(t.get("teaserHeadline", "").asString(), title);
+		if (episode && m < 2)
+			continue;
+		/* its upright formats are cut out of the wide one, the title cut off */
+		std::string pic = t["teaserImageRef"]["layouts"].get("768x432", "").asString();
+		if (m > best && !pic.empty()) {
+			best = m;
+			picture = pic;
+		}
+	}
+	return best > 0;
+}
+
+/* the picture of the programme in the media library of its channel: ARD
+   and arte, and ZDF with the token of its own pages */
 const char *libraryPicture(const recording_cover::job &j, std::string &picture)
 {
+	if (channelWord(j.channel, zdfWord))
+		return zdfPicture(j.title, picture) ? "ZDF" : NULL;
 	if (channelWord(j.channel, arteWord))
 		return artePicture(j.title, picture) ? "arte" : NULL;
 	if (channelWord(j.channel, ardWord))
