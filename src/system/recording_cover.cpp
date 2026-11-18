@@ -61,12 +61,14 @@ bool running = false;
    end: the recorder may have saved its own version meanwhile; worker only */
 std::map<std::string, tmdbPoster> began;
 
-/* DVB content 0x23: documentary */
+/* DVB content 0x23: documentary, 0x10: film */
 #define GENRE_DOCUMENTARY 0x23
+#define GENRE_MOVIE 0x10
 
-/* what TMDB knows goes where the EPG said nothing: a series is named as
-   one, so that its episodes go together, a documentary gets that genre,
-   here and in the moviebrowser; what the EPG or a hand gave stays */
+/* what TMDB knows goes where the EPG said nothing (a recording begun
+   before the EPG was there): a series is named as one, so that its
+   episodes go together, a documentary or a film gets that genre, here and
+   in the moviebrowser; what the EPG or a hand gave stays */
 void markInfo(const recording_cover::job &j, const tmdbPoster &found)
 {
 	MI_MOVIE_INFO mi;
@@ -82,6 +84,10 @@ void markInfo(const recording_cover::job &j, const tmdbPoster &found)
 	}
 	if (found.documentary && mi.genreMajor == 0) {
 		mi.genreMajor = GENRE_DOCUMENTARY;
+		changed = true;
+	}
+	if (found.type == "movie" && mi.genreMajor == 0) {
+		mi.genreMajor = GENRE_MOVIE;
 		changed = true;
 	}
 	if (changed)
