@@ -621,7 +621,9 @@ void CComponentsKeyboard::moveFocus(const int &d_row, const int &d_column)
 	const int old_column = ck_column;
 
 	ck_row = std::min(std::max(0, ck_row + d_row), rows - 1);
-	ck_column = std::min(std::max(0, ck_column + d_column), columns - 1);
+	/* a row wraps around, as the cursor does in a structured input; up and
+	   down stop at the edges */
+	ck_column = ((ck_column + d_column) % columns + columns) % columns;
 
 	if (ck_row == old_row && ck_column == old_column)
 		return;
