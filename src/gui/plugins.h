@@ -152,6 +152,7 @@ class CPlugins
 		int startScriptPlugin(int number);
 		int startTerminalPlugin(int number);
 		int startFullscreenPlugin(int number);
+		neutrino_msg_t runFullscreen(int number, pid_t pid, neutrino_msg_data_t &data);
 		int popenScriptPlugin(int number, const char *script);
 		int startLuaPlugin(int number);
 		bool hasPlugin(CPlugins::p_type_t type);

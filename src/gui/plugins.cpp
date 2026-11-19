@@ -69,6 +69,8 @@ extern cVideo *videoDecoder;
 #include <zapit/zapit.h>
 #include <init.h>
 #include <gui/lua/luainstance.h>
+#include <gui/widget/remote_ui.h>
+#include <driver/shutdown_count.h>
 #ifdef ENABLE_LCD4LINUX
 #include <driver/lcd4l.h>
 #endif
@@ -421,6 +423,75 @@ int CPlugins::startTerminalPlugin(int number)
 	return plugin_list[number].menu_return;
 }
 
+/* SIGTERM to the program and what it started, SIGKILL when it is still
+   there after a while: Kodi takes some seconds for its add-on services */
+static void endFullscreen(pid_t pid)
+{
+	kill(-pid, SIGTERM);
+	for (int i = 0; i < 150; i++)
+	{
+		if (waitpid(pid, NULL, WNOHANG) == pid)
+			return;
+		usleep(100 * 1000);
+	}
+	printf("[CPlugins] the program did not end, killed\n");
+	kill(-pid, SIGKILL);
+	waitpid(pid, NULL, 0);
+}
+
+/*
+	While a program has the whole display, Neutrino goes on with its events:
+	recordings start in the background. What needs the screen ends the
+	program first and comes back as the returned message, to be posted once
+	Neutrino has the display again.
+*/
+neutrino_msg_t CPlugins::runFullscreen(int number, pid_t pid, neutrino_msg_data_t &data)
+{
+	CRemoteView view(plugin_list[number].name, [this, number] {
+		return plugin_list[number].name + " runs on the whole display and has the remote control; "
+		       "recordings start in the background. exit ends it.";
+	});
+	CNeutrinoApp *app = CNeutrinoApp::getInstance();
+	neutrino_msg_t msg = 0;
+	data = 0;
+	while (waitpid(pid, NULL, WNOHANG) != pid)
+	{
+		SHTDCNT::getInstance()->resetSleepTimer();
+		g_RCInput->getMsg_ms(&msg, &data, 100);
+		if (msg == CRCInput::RC_timeout)
+			continue;
+		/* keys here come from remote clients, the remote control is the program's */
+		if (msg <= CRCInput::RC_MaxRC)
+		{
+			if (msg == CRCInput::RC_home || msg == CRCInput::RC_standby)
+			{
+				printf("[CPlugins] %s ends: a remote client pressed %s\n", plugin_list[number].name.c_str(),
+				       msg == CRCInput::RC_home ? "exit" : "standby");
+				endFullscreen(pid);
+				data = 0;
+				return msg == CRCInput::RC_standby ? msg : 0;
+			}
+			continue;
+		}
+		if (msg == NeutrinoMessages::EVT_START_PLUGIN)
+		{
+			delete[] (unsigned char *)data;
+			continue;
+		}
+		if (msg == NeutrinoMessages::ZAPTO || msg == NeutrinoMessages::STANDBY_ON ||
+		    msg == NeutrinoMessages::LEAVE_ALL || msg == NeutrinoMessages::SHUTDOWN ||
+		    msg == NeutrinoMessages::REBOOT || (msg == NeutrinoMessages::SLEEPTIMER && !data))
+		{
+			printf("[CPlugins] %s ends for a timer, standby or shutdown\n", plugin_list[number].name.c_str());
+			endFullscreen(pid);
+			return msg;
+		}
+		app->handleMsg(msg, data);
+	}
+	data = 0;
+	return 0;
+}
+
 /*
 	A program that draws on the display itself, a game for instance: live
 	TV stops, and on generic hardware the display and the input devices
@@ -457,22 +528,33 @@ int CPlugins::startFullscreenPlugin(int number)
 	CLCD4l::getInstance()->ShowStill(picture);
 #endif
 	frameBuffer->Lock();
+	frameBuffer->setDisplayHandedOver(true);
 	hal_display_suspend();
 
-	my_system(2, "/bin/sh", script);
+	const char *argv[] = { "/bin/sh", script, NULL };
+	pid_t pid = my_spawn(argv);
+	neutrino_msg_t repost = 0;
+	neutrino_msg_data_t repost_data = 0;
+	if (pid > 0)
+		repost = runFullscreen(number, pid, repost_data);
 
 	hal_display_resume();
 #ifdef ENABLE_LCD4LINUX
 	CLCD4l::getInstance()->ClearStill();
 #endif
+	frameBuffer->setDisplayHandedOver(false);
 	frameBuffer->Unlock();
 	frameBuffer->paintBackground();
 	frameBuffer->blit();
 	CNeutrinoApp::getInstance()->unlockPlayBack();
-	if (channel && CNeutrinoApp::getInstance()->channelList)
+	/* a recording may have moved the live channel meanwhile: it stays */
+	if (channel && CNeutrinoApp::getInstance()->channelList &&
+	    CZapit::getInstance()->GetCurrentChannelID() == channel)
 		CNeutrinoApp::getInstance()->channelList->zapTo_ChannelID(channel, true);
 	g_RCInput->restartInput();
 	g_RCInput->clearRCMsg();
+	if (repost)
+		g_RCInput->postMsg(repost, repost_data);
 	return plugin_list[number].menu_return;
 }
 
