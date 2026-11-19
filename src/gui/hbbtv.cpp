@@ -14,8 +14,7 @@
 	"window <x> <y> <w> <h>" (in the application's 1280x720) or "window full"
 	over a socket on its fd 3, and gets "position <ms> <ms> playing|paused",
 	"ended" and "error" back. A page's script may ask for "resolve <arg>" and
-	"prepare" instead, see CHbbtvPage, and name the next video with
-	"title <text>" for an external display. "input" says a key was pressed, for
+	"prepare" instead, see CHbbtvPage. "input" says a key was pressed, for
 	the inactivity timer. "load started|finished|failed <address>" and
 	"exit key|page|crash" tell a remote client when a page is there and why
 	the browser ended.
@@ -265,8 +264,6 @@ class CHbbtvControl
 		std::string highlighted;
 		std::string heading;
 		std::string play_title;
-		/* the title a page named for its videos, until they stop */
-		std::string named_title;
 		int play_position;
 		int play_duration;
 		int64_t next_display;
@@ -302,7 +299,7 @@ class CHbbtvControl
 			}
 		}
 
-		void play(const std::string &url, const std::string &audio = "")
+		void play(const std::string &url, const std::string &audio = "", const std::string &title = "")
 		{
 			cPlayback *playback = CMoviePlayerGui::getPlayback();
 			claim();
@@ -311,8 +308,8 @@ class CHbbtvControl
 			loaded = true;
 			/* what was highlighted when the video was asked for is its title,
 			 * unless that is a button: then the page's heading is */
-			if (!named_title.empty())
-				play_title = named_title;
+			if (!title.empty())
+				play_title = title;
 			else
 				play_title = highlighted.size() <= 20 && !heading.empty() ? heading : highlighted;
 			play_position = play_duration = 0;
@@ -413,6 +410,7 @@ class CHbbtvControl
 			if (!resolve_plays)
 				return;
 			std::vector<std::string> urls;
+			std::string title;
 			skip_ranges.clear();
 			skip_last = -1;
 			size_t begin = 0, end;
@@ -423,6 +421,8 @@ class CHbbtvControl
 				double from, to;
 				if (!entry.compare(0, 4, "http"))
 					urls.push_back(entry);
+				else if (!entry.compare(0, 6, "title "))
+					title = entry.substr(6);
 				else if (entry.find_first_not_of("0123456789") == std::string::npos)
 					send("height " + entry);
 				else if (sscanf(entry.c_str(), "%lf %lf", &from, &to) == 2 && to > from)
@@ -435,7 +435,7 @@ class CHbbtvControl
 				stop();
 				return;
 			}
-			play(urls[0], urls.size() > 1 ? urls[1] : "");
+			play(urls[0], urls.size() > 1 ? urls[1] : "", title);
 		}
 
 		/* as in the movie player: playing into a part jumps over it, a jump
@@ -502,8 +502,6 @@ class CHbbtvControl
 			}
 			else if (cmd == "exit")
 				exit_why = args;
-			else if (cmd == "title")
-				named_title = args;
 			else if (cmd == "play" && !args.empty())
 				play(args);
 			else if (cmd == "drm")
@@ -656,7 +654,6 @@ class CHbbtvControl
 		void stop(bool restart = true)
 		{
 			cancel_resolver();
-			named_title.clear();
 			if (!active)
 				return;
 			if (loaded)
