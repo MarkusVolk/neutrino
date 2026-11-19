@@ -712,6 +712,17 @@ static void keep_cookies(void)
 	g_free(file);
 }
 
+/* the languages the pages are asked for, most wanted first */
+static void set_languages(WebKitWebContext *context)
+{
+	const char *languages = g_getenv("NEUTRINO_HBBTV_LANGUAGES");
+	if (!languages || !*languages)
+		return;
+	char **list = g_strsplit(languages, ",", -1);
+	webkit_web_context_set_preferred_languages(context, (const char * const *) list);
+	g_strfreev(list);
+}
+
 int main(int argc, char **argv)
 {
 	if (g_getenv("NEUTRINO_HBBTV_PAGE"))
@@ -742,6 +753,7 @@ int main(int argc, char **argv)
 	WebKitWebContext *context;
 	limit_memory(&context);
 	keep_cookies();
+	set_languages(context);
 
 	const char *proxy = g_getenv("NEUTRINO_HBBTV_PROXY");
 	if (proxy) {

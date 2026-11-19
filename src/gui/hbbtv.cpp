@@ -783,7 +783,7 @@ static pid_t spawn(const std::string &url, const std::string &channel, const std
 		    strncmp(*e, "NEUTRINO_HBBTV_DISPLAY=", 23) && strncmp(*e, "NEUTRINO_HBBTV_APPS=", 20) &&
 		    strncmp(*e, "NEUTRINO_HBBTV_PAGE=", 20) && strncmp(*e, "NEUTRINO_HBBTV_PAGE_KEYS=", 25) &&
 		    strncmp(*e, "NEUTRINO_HBBTV_KEYS=", 20) && strncmp(*e, "NEUTRINO_HBBTV_RENDER_NODE=", 27) &&
-		    strncmp(*e, "XDG_DATA_HOME=", 14))
+		    strncmp(*e, "NEUTRINO_HBBTV_LANGUAGES=", 25) && strncmp(*e, "XDG_DATA_HOME=", 14))
 			env.push_back(*e);
 	if (page)
 		env.push_back("NEUTRINO_HBBTV_PAGE=" + page->script);
@@ -803,6 +803,9 @@ static pid_t spawn(const std::string &url, const std::string &channel, const std
 		env.push_back("NEUTRINO_HBBTV_KEYS=forward");
 	if (start_key)
 		env.push_back("NEUTRINO_HBBTV_START_KEY=" + to_string(start_key));
+	/* the pages speak the language of the menus, else English */
+	std::string language = Lang2ISO639_1(g_settings.language);
+	env.push_back("NEUTRINO_HBBTV_LANGUAGES=" + (language.empty() || language == "en" ? std::string("en") : language + ",en"));
 	std::vector<char *> envp;
 	for (size_t i = 0; i < env.size(); i++)
 		envp.push_back((char *)env[i].c_str());
