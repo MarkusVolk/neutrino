@@ -14,7 +14,8 @@
 	"window <x> <y> <w> <h>" (in the application's 1280x720) or "window full"
 	over a socket on its fd 3, and gets "position <ms> <ms> playing|paused",
 	"ended" and "error" back. A page's script may ask for "resolve <arg>" and
-	"prepare" instead, see CHbbtvPage. "input" says a key was pressed, for
+	"prepare" instead, see CHbbtvPage, and name the next video with
+	"title <text>" for an external display. "input" says a key was pressed, for
 	the inactivity timer. "load started|finished|failed <address>" and
 	"exit key|page|crash" tell a remote client when a page is there and why
 	the browser ended.
@@ -264,6 +265,8 @@ class CHbbtvControl
 		std::string highlighted;
 		std::string heading;
 		std::string play_title;
+		/* the title a page named for its videos, until they stop */
+		std::string named_title;
 		int play_position;
 		int play_duration;
 		int64_t next_display;
@@ -308,7 +311,10 @@ class CHbbtvControl
 			loaded = true;
 			/* what was highlighted when the video was asked for is its title,
 			 * unless that is a button: then the page's heading is */
-			play_title = highlighted.size() <= 20 && !heading.empty() ? heading : highlighted;
+			if (!named_title.empty())
+				play_title = named_title;
+			else
+				play_title = highlighted.size() <= 20 && !heading.empty() ? heading : highlighted;
 			play_position = play_duration = 0;
 			if (!drm_license.empty())
 			{
@@ -496,6 +502,8 @@ class CHbbtvControl
 			}
 			else if (cmd == "exit")
 				exit_why = args;
+			else if (cmd == "title")
+				named_title = args;
 			else if (cmd == "play" && !args.empty())
 				play(args);
 			else if (cmd == "drm")
@@ -648,6 +656,7 @@ class CHbbtvControl
 		void stop(bool restart = true)
 		{
 			cancel_resolver();
+			named_title.clear();
 			if (!active)
 				return;
 			if (loaded)
