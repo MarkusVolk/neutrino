@@ -697,6 +697,20 @@ static void limit_memory(WebKitWebContext **context)
 	webkit_memory_pressure_settings_free(settings);
 }
 
+/* cookies beside the pages' other data, so that the consents and logins a
+ * page keeps in them outlast the browser */
+static void keep_cookies(void)
+{
+	WebKitNetworkSession *session = webkit_network_session_get_default();
+	const char *dir = webkit_website_data_manager_get_base_data_directory(
+		webkit_network_session_get_website_data_manager(session));
+	if (!dir)
+		return;
+	char *file = g_build_filename(dir, "cookies.sqlite", NULL);
+	webkit_cookie_manager_set_persistent_storage(webkit_network_session_get_cookie_manager(session),
+		file, WEBKIT_COOKIE_PERSISTENT_STORAGE_SQLITE);
+	g_free(file);
+}
 
 int main(int argc, char **argv)
 {
@@ -727,6 +741,7 @@ int main(int argc, char **argv)
 	/* before anything creates the network session */
 	WebKitWebContext *context;
 	limit_memory(&context);
+	keep_cookies();
 
 	const char *proxy = g_getenv("NEUTRINO_HBBTV_PROXY");
 	if (proxy) {
