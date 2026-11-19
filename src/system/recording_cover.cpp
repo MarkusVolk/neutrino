@@ -143,10 +143,13 @@ bool ardWord(const std::string &w)
 
 /* the name of the programme the library calls it by: the title itself, or
    failing that one that begins with it ("tagesthemen mit Gebärdensprache")
-   or one the title begins with ("Bayerischer Kabarettpreis 2026") */
+   or one the title begins with ("Bayerischer Kabarettpreis 2026"); blanks
+   around either do not count ("Himmelskörper " of ZDF) */
 int nameMatch(const std::string &name, const std::string &title)
 {
 	std::string n = lower(name), t = lower(title);
+	n = trim(n);
+	t = trim(t);
 	if (n == t)
 		return 2;
 	if (n.size() > t.size() && n.compare(0, t.size(), t) == 0 && !isalnum((unsigned char) n[t.size()]))
@@ -546,13 +549,15 @@ bool zdfPicture(const std::string &title, std::string &picture)
 	for (unsigned int i = 0; i < results.size(); i++) {
 		const Json::Value &t = results[i]["http://zdf.de/rels/target"];
 		/* "default" is the page of a series without a brand, such as the
-		   ones of ZDFinfo; an episode counts only by its very title */
+		   ones of ZDFinfo, "topic" the one of a documentary series of the
+		   new pages ("Natur macht Geschichte"); an episode or a topic counts
+		   only by its very title */
 		std::string type = t.get("contentType", "").asString();
-		bool episode = type == "episode";
-		if (type != "brand" && type != "default" && !episode)
+		bool exact = type == "episode" || type == "topic";
+		if (type != "brand" && type != "default" && !exact)
 			continue;
 		int m = nameMatch(t.get("teaserHeadline", "").asString(), title);
-		if (episode && m < 2)
+		if (exact && m < 2)
 			continue;
 		/* its upright formats are cut out of the wide one, the title cut off */
 		std::string pic = t["teaserImageRef"]["layouts"].get("768x432", "").asString();
