@@ -42,7 +42,6 @@
 #include <stddef.h>
 #include <system/locals.h>
 
-#define NUMBER_OF_MOVIES_LAST 40 // number of movies shown in last record/last play lists
 #define MOVIE_SMSKEY_TIMEOUT 800
 
 /* default row size in percent for any element */

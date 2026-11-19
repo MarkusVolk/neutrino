@@ -171,14 +171,10 @@ int CMovieBrowser::exec(CMenuTarget* parent, const std::string & actionKey)
 	}
 	else if (actionKey == "save_movie_info_all")
 	{
-		std::vector<MI_MOVIE_INFO*> * current_list=NULL;
-
-		if (m_windowFocus == MB_FOCUS_BROWSER)          current_list = &m_vHandleBrowserList;
-		else if (m_windowFocus == MB_FOCUS_LAST_PLAY)   current_list = &m_vHandlePlayList;
-		else if (m_windowFocus == MB_FOCUS_LAST_RECORD) current_list = &m_vHandleRecordList ;
-
-		if (current_list == NULL || m_movieSelectionHandler == NULL)
+		if (m_windowFocus != MB_FOCUS_BROWSER || m_movieSelectionHandler == NULL)
 			return returnval;
+
+		std::vector<MI_MOVIE_INFO*> *current_list = &m_vHandleBrowserList;
 
 		CLoaderHint *lh = new CLoaderHint(LOCALE_MOVIEBROWSER_INFO_HEAD_UPDATE);
 		lh->paint();
@@ -361,8 +357,6 @@ int CMovieBrowser::exec(CMenuTarget* parent, const std::string & actionKey)
 				m_doRefresh = true;
 				returnval = menu_return::RETURN_EXIT;
 			}
-			if (m_windowFocus == MB_FOCUS_LAST_PLAY)
-				m_pcLastPlay->setSelectedLine(0);
 		}
 	}
 	return returnval;

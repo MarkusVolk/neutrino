@@ -44,6 +44,7 @@
 #endif
 
 #include "mb_types.h"
+#include "mb_wall.h"
 
 #include <configfile.h>
 
@@ -109,17 +110,6 @@ typedef struct
 	int browserRowWidth[MB_MAX_ROWS];
 	int browserAdditional;
 	int browserCutLongRowText;
-
-	// to be added to config later
-	int lastPlayMaxItems;
-	int lastPlayRowNr;
-	MB_INFO_ITEM lastPlayRow[4];
-	int lastPlayRowWidth[3];
-
-	int lastRecordMaxItems;
-	int lastRecordRowNr;
-	MB_INFO_ITEM lastRecordRow[3];
-	int lastRecordRowWidth[3];
 } MB_SETTINGS;
 
 class CMovieBrowser;
@@ -137,50 +127,38 @@ class CMovieBrowser : public CMenuTarget, public CProgressSignals
 		CFrameBuffer * framebuffer;
 
 		CListFrame* m_pcBrowser;
-		CListFrame* m_pcLastPlay;
-		CListFrame* m_pcLastRecord;
 		CTextBox* m_pcInfo1; // bottom box
 		CTextBox* m_pcInfo2; // right box
 		CListFrame* m_pcFilter;
 
 		CBox m_cBoxFrame;
-		CBox m_cBoxFrameLastPlayList;
-		CBox m_cBoxFrameLastRecordList;
 		CBox m_cBoxFrameBrowserList;
 		CBox m_cBoxFrameInfo1;
 		CBox m_cBoxFrameInfo2;
 		CBox m_cBoxFrameBookmarkList;
 		CBox m_cBoxFrameFilter;
+		CBox m_cBoxFrameWall;
 		CBox m_cBoxFrameFootRel;
 		CBox m_cBoxFrameTitleRel;
 
 		CComponentsHeader *m_header;
 		CComponentsDetailsLine *m_detailsLine;
 		CComponentsPicture *m_movieCover;
+		CMovieWall m_wall;
 
 		lf_line_types_t m_browserListLines;
-		lf_line_types_t m_recordListLines;
-		lf_line_types_t m_playListLines;
 		lf_line_types_t m_FilterLines;
 
 		std::vector<std::unique_ptr<MI_MOVIE_INFO>> m_vMovieInfo;
 		std::vector<MI_MOVIE_INFO*> m_vHandleBrowserList;
-		std::vector<MI_MOVIE_INFO*> m_vHandleRecordList;
-		std::vector<MI_MOVIE_INFO*> m_vHandlePlayList;
 		std::vector<std::string> m_dirNames;
 		std::vector<MI_MOVIE_INFO*> m_vHandleSerienames;
 
 		unsigned int m_currentBrowserSelection;
-		unsigned int m_currentRecordSelection;
-		unsigned int m_currentPlaySelection;
 		unsigned int m_currentFilterSelection;
 		unsigned int m_prevBrowserSelection;
-		unsigned int m_prevRecordSelection;
-		unsigned int m_prevPlaySelection;
 
 		bool m_showBrowserFiles;
-		bool m_showLastRecordFiles;
-		bool m_showLastPlayFiles;
 		bool m_showMovieInfo;
 		bool m_showFilter;
 		bool newHeader;
@@ -255,15 +233,12 @@ class CMovieBrowser : public CMenuTarget, public CProgressSignals
 		void initGlobalSettings(void); //P1
 		void initGlobalStorageSettings(void);
 		void initFrames(void);
-		void initRows(void);
 		void reinit(void); //P1
 
 		///// MovieBrowser Main Window//////////
 		int paint(void); //P1
 		void refresh(void); //P1
 		void hide(void); //P1
-		void refreshLastPlayList(void); //P2
-		void refreshLastRecordList(void); //P2
 		void refreshBrowserList(void); //P1
 		void refreshFilterList(void); //P1
 		void refreshMovieInfo(void); //P1
@@ -282,19 +257,16 @@ class CMovieBrowser : public CMenuTarget, public CProgressSignals
 		///// Events ///////////////////////////
 		bool onButtonPress(neutrino_msg_t msg); // P1
 		bool onButtonPressMainFrame(neutrino_msg_t msg); // P1
+		bool onButtonPressWall(neutrino_msg_t msg);
+		void toggleWall(void);
 		bool onButtonPressBrowserList(neutrino_msg_t msg); // P1
-		bool onButtonPressLastPlayList(neutrino_msg_t msg); // P2
-		bool onButtonPressLastRecordList(neutrino_msg_t msg); // P2
 		bool onButtonPressFilterList(neutrino_msg_t msg); // P2
 		bool onButtonPressMovieInfoList(neutrino_msg_t msg); // P2
 		void markItem(CListFrame *list);
 		void scrollBrowserItem(bool next, bool page);
 		void onSetFocus(MB_FOCUS new_focus); // P2
 		void onSetFocusNext(void); // P2
-		void onSetFocusPrev(void); // P2
 		void onSetGUIWindow(MB_GUI gui);
-		void onSetGUIWindowNext(void);
-		void onSetGUIWindowPrev(void);
 		bool onDelete(bool cursor_only = false);
 		std::string formatDeleteMsg(MI_MOVIE_INFO *movieinfo, int msgFont, const int boxWidth = 450);
 		bool onDeleteFile(MI_MOVIE_INFO *movieinfo, bool skipAsk = false);  // P4
@@ -314,7 +286,7 @@ class CMovieBrowser : public CMenuTarget, public CProgressSignals
 		void initUpdateMovieInfoMenu(CMenuWidget *MovieInfoMenuUpdate);
 		void initParentalMenu(CMenuWidget *ParentalMenu);
 		void initOptionsDirMenu(CMenuWidget *OptionsMenuDir, std::vector<COnOffNotifier*>& v_notifiers);
-		void initOptionsBrowserMenu(CMenuWidget *OptionsMenuBrowser, CIntInput* PlayMaxUserIntInput, CIntInput* RecMaxUserIntInput, CIntInput* BrowserFrameUserIntInputAdd, CIntInput* BrowserFrameUserIntInputGen, CIntInput* BrowserRowNrIntInput);
+		void initOptionsBrowserMenu(CMenuWidget *OptionsMenuBrowser, CIntInput* BrowserFrameUserIntInputAdd, CIntInput* BrowserFrameUserIntInputGen, CIntInput* BrowserRowNrIntInput);
 		int showMovieInfoMenu(MI_MOVIE_INFO* movie_info); // P2
 		int showMovieCutMenu(); // P2
 		int  showStartPosSelectionMenu(void); // P2

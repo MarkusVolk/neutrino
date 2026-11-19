@@ -2229,26 +2229,25 @@ moviebrowser.edit_book_type_info2 <0: backward, >0: forward, 0: none
 moviebrowser.edit_serie Enter name of serie
 moviebrowser.filter_off Filter off
 moviebrowser.foot_filter Filter:
-moviebrowser.foot_focus Switch window
+moviebrowser.foot_list List
 moviebrowser.foot_options Options
 moviebrowser.foot_play Playback
 moviebrowser.foot_refresh Refresh list
 moviebrowser.foot_sort Sort:
+moviebrowser.foot_wall Wall
 moviebrowser.head My recordings
 moviebrowser.head_all_movies All movies:
 moviebrowser.head_filter Filter movies by category:
-moviebrowser.head_playlist Last played:
-moviebrowser.head_recordlist Last recorded:
 moviebrowser.help_button_blue Reload movie informations
 moviebrowser.help_button_green Show filter selection
-moviebrowser.help_button_left Change view
+moviebrowser.help_button_left Switch active window
 moviebrowser.help_button_menu Movie infos and settings
 moviebrowser.help_button_mute Delete movies
 moviebrowser.help_button_okay Play movies
 moviebrowser.help_button_play Mark movies
 moviebrowser.help_button_red Change sort
-moviebrowser.help_button_right Change view
-moviebrowser.help_button_yellow Switch active window
+moviebrowser.help_button_right Switch active window
+moviebrowser.help_button_yellow Switch between list and wall
 moviebrowser.hide_series Hide series
 moviebrowser.hint_copy_onefile Creating one new movie from the bookmarks of the movie
 moviebrowser.hint_copy_several Creating several new movies from the bookmarks of the movie
@@ -2291,8 +2290,6 @@ moviebrowser.info_size File size (MB)
 moviebrowser.info_spacer Spacer
 moviebrowser.info_title Titel
 moviebrowser.info_videoformat Picture
-moviebrowser.last_play_max_items Number of lines last play
-moviebrowser.last_record_max_items Number of lines last record
 moviebrowser.load_default Load default settings
 moviebrowser.menu_copy_onefile Copy movie
 moviebrowser.menu_copy_several Copy and split movie
@@ -2357,6 +2354,17 @@ moviebrowser.update_if_dest_empty_only Copy if destination is empty only
 moviebrowser.use_dir Use directory
 moviebrowser.use_movie_dir Use movie directory
 moviebrowser.use_rec_dir Use record directory
+moviebrowser.wall_continue Continue watching
+moviebrowser.wall_documentaries Documentaries
+moviebrowser.wall_empty No recordings
+moviebrowser.wall_episode 1 episode
+moviebrowser.wall_episodes %d episodes
+moviebrowser.wall_minutes %d min
+moviebrowser.wall_movies Films
+moviebrowser.wall_newest Newest
+moviebrowser.wall_other Other
+moviebrowser.wall_parts %d parts
+moviebrowser.wall_series Series
 moviecut.cancel Cancel movie editing?
 movieplayer.bookmark Bookmarks
 movieplayer.bookmarkname Bookmarkname

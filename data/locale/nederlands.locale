@@ -2229,26 +2229,25 @@ moviebrowser.edit_book_type_info2 <0 terug , >0 voor, 0: geen
 moviebrowser.edit_serie Geef de naam van de serie op
 moviebrowser.filter_off Filter uit
 moviebrowser.foot_filter Filter:
-moviebrowser.foot_focus Schakel venster
+moviebrowser.foot_list Lijst
 moviebrowser.foot_options Opties
 moviebrowser.foot_play Start film
 moviebrowser.foot_refresh Lijst herladen
 moviebrowser.foot_sort Sorteer:
+moviebrowser.foot_wall Muur
 moviebrowser.head Mijn opnames
 moviebrowser.head_all_movies Alle films:
 moviebrowser.head_filter Filter flims per categorie:
-moviebrowser.head_playlist Laatst afgespeeld:
-moviebrowser.head_recordlist Laatst opgenomen:
 moviebrowser.help_button_blue Filminformatie opnieuw laden
 moviebrowser.help_button_green Filterkeuze tonen
-moviebrowser.help_button_left Weergave wisselen
+moviebrowser.help_button_left Actief venster wisselen
 moviebrowser.help_button_menu Filminfo en instellingen
 moviebrowser.help_button_mute Films verwijderen
 moviebrowser.help_button_okay Films afspelen
 moviebrowser.help_button_play Films markeren
 moviebrowser.help_button_red Sortering wijzigen
-moviebrowser.help_button_right Weergave wisselen
-moviebrowser.help_button_yellow Actief venster wisselen
+moviebrowser.help_button_right Actief venster wisselen
+moviebrowser.help_button_yellow Wisselen tussen lijst en muur
 moviebrowser.hide_series Verberg series
 moviebrowser.hint_copy_onefile Maakt één nieuwe film uit de markeringen van de film
 moviebrowser.hint_copy_several Maakt meerdere nieuwe films uit de markeringen van de film
@@ -2291,8 +2290,6 @@ moviebrowser.info_size Bestandsgrootte (MB)
 moviebrowser.info_spacer Scheiding
 moviebrowser.info_title Titel
 moviebrowser.info_videoformat Beeldformaat
-moviebrowser.last_play_max_items Aantal lijnen laatst afgespeeld
-moviebrowser.last_record_max_items Aantal lijnen laatste opname
 moviebrowser.load_default Laad standaard instellingen
 moviebrowser.menu_copy_onefile Film kopiëren
 moviebrowser.menu_copy_several Film kopiëren en splitsen
@@ -2357,6 +2354,17 @@ moviebrowser.update_if_dest_empty_only Kopieer indien doelbestemming leeg is
 moviebrowser.use_dir Gebruik directory
 moviebrowser.use_movie_dir Gebruik film directory
 moviebrowser.use_rec_dir Gebruik opname directory
+moviebrowser.wall_continue Verder kijken
+moviebrowser.wall_documentaries Documentaires
+moviebrowser.wall_empty Geen opnamen
+moviebrowser.wall_episode 1 aflevering
+moviebrowser.wall_episodes %d afleveringen
+moviebrowser.wall_minutes %d min
+moviebrowser.wall_movies Films
+moviebrowser.wall_newest Nieuwste
+moviebrowser.wall_other Overige
+moviebrowser.wall_parts %d delen
+moviebrowser.wall_series Series
 moviecut.cancel Bewerken van de film afbreken?
 movieplayer.bookmark Markeerpunten
 movieplayer.bookmarkname Naam markeerpunt

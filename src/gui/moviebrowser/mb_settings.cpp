@@ -67,9 +67,6 @@ void CMovieBrowser::initGlobalSettings(void)
 {
 	m_settings.gui = MB_GUI_MOVIE_INFO;
 
-	m_settings.lastPlayMaxItems = NUMBER_OF_MOVIES_LAST;
-	m_settings.lastRecordMaxItems = NUMBER_OF_MOVIES_LAST;
-
 	m_settings.browser_serie_mode = 0;
 	m_settings.serie_auto_create = 0;
 
@@ -152,10 +149,12 @@ bool CMovieBrowser::loadSettings(MB_SETTINGS* settings)
 		return result;
 	}
 
-	settings->gui = (MB_GUI)configfile.getInt32("mb_gui", MB_GUI_MOVIE_INFO);
+	int mb_gui = configfile.getInt32("mb_gui", MB_GUI_MOVIE_INFO);
+	// 2 and 3 were the removed "last played" and "last recorded" views
+	if (mb_gui == 2 || mb_gui == 3)
+		mb_gui = MB_GUI_MOVIE_INFO;
+	settings->gui = (MB_GUI)mb_gui;
 
-	settings->lastPlayMaxItems = configfile.getInt32("mb_lastPlayMaxItems", NUMBER_OF_MOVIES_LAST);
-	settings->lastRecordMaxItems = configfile.getInt32("mb_lastRecordMaxItems", NUMBER_OF_MOVIES_LAST);
 	settings->browser_serie_mode = configfile.getInt32("mb_browser_serie_mode", 0);
 	settings->serie_auto_create = configfile.getInt32("mb_serie_auto_create", 0);
 	settings->ts_only = configfile.getInt32("mb_ts_only", 1);
@@ -214,8 +213,6 @@ bool CMovieBrowser::saveSettings(MB_SETTINGS* settings)
 	bool result = true;
 	dprintf(DEBUG_DEBUG, "[mb]->%s\n", __func__);
 
-	configfile.setInt32("mb_lastPlayMaxItems", settings->lastPlayMaxItems);
-	configfile.setInt32("mb_lastRecordMaxItems", settings->lastRecordMaxItems);
 	configfile.setInt32("mb_browser_serie_mode", settings->browser_serie_mode);
 	configfile.setInt32("mb_serie_auto_create", settings->serie_auto_create);
 	configfile.setInt32("mb_ts_only", settings->ts_only);

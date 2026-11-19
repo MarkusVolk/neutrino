@@ -92,7 +92,12 @@ void CMovieBrowser::updateMovieSelection(void)
 	bool new_selection = false;
 
 	unsigned int old_movie_selection;
-	if (m_windowFocus == MB_FOCUS_BROWSER)
+	if (m_windowFocus == MB_FOCUS_WALL)
+	{
+		new_selection = m_wall.selected() != m_movieSelectionHandler;
+		m_movieSelectionHandler = m_wall.selected();
+	}
+	else if (m_windowFocus == MB_FOCUS_BROWSER)
 	{
 		if (m_vHandleBrowserList.empty())
 		{
@@ -110,46 +115,6 @@ void CMovieBrowser::updateMovieSelection(void)
 
 			if (m_currentBrowserSelection < m_vHandleBrowserList.size())
 				m_movieSelectionHandler = m_vHandleBrowserList[m_currentBrowserSelection];
-		}
-	}
-	else if (m_windowFocus == MB_FOCUS_LAST_PLAY)
-	{
-		if (m_vHandlePlayList.empty())
-		{
-			// There are no elements in the Filebrowser, clear all handles
-			m_currentPlaySelection = 0;
-			m_movieSelectionHandler = NULL;
-			new_selection = true;
-		}
-		else
-		{
-			old_movie_selection = m_currentPlaySelection;
-			m_currentPlaySelection = m_pcLastPlay->getSelectedLine();
-			if (m_currentPlaySelection != old_movie_selection)
-				new_selection = true;
-
-			if (m_currentPlaySelection < m_vHandlePlayList.size())
-				m_movieSelectionHandler = m_vHandlePlayList[m_currentPlaySelection];
-		}
-	}
-	else if (m_windowFocus == MB_FOCUS_LAST_RECORD)
-	{
-		if (m_vHandleRecordList.empty())
-		{
-			// There are no elements in the Filebrowser, clear all handles
-			m_currentRecordSelection = 0;
-			m_movieSelectionHandler = NULL;
-			new_selection = true;
-		}
-		else
-		{
-			old_movie_selection = m_currentRecordSelection;
-			m_currentRecordSelection = m_pcLastRecord->getSelectedLine();
-			if (m_currentRecordSelection != old_movie_selection)
-				new_selection = true;
-
-			if (m_currentRecordSelection < m_vHandleRecordList.size())
-				m_movieSelectionHandler = m_vHandleRecordList[m_currentRecordSelection];
 		}
 	}
 
@@ -214,8 +179,6 @@ void CMovieBrowser::updateFilterSelection(void)
 	if (result == true)
 	{
 		refreshBrowserList();
-		refreshLastPlayList();
-		refreshLastRecordList();
 		refreshFoot();
 	}
 }

@@ -149,8 +149,6 @@ bool CMovieBrowser::onDeleteFile(MI_MOVIE_INFO *movieinfo, bool skipAsk)
 
 		updateSerienames();
 		refreshBrowserList();
-		refreshLastPlayList();
-		refreshLastRecordList();
 		refreshMovieInfo();
 		refresh();
 

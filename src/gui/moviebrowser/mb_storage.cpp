@@ -124,8 +124,6 @@ void CMovieBrowser::loadAllTsFileNamesFromStorage(void)
 	m_movieSelectionHandler = NULL;
 	m_dirNames.clear();
 	m_vHandleBrowserList.clear();
-	m_vHandleRecordList.clear();
-	m_vHandlePlayList.clear();
 	m_vHandleSerienames.clear();
 	m_vMovieInfo.clear();
 	m_vMovieInfo.reserve(256);
@@ -354,8 +352,6 @@ void CMovieBrowser::loadMovies(bool doRefresh)
 	if (doRefresh)
 	{
 		refreshBrowserList();
-		refreshLastPlayList();
-		refreshLastRecordList();
 		refreshFilterList();
 	}
 

@@ -104,22 +104,21 @@ typedef struct
 typedef enum
 {
 	MB_FOCUS_BROWSER = 0,
-	MB_FOCUS_LAST_PLAY = 1,
-	MB_FOCUS_LAST_RECORD = 2,
-	MB_FOCUS_MOVIE_INFO1 = 3,
-	MB_FOCUS_MOVIE_INFO2 = 4,
-	MB_FOCUS_FILTER = 5,
-	MB_FOCUS_MAX_NUMBER = 6	// MUST be allways the last item in the list
+	MB_FOCUS_MOVIE_INFO1 = 1,
+	MB_FOCUS_MOVIE_INFO2 = 2,
+	MB_FOCUS_FILTER = 3,
+	MB_FOCUS_WALL = 4,
+	MB_FOCUS_MAX_NUMBER = 5	// MUST be allways the last item in the list
 }MB_FOCUS;
 
 typedef enum
 {
 	MB_GUI_BROWSER_ONLY = 0,
 	MB_GUI_MOVIE_INFO = 1,
-	MB_GUI_LAST_PLAY = 2,
-	MB_GUI_LAST_RECORD = 3,
+	/* 2 and 3 were "last played" and "last recorded"; mb_gui is persisted */
 	MB_GUI_FILTER = 4,
-	MB_GUI_MAX_NUMBER = 5	// MUST be allways the last item in the list
+	MB_GUI_WALL = 5,
+	MB_GUI_MAX_NUMBER = 6	// MUST be allways the last item in the list
 }MB_GUI;
 
 typedef enum

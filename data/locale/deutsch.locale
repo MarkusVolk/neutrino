@@ -2229,26 +2229,25 @@ moviebrowser.edit_book_type_info2 <0: zurück, >0: vor, 0: kein
 moviebrowser.edit_serie Name der Serie
 moviebrowser.filter_off Filter aus
 moviebrowser.foot_filter Filter:
-moviebrowser.foot_focus Fenster wechseln
+moviebrowser.foot_list Liste
 moviebrowser.foot_options Optionen
 moviebrowser.foot_play Wiedergabe
 moviebrowser.foot_refresh Neu laden
 moviebrowser.foot_sort Sortieren:
+moviebrowser.foot_wall Wand
 moviebrowser.head Meine Aufnahmen
 moviebrowser.head_all_movies Alle Aufnahmen:
 moviebrowser.head_filter Filme nach Kategorie filtern:
-moviebrowser.head_playlist Zuletzt gesehen:
-moviebrowser.head_recordlist Zuletzt aufgenommen:
 moviebrowser.help_button_blue Filminfos neu laden
 moviebrowser.help_button_green Filterfenster einblenden
-moviebrowser.help_button_left Ansicht ändern
+moviebrowser.help_button_left Aktives Fenster wechseln
 moviebrowser.help_button_menu Filminfos und Einstellungen
 moviebrowser.help_button_mute Filme löschen
 moviebrowser.help_button_okay Filme abspielen
 moviebrowser.help_button_play Filme markieren
 moviebrowser.help_button_red Sortierung ändern
-moviebrowser.help_button_right Ansicht ändern
-moviebrowser.help_button_yellow Aktives Fenster wechseln
+moviebrowser.help_button_right Aktives Fenster wechseln
+moviebrowser.help_button_yellow Zwischen Liste und Wand wechseln
 moviebrowser.hide_series Verstecke Serien
 moviebrowser.hint_copy_onefile Erstellt aus den Sprungmarken des Films einen neuen Film
 moviebrowser.hint_copy_several Erstellt aus den Sprungmarken des Films mehrere neue Filme
@@ -2291,8 +2290,6 @@ moviebrowser.info_size Dateigröße (MB)
 moviebrowser.info_spacer Abstandshalter
 moviebrowser.info_title Titel
 moviebrowser.info_videoformat Bildformat
-moviebrowser.last_play_max_items Zeilen 'zuletzt aufgenommen'
-moviebrowser.last_record_max_items Zeilen 'zuletzt gesehen'
 moviebrowser.load_default Lade Voreinstellung
 moviebrowser.menu_copy_onefile Film kopieren
 moviebrowser.menu_copy_several Film kopieren und teilen
@@ -2357,6 +2354,17 @@ moviebrowser.update_if_dest_empty_only Übernehmen nur wenn Ziel leer
 moviebrowser.use_dir Verzeichnis verwenden
 moviebrowser.use_movie_dir Wiedergabeverzeichnis verwenden
 moviebrowser.use_rec_dir Aufnahmeverzeichnis verwenden
+moviebrowser.wall_continue Weiterschauen
+moviebrowser.wall_documentaries Dokumentationen
+moviebrowser.wall_empty Keine Aufnahmen
+moviebrowser.wall_episode 1 Folge
+moviebrowser.wall_episodes %d Folgen
+moviebrowser.wall_minutes %d Min.
+moviebrowser.wall_movies Filme
+moviebrowser.wall_newest Neueste
+moviebrowser.wall_other Sonstige
+moviebrowser.wall_parts %d Teile
+moviebrowser.wall_series Serien
 moviecut.cancel Bearbeiten des Filmes abbrechen?
 movieplayer.bookmark Bookmarks
 movieplayer.bookmarkname Bookmark Name

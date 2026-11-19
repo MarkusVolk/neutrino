@@ -300,12 +300,9 @@ void CMovieBrowser::initOptionsDirMenu(CMenuWidget *OptionsMenuDir, std::vector<
 	}
 }
 
-void CMovieBrowser::initOptionsBrowserMenu(CMenuWidget *OptionsMenuBrowser, CIntInput* PlayMaxUserIntInput, CIntInput* RecMaxUserIntInput, CIntInput* BrowserFrameUserIntInputAdd, CIntInput* BrowserFrameUserIntInputGen, CIntInput* BrowserRowNrIntInput)
+void CMovieBrowser::initOptionsBrowserMenu(CMenuWidget *OptionsMenuBrowser, CIntInput* BrowserFrameUserIntInputAdd, CIntInput* BrowserFrameUserIntInputGen, CIntInput* BrowserRowNrIntInput)
 {
 	OptionsMenuBrowser->addIntroItems(LOCALE_MOVIEBROWSER_OPTION_BROWSER);
-	OptionsMenuBrowser->addItem(new CMenuForwarder(LOCALE_MOVIEBROWSER_LAST_PLAY_MAX_ITEMS,    true, PlayMaxUserIntInput->getValue(),  PlayMaxUserIntInput));
-	OptionsMenuBrowser->addItem(new CMenuForwarder(LOCALE_MOVIEBROWSER_LAST_RECORD_MAX_ITEMS,  true, RecMaxUserIntInput->getValue(), RecMaxUserIntInput));
-	OptionsMenuBrowser->addItem(GenericMenuSeparatorLine);
 
 	CMenuForwarder* fw1 = new CMenuForwarder(LOCALE_MOVIEBROWSER_BROWSER_FRAME_HIGH,     !m_settings.browserAdditional, BrowserFrameUserIntInputGen->getValue(), BrowserFrameUserIntInputGen);
 	CMenuForwarder* fw2 = new CMenuForwarder(LOCALE_MOVIEBROWSER_BROWSER_FRAME_HIGH_ADDITIONAL,     m_settings.browserAdditional, BrowserFrameUserIntInputAdd->getValue(), BrowserFrameUserIntInputAdd);
@@ -357,14 +354,11 @@ bool CMovieBrowser::showMenu(bool calledExternally)
 	int oldFrameHeight 	= m_settings.browserFrameHeight;
 	int oldAdditional 	= m_settings.browserAdditional;
 	CMenuWidget optionsMenuBrowser(LOCALE_MOVIEBROWSER_HEAD, NEUTRINO_ICON_MOVIEPLAYER);
-	CIntInput playMaxUserIntInput(LOCALE_MOVIEBROWSER_LAST_PLAY_MAX_ITEMS,      (int *)&m_settings.lastPlayMaxItems,    3, NONEXISTANT_LOCALE, NONEXISTANT_LOCALE);
-	CIntInput recMaxUserIntInput(LOCALE_MOVIEBROWSER_LAST_RECORD_MAX_ITEMS,     (int *)&m_settings.lastRecordMaxItems,  3, NONEXISTANT_LOCALE, NONEXISTANT_LOCALE);
-
 	CIntInput browserFrameUserIntInputAdd(LOCALE_MOVIEBROWSER_BROWSER_FRAME_HIGH,  (int *)&m_settings.browserFrameHeightAdditional,  3, NONEXISTANT_LOCALE, NONEXISTANT_LOCALE);
 	CIntInput browserFrameUserIntInputGen(LOCALE_MOVIEBROWSER_BROWSER_FRAME_HIGH,  (int *)&m_settings.browserFrameHeightGeneral,  3, NONEXISTANT_LOCALE, NONEXISTANT_LOCALE);
 
 	CIntInput browserRowNrIntInput(LOCALE_MOVIEBROWSER_BROWSER_ROW_NR,          (int *)&m_settings.browserRowNr,        1, NONEXISTANT_LOCALE, NONEXISTANT_LOCALE);
-	initOptionsBrowserMenu(&optionsMenuBrowser, &playMaxUserIntInput, &recMaxUserIntInput, &browserFrameUserIntInputAdd, &browserFrameUserIntInputGen, &browserRowNrIntInput);
+	initOptionsBrowserMenu(&optionsMenuBrowser, &browserFrameUserIntInputAdd, &browserFrameUserIntInputGen, &browserRowNrIntInput);
 
 	/********************************************************************/
 	/**  options  **************************************************/
@@ -458,8 +452,6 @@ bool CMovieBrowser::showMenu(bool calledExternally)
 		} else {
 			updateSerienames();
 			refreshBrowserList();
-			refreshLastPlayList();
-			refreshLastRecordList();
 			refreshFilterList();
 			refreshTitle();
 			refreshMovieInfo();

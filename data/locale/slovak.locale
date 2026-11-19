@@ -2229,26 +2229,25 @@ moviebrowser.edit_book_type_info2 <0 vzad , >0 vpred, 0: nikde
 moviebrowser.edit_serie Zadanie názvu série
 moviebrowser.filter_off Vypnúť filter
 moviebrowser.foot_filter Filter:
-moviebrowser.foot_focus Prepnúť okno
+moviebrowser.foot_list Zoznam
 moviebrowser.foot_options Voľby
 moviebrowser.foot_play Štart filmu
 moviebrowser.foot_refresh Obnoviť zoznam
 moviebrowser.foot_sort Triedenie:
+moviebrowser.foot_wall Stena
 moviebrowser.head Moje nahrávky
 moviebrowser.head_all_movies Všetky filmy:
 moviebrowser.head_filter Filtrovanie filmov podľa kategórie:
-moviebrowser.head_playlist Naposledy sledovaný:
-moviebrowser.head_recordlist Naposledy nahraný:
 moviebrowser.help_button_blue Znovunačítanie informácií o filmoch
 moviebrowser.help_button_green Ukázať filter výberu
-moviebrowser.help_button_left Zmena pohľadu
+moviebrowser.help_button_left Prepnúť aktívne okno
 moviebrowser.help_button_menu Info o filme a nastavenia
 moviebrowser.help_button_mute Vymazať filmy
 moviebrowser.help_button_okay Prehrať filmy
 moviebrowser.help_button_play Označiť filmy
 moviebrowser.help_button_red Zmena zoradenia
-moviebrowser.help_button_right Zmena pohľadu
-moviebrowser.help_button_yellow Prepnúť aktívne okno
+moviebrowser.help_button_right Prepnúť aktívne okno
+moviebrowser.help_button_yellow Prepnúť medzi zoznamom a stenou
 moviebrowser.hide_series Skryť seriály
 moviebrowser.hint_copy_onefile Vytvorenie nového filmu zo záložiek filmu
 moviebrowser.hint_copy_several Vytvorenie niekoľko nových filmov zo záložiek filmu
@@ -2291,8 +2290,6 @@ moviebrowser.info_size Veľkosť (MB)
 moviebrowser.info_spacer Medzerník
 moviebrowser.info_title Titul
 moviebrowser.info_videoformat Obraz
-moviebrowser.last_play_max_items Počet posledných prehrávaní v zozname
-moviebrowser.last_record_max_items Počet posledných nahrávaní v zozname
 moviebrowser.load_default Obnoviť predvolené hodnoty
 moviebrowser.menu_copy_onefile Kopírovať film
 moviebrowser.menu_copy_several Kopírovať a rozdeliť film
@@ -2357,6 +2354,17 @@ moviebrowser.update_if_dest_empty_only Kopírovať len ak je cieľové miesto pr
 moviebrowser.use_dir Použiť priečinok
 moviebrowser.use_movie_dir Použiť priečinok filmov
 moviebrowser.use_rec_dir Použiť priečinok nahrávania
+moviebrowser.wall_continue Pokračovať v sledovaní
+moviebrowser.wall_documentaries Dokumenty
+moviebrowser.wall_empty Žiadne nahrávky
+moviebrowser.wall_episode 1 epizóda
+moviebrowser.wall_episodes %d epizód
+moviebrowser.wall_minutes %d min
+moviebrowser.wall_movies Filmy
+moviebrowser.wall_newest Najnovšie
+moviebrowser.wall_other Ostatné
+moviebrowser.wall_parts %d častí
+moviebrowser.wall_series Seriály
 moviecut.cancel Zrušiť úpravu filmu?
 movieplayer.bookmark Záložky
 movieplayer.bookmarkname Názov záložky

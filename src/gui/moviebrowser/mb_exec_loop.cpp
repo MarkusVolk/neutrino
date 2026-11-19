@@ -72,8 +72,6 @@ int CMovieBrowser::exec(const char* path)
 
 	// Clear all, to avoid 'jump' in screen
 	m_vHandleBrowserList.clear();
-	m_vHandleRecordList.clear();
-	m_vHandlePlayList.clear();
 
 	clearListLines();
 
@@ -107,25 +105,26 @@ int CMovieBrowser::exec(const char* path)
 
 	/* the pane in focus is the list a remote client reads */
 	auto pane = [this]() -> CListFrame * {
-		switch (m_windowFocus) {
-			case MB_FOCUS_LAST_PLAY:	return m_pcLastPlay;
-			case MB_FOCUS_LAST_RECORD:	return m_pcLastRecord;
-			case MB_FOCUS_FILTER:		return m_pcFilter;
-			default:			return m_pcBrowser;
-		}
+		return m_windowFocus == MB_FOCUS_FILTER ? m_pcFilter : m_pcBrowser;
 	};
 	CRemoteList::Access remote_access;
 	remote_access.title = [] { return std::string(g_Locale->getText(LOCALE_MOVIEBROWSER_HEAD)); };
-	remote_access.count = [pane] { return pane() ? (size_t) pane()->getLines() : 0; };
-	remote_access.text = [pane](size_t i) { return pane()->getLineText(i); };
-	remote_access.selected = [pane] { return pane() ? (size_t) pane()->getSelectedLine() : 0; };
-	remote_access.select = [this, pane](size_t i) {
-		pane()->setSelectedLine(i);
+	/* on the wall the tiles, shelf after shelf */
+	auto wall = [this] { return m_settings.gui == MB_GUI_WALL; };
+	remote_access.count = [this, pane, wall] { return wall() ? m_wall.count() : pane() ? (size_t) pane()->getLines() : 0; };
+	remote_access.text = [this, pane, wall](size_t i) { return wall() ? m_wall.text(i) : pane()->getLineText(i); };
+	remote_access.selected = [this, pane, wall] { return wall() ? m_wall.current() : pane() ? (size_t) pane()->getSelectedLine() : 0; };
+	remote_access.select = [this, pane, wall](size_t i) {
+		if (wall()) {
+			m_wall.select(i);
+			m_wall.paint();
+		} else
+			pane()->setSelectedLine(i);
 		updateMovieSelection();
 	};
-	CRemoteList remote_list(remote_access, "plays the recording; in the filter pane it applies the filter",
-		"red: sort, green: filter, yellow: next pane, blue: reload, info: details, play: mark, "
-		"mute: delete (the viewer confirms it at the TV)");
+	CRemoteList remote_list(remote_access, "plays the recording; in the filter pane it applies the filter, on the wall it opens a series",
+		"yellow: list or wall, red: sort, green: filter, left/right: next pane, blue: reload, info: details, play: mark, "
+		"back: leaves an open series on the wall, mute: delete (the viewer confirms it at the TV)");
 	while (loop)
 	{
 		g_RCInput->getMsgAbsoluteTimeout(&msg, &data, &timeoutEnd);
@@ -206,8 +205,6 @@ int CMovieBrowser::exec(const char* path)
 	hide();
 
 	m_prevBrowserSelection = m_currentBrowserSelection;
-	m_prevRecordSelection = m_currentRecordSelection;
-	m_prevPlaySelection = m_currentPlaySelection;
 
 	saveSettings(&m_settings);
 

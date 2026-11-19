@@ -97,10 +97,6 @@ CMovieBrowser::~CMovieBrowser()
 	m_pcFilter = NULL;
 	delete m_pcBrowser;
 	m_pcBrowser = NULL;
-	delete m_pcLastPlay;
-	m_pcLastPlay = NULL;
-	delete m_pcLastRecord;
-	m_pcLastRecord = NULL;
 	delete m_pcInfo1;
 	m_pcInfo1 = NULL;
 	delete m_pcInfo2;
@@ -111,8 +107,6 @@ CMovieBrowser::~CMovieBrowser()
 	m_dirNames.clear();
 
 	m_vHandleBrowserList.clear();
-	m_vHandleRecordList.clear();
-	m_vHandlePlayList.clear();
 	m_vHandleSerienames.clear();
 	m_vMovieInfo.clear();
 
@@ -134,8 +128,6 @@ void CMovieBrowser::clearSelection()
 		m_vMovieInfo[i]->marked = false;
 
 	m_pcBrowser->clearMarked();
-	m_pcLastPlay->clearMarked();
-	m_pcLastRecord->clearMarked();
 }
 
 void CMovieBrowser::fileInfoStale(void)
@@ -147,8 +139,6 @@ void CMovieBrowser::fileInfoStale(void)
 	m_dirNames.clear();
 
 	m_vHandleBrowserList.clear();
-	m_vHandleRecordList.clear();
-	m_vHandlePlayList.clear();
 	m_vHandleSerienames.clear();
 	m_vMovieInfo.clear();
 
@@ -167,8 +157,6 @@ void CMovieBrowser::init(void)
 
 	framebuffer = CFrameBuffer::getInstance();
 	m_pcBrowser = NULL;
-	m_pcLastPlay = NULL;
-	m_pcLastRecord = NULL;
 	m_pcInfo1 = NULL;
 	m_pcInfo2 = NULL;
 	m_pcFilter = NULL;
@@ -181,11 +169,7 @@ void CMovieBrowser::init(void)
 
 	m_movieSelectionHandler = NULL;
 	m_currentBrowserSelection = 0;
-	m_currentRecordSelection = 0;
-	m_currentPlaySelection = 0;
 	m_prevBrowserSelection = 0;
-	m_prevRecordSelection = 0;
-	m_prevPlaySelection = 0;
 
 	m_storageType = MB_STORAGE_TYPE_NFS;
 
@@ -235,14 +219,11 @@ void CMovieBrowser::init(void)
 	}
 
 	initFrames();
-	initRows();
 
 	/* save settings here, because exec() will load them again... */
 	if (reinit_rows)
 		saveSettings(&m_settings);
 
-	refreshLastPlayList();
-	refreshLastRecordList();
 	refreshBrowserList();
 	refreshFilterList();
 	g_PicViewer->getSupportedImageFormats(PicExts);
