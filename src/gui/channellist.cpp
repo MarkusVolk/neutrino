@@ -149,6 +149,7 @@ CChannelList::CChannelList(const char * const pName, bool phistoryMode, bool _vl
 
 	paint_events_index = -2;
 	paint_events_deferred = false;
+	paint_events_retry = 0;
 	CFrameBuffer::getInstance()->OnAfterSetPallette.connect(sigc::mem_fun(this, &CChannelList::ResetModules));
 	CNeutrinoApp::getInstance()->OnAfterSetupFonts.connect(sigc::mem_fun(this, &CChannelList::ResetModules));
 }
@@ -719,6 +720,10 @@ int CChannelList::show()
 				paint_events_deferred = false;
 				repaint_events = true;
 			}
+			if (paint_events_deferred && !paint_events_retry)
+				paint_events_retry = g_RCInput->addTimer(300 * 1000, false);
+			else if (!paint_events_deferred && paint_events_retry)
+				g_RCInput->killTimer(paint_events_retry);
 		}
 		if (repaint_events)
 			paintAdditionals(selected);
@@ -731,6 +736,9 @@ int CChannelList::show()
 		if((msg == NeutrinoMessages::EVT_TIMER) && (data == fader.GetFadeTimer())) {
 			if(fader.FadeDone())
 				loop = false;
+		}
+		else if (msg == NeutrinoMessages::EVT_TIMER && paint_events_retry && data == paint_events_retry) {
+			/* the top of the loop tries the owed paint again */
 		}
 		else if ( ( msg == CRCInput::RC_timeout ) || ( msg == (neutrino_msg_t)g_settings.key_channelList_cancel) ) {
 			if (move_state == beMoving) {
@@ -1063,6 +1071,9 @@ int CChannelList::show()
 #ifdef ENABLE_LCD4LINUX
 	CLCD4l::getInstance()->RemoveMenuFile();
 #endif
+
+	if (paint_events_retry)
+		g_RCInput->killTimer(paint_events_retry);
 
 	if(!dont_hide){
 		if (new_zap_mode && (g_settings.channellist_new_zap_mode != new_zap_mode))
