@@ -123,10 +123,30 @@ bool recordings::busy(const std::string &path)
 	return stat(path.c_str(), &st) == 0 && time(NULL) - st.st_mtime < 30;
 }
 
+/* the parts of a second title, between "║" or "|", trimmed and not empty */
+static std::vector<std::string> info_parts(const std::string &info1)
+{
+	std::string parts = info1;
+	for (size_t at = parts.find("\xe2\x95\x91"); at != std::string::npos; at = parts.find("\xe2\x95\x91"))	/* ║ */
+		parts.replace(at, 3, "|");
+	std::vector<std::string> out;
+	for (size_t start = 0; start <= parts.size();) {
+		size_t end = parts.find('|', start);
+		std::string part = parts.substr(start, end == std::string::npos ? std::string::npos : end - start);
+		size_t a = part.find_first_not_of(' '), b = part.find_last_not_of(' ');
+		if (a != std::string::npos)
+			out.push_back(part.substr(a, b - a + 1));
+		if (end == std::string::npos)
+			break;
+		start = end + 1;
+	}
+	return out;
+}
+
 /* whether the EPG numbers a programme as an episode: "Staffel 2, Folge 5",
    "Folge 1234", "Episode 7", "S17E4", or a part "(12)" of the second title;
    DVB has no mark for a series, so this is what tells one */
-static bool numbered(const std::string &info1, const std::string &info2)
+bool recordings::numbered(const std::string &info1, const std::string &info2)
 {
 	const char *words[] = { "staffel", "folge", "episode", "season" };
 	for (const std::string *text : { &info1, &info2 }) {
@@ -156,24 +176,123 @@ static bool numbered(const std::string &info1, const std::string &info2)
 		}
 	}
 	/* "(12) ║ Der Fall X": a number alone as one part of the second title */
-	std::string parts = info1;
-	for (size_t at = parts.find("\xe2\x95\x91"); at != std::string::npos; at = parts.find("\xe2\x95\x91"))	/* ║ */
-		parts.replace(at, 3, "|");
-	for (size_t start = 0; start <= parts.size();) {
-		size_t end = parts.find('|', start);
-		std::string part = parts.substr(start, end == std::string::npos ? std::string::npos : end - start);
-		size_t a = part.find_first_not_of(' '), b = part.find_last_not_of(' ');
-		if (a != std::string::npos) {
-			part = part.substr(a, b - a + 1);
-			if (part.size() > 2 && part.front() == '(' && part.back() == ')'
-			    && part.find_first_not_of("0123456789", 1) == part.size() - 1)
-				return true;
-		}
-		if (end == std::string::npos)
-			break;
-		start = end + 1;
-	}
+	for (const std::string &part : info_parts(info1))
+		if (part.size() > 2 && part.front() == '(' && part.back() == ')'
+		    && part.find_first_not_of("0123456789", 1) == part.size() - 1)
+			return true;
 	return false;
+}
+
+int recordings::genre_class(int genre)
+{
+	return genre >= 0x10 && genre < 0xb0 ? genre >> 4 : 0;
+}
+
+/* education and science, or the documentary of the news group */
+bool recordings::documentary(int genre)
+{
+	return genre_class(genre) == 0x9 || genre == 0x23;
+}
+
+/* named so (by TMDB or by hand), or numbered as an episode by the EPG; DVB
+   has no other mark for a series */
+std::string recordings::series_of(const std::string &serie, bool episode, const std::string &title)
+{
+	return !serie.empty() ? serie : episode ? title : "";
+}
+
+/* letters and digits only, in lower case, for comparing names; of the
+   characters beyond ASCII the punctuation of Latin-1 (U+00A0 to U+00BF) and
+   the general punctuation and box drawing (dashes, quotes, "║") go too */
+static std::string plain(const std::string &s)
+{
+	std::string out;
+	for (size_t i = 0; i < s.size(); i++) {
+		unsigned char c = s[i], n = i + 1 < s.size() ? s[i + 1] : 0;
+		if (c == 0xc2 && n >= 0xa0 && n <= 0xbf)
+			i += 1;
+		else if (c == 0xe2 && (n == 0x80 || n == 0x81 || n == 0x94 || n == 0x95))
+			i += 2;
+		else if (c >= 0x80 || isalnum(c))
+			out += (char) tolower(c);
+	}
+	return out;
+}
+
+static bool all_of(const std::string &s, size_t from, size_t to, int (*is)(int))
+{
+	if (from >= to)
+		return false;
+	for (size_t i = from; i < to; i++)
+		if (!is((unsigned char) s[i]))
+			return false;
+	return true;
+}
+
+/* "S17E4", "S1 E2" or "(12)" */
+static bool episode_number(const std::string &part)
+{
+	if (part.size() > 2 && part.front() == '(' && part.back() == ')')
+		return all_of(part, 1, part.size() - 1, isdigit);
+	if (part.size() < 4 || tolower((unsigned char) part[0]) != 's')
+		return false;
+	size_t e = 1;
+	while (e < part.size() && isdigit((unsigned char) part[e]))
+		e++;
+	if (e == 1)
+		return false;
+	size_t n = e;
+	while (n < part.size() && part[n] == ' ')
+		n++;
+	return n < part.size() && tolower((unsigned char) part[n]) == 'e' && all_of(part, n + 1, part.size(), isdigit);
+}
+
+/* a year, an age like "12+" or a country like "GB": no episode name */
+static bool aside(const std::string &part)
+{
+	if (part.size() == 4 && all_of(part, 0, 4, isdigit))
+		return true;
+	if (part.size() > 1 && part.back() == '+' && all_of(part, 0, part.size() - 1, isdigit))
+		return true;
+	return part.size() <= 3 && all_of(part, 0, part.size(), isupper);
+}
+
+/* "Tatort: Ein Freund, ein guter Freund" gives its part after the series,
+   "S17E4 ║ Ein letzter Tropfen ║ 2015 ║ 12+ ║ GB" the number and the first
+   part that is no year, age or country and does not just name the series
+   again */
+std::string recordings::episode_name(const std::string &title, const std::string &serie, const std::string &info1)
+{
+	std::string name;
+	if (!serie.empty() && title.size() > serie.size() && title.compare(0, serie.size(), serie) == 0) {
+		name = title.substr(serie.size());
+		size_t a = name.find_first_not_of(' ');
+		name = a == std::string::npos ? "" : name.substr(a);
+		for (const char *sep : { ":", "-", "\xe2\x80\x93" })	/* – */
+			if (name.compare(0, strlen(sep), sep) == 0) {
+				name = name.substr(strlen(sep));
+				break;
+			}
+		a = name.find_first_not_of(' ');
+		name = a == std::string::npos ? "" : name.substr(a);
+	}
+	std::string number;
+	std::string title_plain = plain(title), serie_plain = plain(serie);
+	for (const std::string &part : info_parts(info1)) {
+		if (episode_number(part)) {
+			if (number.empty())
+				number = part.front() == '(' ? part.substr(1, part.size() - 2) : part;
+		} else if (!aside(part) && name.empty()) {
+			std::string p = plain(part);
+			if (p.find(title_plain) == std::string::npos && (serie_plain.empty() || p.find(serie_plain) == std::string::npos))
+				name = part;
+		}
+	}
+	if (!number.empty() && all_of(number, 0, number.size(), isdigit))
+		number = "#" + number;
+	if (number.empty() || name.empty())
+		return number + name;
+	return number + " \xc2\xb7 " + name;	/* · */
 }
 
 recordings::entry recordings::describe(const std::string &rel)
@@ -198,6 +317,7 @@ recordings::entry recordings::describe(const std::string &rel)
 	e.genre = have_info ? mi.genreMajor : 0;
 	e.serie = have_info ? mi.serieName : "";
 	e.episode = have_info && numbered(mi.epgInfo1, mi.epgInfo2);
+	e.episode_name = episode_name(e.title, e.serie, e.info);
 	e.time = st.st_mtime;
 	e.size = st.st_size;
 	std::string cover = without_ts(path) + ".jpg";

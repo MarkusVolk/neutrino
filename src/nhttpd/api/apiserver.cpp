@@ -3102,14 +3102,18 @@ Json::Value recording_json(const std::string &rel)
 		v["serie"] = e.serie;
 	if (e.episode)
 		v["episode"] = true;
+	std::string series = recordings::series_of(e.serie, e.episode, e.title);
+	if (!series.empty())
+		v["series"] = series;
+	if (!e.episode_name.empty())
+		v["episode_name"] = e.episode_name;
 	/* the group as the shelf of the wall, the kind within it for the tile */
-	if (e.genre >= 0x10 && e.genre < 0xb0) {
-		v["genre_class"] = e.genre >> 4;
+	if (recordings::genre_class(e.genre)) {
+		v["genre_class"] = recordings::genre_class(e.genre);
 		v["genre"] = GetGenre(e.genre & 0xf0);
 		if (e.genre & 0x0f)
 			v["genre_detail"] = GetGenre(e.genre);
-		/* education and science, or the documentary of the news group */
-		if ((e.genre >> 4) == 0x9 || e.genre == 0x23)
+		if (recordings::documentary(e.genre))
 			v["documentary"] = true;
 	}
 	v["time"] = (Json::Int64) e.time;

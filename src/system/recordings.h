@@ -40,6 +40,7 @@ namespace recordings
 		int genre;		// DVB content: class in the high nibble, 0 if unknown
 		std::string serie;	// the series it is an episode of
 		bool episode;		// the EPG numbers it as an episode ("Staffel 2, Folge 5", "S01E02")
+		std::string episode_name;	// what tells it from the other episodes, see episode_name()
 		time_t time;
 		uint64_t size;
 		bool cover;
@@ -68,6 +69,17 @@ namespace recordings
 	bool rename(std::string &rel, const std::string &title, failure &why);
 	/* plays it in the main loop, from any thread */
 	bool play(const std::string &rel, failure &why);
+
+	/* the rules the walls of the web interface and of the movie browser
+	   share: whether the EPG numbers a programme as an episode, the DVB
+	   content class (0 if unknown), whether it is a documentary, the series
+	   a recording belongs to ("" if none), and what tells one episode from
+	   another ("S17E4 · Ein letzter Tropfen", "#12", "Ein Freund") */
+	bool numbered(const std::string &info1, const std::string &info2);
+	int genre_class(int genre);
+	bool documentary(int genre);
+	std::string series_of(const std::string &serie, bool episode, const std::string &title);
+	std::string episode_name(const std::string &title, const std::string &serie, const std::string &info1);
 }
 
 #endif

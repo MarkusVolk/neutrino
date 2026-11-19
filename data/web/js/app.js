@@ -892,30 +892,6 @@ function shelfStrip(tiles) {
 	return h("div", { class: "strip" }, prev, row, next);
 }
 
-/* what tells one episode from another: "Tatort: Ein Freund, ein guter Freund"
-   gives its part after the series, "S17E4 ║ Ein letzter Tropfen ║ 2015 ║ 12+ ║ GB"
-   the number and the first part that is no year, age or country and does not
-   just name the series again */
-function episodeName(r) {
-	const plain = (s) => s.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
-	const series = r.serie || "";
-	let name = "";
-	if (series && r.title.length > series.length && r.title.startsWith(series))
-		name = r.title.slice(series.length).replace(/^\s*[:\-–]\s*/, "");
-	let number = "";
-	for (const part of (r.info || "").split(/\s*[║|]\s*/).map((s) => s.trim()).filter(Boolean)) {
-		if (/^S\d+\s*E\d+$/i.test(part) || /^\(\d+\)$/.test(part)) {
-			number ||= part.replace(/[()]/g, "");
-			continue;
-		}
-		if (/^\d{4}$/.test(part) || /^\d+\+$/.test(part) || /^[A-Z]{1,3}$/.test(part))
-			continue;
-		if (!name && !plain(part).includes(plain(r.title)) && !(series && plain(part).includes(plain(series))))
-			name = part;
-	}
-	return [/^\d+$/.test(number) ? `#${number}` : number, name].filter(Boolean).join(" · ");
-}
-
 async function viewRecordings(main) {
 	let view = savedRecordingsView();
 	let items = [];
@@ -971,7 +947,7 @@ async function viewRecordings(main) {
 		const close = () => d.close();
 		d.append(...[r.cover ? h("img", { class: r.cover_wide ? "wide" : "", src: coverUrl(r), alt: "" }) : null,
 			h("h2", {}, r.title),
-			episodeName(r) && !r.title.includes(episodeName(r)) ? h("div", {}, episodeName(r)) : null,
+			r.episode_name && !r.title.includes(r.episode_name) ? h("div", {}, r.episode_name) : null,
 			h("div", { class: "dim small" }, meta(r)),
 			r.info ? h("p", { class: "small" }, r.info) : null,
 			actions(r, close),
@@ -984,16 +960,13 @@ async function viewRecordings(main) {
 		tilePicture(r),
 		r.busy ? h("span", { class: "badge live" }, "REC") : null,
 		h("span", { class: "caption" }, r.serie || r.title),
-		h("span", { class: "dim small" }, episodeName(r) || `${day(r.time)} ${hm(r.time)}`));
-	/* a series: named so (by TMDB or by hand), or numbered as an episode
-	   by the EPG; DVB has no other mark for one */
-	const seriesOf = (r) => r.serie || (r.episode ? r.title : "");
+		h("span", { class: "dim small" }, r.episode_name || `${day(r.time)} ${hm(r.time)}`));
 	const parts = (n) => trn("recordings.parts", n);
 	const episodeList = (name, list, count = episodes) => {
 		const d = h("dialog", { class: "recording-details episodes" });
 		const close = () => d.close();
 		const pick = (r) => h("div", { class: "card recording" }, tilePicture(r),
-			h("div", {}, h("strong", {}, episodeName(r) || r.title), h("div", { class: "dim small" }, meta(r))),
+			h("div", {}, h("strong", {}, r.episode_name || r.title), h("div", { class: "dim small" }, meta(r))),
 			actions(r, close));
 		d.append(h("h2", {}, name), h("div", { class: "dim small" }, count(list.length)),
 			h("div", { class: "list" }, ...list.map(pick)),
@@ -1015,13 +988,13 @@ async function viewRecordings(main) {
 	const titleTiles = (list) => {
 		const byTitle = new Map();
 		for (const r of list) {
-			const key = seriesOf(r) || r.title;
+			const key = r.series || r.title;
 			if (!byTitle.has(key))
 				byTitle.set(key, []);
 			byTitle.get(key).push(r);
 		}
 		return [...byTitle.entries()].map(([name, rs]) =>
-			rs.length === 1 ? tile(rs[0]) : seriesTile(name, rs, seriesOf(rs[0]) ? episodes : parts));
+			rs.length === 1 ? tile(rs[0]) : seriesTile(name, rs, rs[0].series ? episodes : parts));
 	};
 	/* shelves as in the media libraries: the newest, films, series,
 	   documentaries (a series of them as one tile there), then one per genre,
@@ -1030,7 +1003,7 @@ async function viewRecordings(main) {
 		const shelf = (title, tiles) => h("section", { class: "shelf" }, h("h2", {}, title), shelfStrip(tiles));
 		const movies = [], series = new Map(), docs = [], groups = new Map();
 		for (const r of items) {
-			const name = seriesOf(r);
+			const name = r.series;
 			if (r.documentary)
 				docs.push(r);
 			else if (name) {
