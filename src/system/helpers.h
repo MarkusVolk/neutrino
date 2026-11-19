@@ -43,6 +43,8 @@ typedef uint64_t t_channel_id;
 
 int my_system(const char *cmd);
 int my_system(int argc, const char *arg, ...); /* argc is number of arguments including command */
+/* starts argv[] (NULL-terminated) in a session of its own and returns its pid, -errno on failure */
+pid_t my_spawn(const char *const argv[]);
 /* sends the Wake-on-LAN magic packet for mac (aa:bb:cc:dd:ee:ff or with -) as a
  * UDP broadcast, which needs no privileges, unlike ether-wake's raw socket */
 bool wake_on_lan(const std::string &mac);

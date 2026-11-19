@@ -445,6 +445,33 @@ bool wake_on_lan(const std::string &mac)
 	return ok;
 }
 
+pid_t my_spawn(const char *const argv[])
+{
+	int maxfd = getdtablesize();// sysconf(_SC_OPEN_MAX);
+	pid_t pid = fork();
+	if (pid < 0)
+	{
+		perror("fork");
+		return -errno;
+	}
+	if (pid == 0)
+	{
+		int ret = 0;
+		for (int i = 3; i < maxfd; i++)
+			close(i);
+		if (setsid() == -1)
+			perror("my_system setsid");
+		if (execvp(argv[0], (char *const *)argv))
+		{
+			ret = -errno;
+			if (errno != ENOENT) /* don't complain if argv[0] only does not exist */
+				fprintf(stderr, "ERROR: my_system \"%s\": %m\n", argv[0]);
+		}
+		_exit(ret); // terminate c h i l d proces s only
+	}
+	return pid;
+}
+
 int my_system(int argc, const char *arg, ...)
 {
 	int i = 0, ret, childExit = 0;
@@ -467,40 +494,18 @@ int my_system(int argc, const char *arg, ...)
 		argv[i] = va_arg(args, const char *);
 	}
 	argv[i] = NULL; /* sentinel */
-	//fprintf(stderr,"%s:", __func__);for(i=0;argv[i];i++)fprintf(stderr," '%s'",argv[i]);fprintf(stderr,"\n");
-
-	pid_t pid;
-	int maxfd = getdtablesize();// sysconf(_SC_OPEN_MAX);
-	switch (pid = fork())
-	{
-		case -1: /* can't fork */
-			perror("fork");
-			ret = -errno;
-			break;
-		case 0: /* child process */
-			ret = 0;
-			for (i = 3; i < maxfd; i++)
-				close(i);
-			if (setsid() == -1)
-				perror("my_system setsid");
-			if (execvp(argv[0], (char *const *)argv))
-			{
-				ret = -errno;
-				if (errno != ENOENT) /* don't complain if argv[0] only does not exist */
-					fprintf(stderr, "ERROR: my_system \"%s\": %m\n", argv[0]);
-			}
-			_exit(ret); // terminate c h i l d proces s only
-		default: /* parent returns to calling process */
-			ret = 0;
-			while (waitpid(pid, &childExit, 0) == -1 && errno == EINTR)
-				;
-			if (WIFSIGNALED(childExit))
-				ret = -1;
-			else if (WEXITSTATUS(childExit) != 0)
-				ret = (signed char)WEXITSTATUS(childExit);
-			break;
-	}
 	va_end(args);
+
+	pid_t pid = my_spawn(argv);
+	if (pid < 0)
+		return pid;
+	ret = 0;
+	while (waitpid(pid, &childExit, 0) == -1 && errno == EINTR)
+		;
+	if (WIFSIGNALED(childExit))
+		ret = -1;
+	else if (WEXITSTATUS(childExit) != 0)
+		ret = (signed char)WEXITSTATUS(childExit);
 	return ret;
 }
 
