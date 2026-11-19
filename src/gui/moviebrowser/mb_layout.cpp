@@ -56,7 +56,7 @@ void CMovieBrowser::clearListLines()
 	if (m_pcBrowser)
 	{
 		for (int i = 0; i < MB_MAX_ROWS; i++)
-			m_pcBrowser->cleanupRow(&m_FilterLines, i);
+			m_pcBrowser->cleanupRow(&m_browserListLines, i);
 	}
 
 	m_browserListLines.Icon.clear();
