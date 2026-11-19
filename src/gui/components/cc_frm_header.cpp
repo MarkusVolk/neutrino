@@ -307,6 +307,8 @@ void CComponentsHeader::initLogo()
 	// manage logo position
 	if (cch_logo_obj->hasLogo())
 	{
+		/* the item a channel without a logo locked below paints again */
+		cch_logo_obj->allowPaint(true);
 		int dx_tmp = 0, dy_tmp = 0;
 		cch_logo_obj->getRealSize(&dx_tmp, &dy_tmp);
 		cch_logo_obj->setHeight(min(h_logo, dy_tmp), true);
@@ -391,6 +393,8 @@ void CComponentsHeader::initLogo()
 	else
 	{
 		cch_logo_obj->hide();
+		/* hidden, its empty body must not be painted over the name */
+		cch_logo_obj->allowPaint(false);
 		cch_logo_obj->clearFbData();
 	}
 }
