@@ -712,17 +712,26 @@ void fetch(const recording_cover::job &j)
 		if (downloadUrl(picture, tmp, AGENT, 30) && usable(tmp) && asJpeg(tmp))
 			source = "ZDF episode";
 	}
-	if (!source && tmdb) {
+	/* a series TMDB knows only by its name may be another one of that
+	   name ("nano" of 3sat and a telenovela): the media library of the
+	   channel knows its own programmes better; a film's poster stays first */
+	bool tmdb_later = tmdb && found.type == "tv" &&
+		(channelWord(j.channel, zdfWord) || channelWord(j.channel, arteWord) || channelWord(j.channel, ardWord));
+	auto tmdbCover = [&] {
 		unlink(tmp.c_str());
 		if (downloadUrl(found.url, tmp, AGENT, 30) && usable(tmp))
 			source = "TMDB";
-	}
+	};
+	if (!source && tmdb && !tmdb_later)
+		tmdbCover();
 	const char *library = source ? NULL : libraryPicture(j, picture);
 	if (library) {
 		unlink(tmp.c_str());
 		if (downloadUrl(picture, tmp, AGENT, 30) && usable(tmp) && asJpeg(tmp))
 			source = library;
 	}
+	if (!source && tmdb_later)
+		tmdbCover();
 	if (!source && !j.start && still(j, tmp))
 		source = "frame";
 	if (source && upright(tmp) && rename(tmp.c_str(), cover.c_str()) == 0)
