@@ -480,10 +480,12 @@ void CMovieBrowser::refreshHDDLevel(bool show)
 
 	int percent_used = 0;
 	struct statfs s;
+	/* a series or group in the wall selects no file: its directory then */
+	std::string path = getSelectedFile() ? getSelectedFile()->Name : m_selectedDir;
 
-	if (getSelectedFile() != NULL)
+	if (!path.empty())
 	{
-		if (::statfs(getSelectedFile()->Name.c_str(), &s) == 0)
+		if (::statfs(path.c_str(), &s) == 0)
 		{
 			if (s.f_blocks > 0)
 			{
@@ -731,10 +733,12 @@ void CMovieBrowser::refreshTitle(void)
 			m_header->getClockObject()->setCorner(RADIUS_LARGE, CORNER_TOP_RIGHT);
 	}
 
+	/* before the paint, which centres the bar beside the clock: painted on
+	   its own before that, it stood at the top of the screen */
+	refreshHDDLevel(true);
+
 	m_header->paint(CC_SAVE_SCREEN_NO);
 	newHeader = m_header->isPainted();
-
-	refreshHDDLevel(true);
 }
 
 int CMovieBrowser::refreshFoot(bool show)
