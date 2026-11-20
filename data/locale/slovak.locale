@@ -1962,7 +1962,7 @@ menu.hint_theme Výber prednastavených farebných vzhľadov\nUloženie alebo na
 menu.hint_timeouts Konfigurácia času zmiznutia GUI okien\nv sekundách
 menu.hint_timeouts_static_messages Časový limit pre konkrétne správy s interakciou používateľa
 menu.hint_timer_followscreenings Zobrazenie výberu s nasledujúcimi zobrazeniami pre programovanie časovača. "Vždy" zobrazuje výber, aj keď je nájdená len jedna udalosť
-menu.hint_timer_series Pravidlá, ktoré nahrajú každú epizódu seriálu. OK zmaže pravidlo, nastavené časovače zostanú.
+menu.hint_timer_series Pravidlá, ktoré nahrajú každú epizódu seriálu. OK zmaže pravidlo spolu s časovačmi, ktoré nastavilo.
 menu.hint_timers Pridanie/Odstránenie/Upravenie plánovaného\nnahrávania, pripomienky atď.
 menu.hint_timezone Výber časového pásma
 menu.hint_tmdb_api_key Zadajte váš TMDb API kľúč. Prázdne zadanie vypína podporu TMDb
@@ -2982,7 +2982,7 @@ timer.eventtimed.msg Plánované pripomenutie.\nPrijímač sa v stanovenom čase
 timer.eventtimed.title Plánovač udalostí
 timer.series Časovače seriálov
 timer.series.conflicts Vynechané, žiadny voľný tuner: %d
-timer.series.delete_ask Zmazať časovač seriálu? Nastavené časovače zostanú.
+timer.series.delete_ask Zmazať časovač seriálu a časovače, ktoré nastavil?
 timer.series.failed Časovač seriálu sa nepodarilo vytvoriť.
 timer.series.none Žiadne časovače seriálov
 timer.series.waiting čaká na ďalšiu epizódu
@@ -3488,7 +3488,7 @@ web.series.conflicts.few {n} epizódy vynechané, žiadny voľný tuner
 web.series.conflicts.one {n} epizóda vynechaná, žiadny voľný tuner
 web.series.conflicts.other {n} epizód vynechaných, žiadny voľný tuner
 web.series.delete Zmazať časovač seriálu
-web.series.delete_ask Zmazať časovač seriálu „{title}“? Nastavené časovače zostanú.
+web.series.delete_ask Zmazať časovač seriálu „{title}“ a časovače, ktoré nastavil?
 web.series.deleted Časovač seriálu zmazaný
 web.series.heading Časovače seriálov
 web.series.hint Nahrá každú novú epizódu, hneď ako je v EPG

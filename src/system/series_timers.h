@@ -56,8 +56,9 @@ namespace series_timers
 	   added; false with the rule there is already in r, or with no id in r
 	   when it could not be made */
 	bool add(const std::string &title, t_channel_id channel_id, rule &r, int &added);
-	/* the timers it has set stay */
-	bool remove(const std::string &id);
+	/* the record timers it has set go with it, but the one of the broadcast
+	   starting at keep; a recording that runs ends as planned */
+	bool remove(const std::string &id, time_t keep = 0);
 	/* looks at the EPG in delay seconds at the latest, and every hour then */
 	void kick(int delay);
 }

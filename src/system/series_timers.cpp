@@ -68,6 +68,9 @@ struct Stored
 	/* the starts of the broadcasts it has set a timer for: one of them
 	   without its timer was deleted by the user and is not set again */
 	std::vector<time_t> set;
+	/* the starts of the broadcasts it has set a timer for itself, which
+	   go with the rule */
+	std::vector<time_t> made;
 	/* long texts that tell no episode, see placeholder() */
 	std::vector<std::string> generic;
 };
@@ -152,6 +155,10 @@ void load()
 			for (const Json::Value &t : v["set"])
 				if (t.isIntegral())
 					s.set.push_back((time_t) t.asInt64());
+		if (v["made"].isArray())
+			for (const Json::Value &t : v["made"])
+				if (t.isIntegral())
+					s.made.push_back((time_t) t.asInt64());
 		if (v["generic"].isArray())
 			for (const Json::Value &t : v["generic"])
 				if (t.isString())
@@ -177,6 +184,9 @@ bool save()
 		v["set"] = Json::Value(Json::arrayValue);
 		for (time_t t : s.set)
 			v["set"].append((Json::Int64) t);
+		v["made"] = Json::Value(Json::arrayValue);
+		for (time_t t : s.made)
+			v["made"].append((Json::Int64) t);
 		v["generic"] = Json::Value(Json::arrayValue);
 		for (const std::string &t : s.generic)
 			v["generic"].append(t);
@@ -276,6 +286,8 @@ Outcome look(Stored &rule_stored, std::vector<Recorded> &cache, bool &cache_read
 	Outcome out = { 0, 0, 0 };
 	time_t now = time(NULL);
 	set.erase(std::remove_if(set.begin(), set.end(), [now](time_t t) { return t <= now; }), set.end());
+	std::vector<time_t> &made = rule_stored.made;
+	made.erase(std::remove_if(made.begin(), made.end(), [now](time_t t) { return t <= now; }), made.end());
 
 	t_channel_id epg_channel = 0;
 	{
@@ -390,12 +402,33 @@ Outcome look(Stored &rule_stored, std::vector<Recorded> &cache, bool &cache_read
 			continue;
 		printf("[series] \"%s\": timer for %s", r.title.c_str(), ctime(&start));
 		set.push_back(start);
+		made.push_back(start);
 		known.push_back(episodes[i]);
 		taken.push_back(std::make_pair(start, stop));
 		out.added++;
 		out.timers++;
 	}
 	return out;
+}
+
+/* the record timers a rule has set on its channel for these starts, which
+   have not begun; a recording that runs is left to end */
+void deleteTimers(t_channel_id channel_id, const std::vector<time_t> &starts, time_t keep = 0)
+{
+	if (starts.empty())
+		return;
+	CTimerdClient timerd;
+	CTimerd::TimerList timers;
+	timerd.getTimerList(timers);
+	for (size_t i = 0; i < timers.size(); i++) {
+		const CTimerd::responseGetTimer &t = timers[i];
+		if (t.eventType != CTimerd::TIMER_RECORD || t.channel_id != channel_id ||
+		    t.eventState == CTimerd::TIMERSTATE_ISRUNNING ||
+		    t.epg_starttime == keep ||
+		    std::find(starts.begin(), starts.end(), t.epg_starttime) == starts.end())
+			continue;
+		timerd.removeTimerEvent(t.eventID);
+	}
 }
 
 /* looks for the rule of an id, or for all of them; under looking */
@@ -419,18 +452,26 @@ void lookAt(const std::string &id, int *added)
 		Outcome out = look(s, cache, cache_read);
 		if (added)
 			*added += out.added;
-		std::lock_guard<std::mutex> g(lock);
-		for (Stored &now_stored : stored) {
-			if (now_stored.rule.id != s.rule.id)
-				continue;
-			now_stored.rule.timers = out.timers;
-			now_stored.rule.conflicts = out.conflicts;
-			if (s.set != before.set || s.generic != before.generic) {
-				now_stored.set = s.set;
-				now_stored.generic = s.generic;
-				save();
+		bool gone = true;
+		{
+			std::lock_guard<std::mutex> g(lock);
+			for (Stored &now_stored : stored) {
+				if (now_stored.rule.id != s.rule.id)
+					continue;
+				gone = false;
+				now_stored.rule.timers = out.timers;
+				now_stored.rule.conflicts = out.conflicts;
+				if (s.set != before.set || s.made != before.made || s.generic != before.generic) {
+					now_stored.set = s.set;
+					now_stored.made = s.made;
+					now_stored.generic = s.generic;
+					save();
+				}
 			}
 		}
+		/* deleted while it looked: what it set meanwhile goes as well */
+		if (gone)
+			deleteTimers(s.rule.channel_id, s.made);
 	}
 }
 
@@ -540,18 +581,23 @@ bool series_timers::add(const std::string &title, t_channel_id channel_id, rule 
 	return true;
 }
 
-bool series_timers::remove(const std::string &id)
+bool series_timers::remove(const std::string &id, time_t keep)
 {
-	std::lock_guard<std::mutex> g(lock);
-	load();
-	for (size_t i = 0; i < stored.size(); i++) {
-		if (stored[i].rule.id == id) {
-			stored.erase(stored.begin() + i);
-			save();
-			return true;
-		}
+	Stored gone;
+	{
+		std::lock_guard<std::mutex> g(lock);
+		load();
+		size_t i = 0;
+		while (i < stored.size() && stored[i].rule.id != id)
+			i++;
+		if (i == stored.size())
+			return false;
+		gone = stored[i];
+		stored.erase(stored.begin() + i);
+		save();
 	}
-	return false;
+	deleteTimers(gone.rule.channel_id, gone.made, keep);
+	return true;
 }
 
 void series_timers::kick(int delay)

@@ -1962,7 +1962,7 @@ menu.hint_theme Select voorgedefinieerde thema\n Opslaan of laad thema van besta
 menu.hint_timeouts Time-outs en weergavegedrag aanpassen voor meldingen, vensters, menu's, infobalk enz.
 menu.hint_timeouts_static_messages Weergaveduur van bepaalde meldingen met gebruikersinteractie
 menu.hint_timer_followscreenings Keuze van herhalingen tonen bij het programmeren van een timer. "Altijd" toont de keuze ook als maar één uitzending is gevonden.
-menu.hint_timer_series Regels die elke aflevering van een serie opnemen. OK wist een regel, de ingestelde timers blijven.
+menu.hint_timer_series Regels die elke aflevering van een serie opnemen. OK wist een regel met de timers die hij heeft ingesteld.
 menu.hint_timers Toevoegen/Verplaats/Bewerk \ngeplande opnames of timers etc.
 menu.hint_timezone Selecteer uw tijdzone
 menu.hint_tmdb_api_key Voer uw TMDb API-sleutel in. Leeg laten schakelt TMDb uit
@@ -2982,7 +2982,7 @@ timer.eventtimed.msg Het programma is gereserveerd. Uw ontvanger \nzal automatis
 timer.eventtimed.title Reserveer programma
 timer.series Serietimers
 timer.series.conflicts Overgeslagen, geen tuner vrij: %d
-timer.series.delete_ask Serietimer wissen? De ingestelde timers blijven.
+timer.series.delete_ask Serietimer en de timers die hij heeft ingesteld wissen?
 timer.series.failed De serietimer kon niet worden gemaakt.
 timer.series.none Geen serietimers
 timer.series.waiting wacht op de volgende aflevering
@@ -3488,7 +3488,7 @@ web.series.conflicts.few {n} afleveringen overgeslagen, geen tuner vrij
 web.series.conflicts.one {n} aflevering overgeslagen, geen tuner vrij
 web.series.conflicts.other {n} afleveringen overgeslagen, geen tuner vrij
 web.series.delete Serietimer wissen
-web.series.delete_ask De serietimer “{title}” wissen? De ingestelde timers blijven.
+web.series.delete_ask De serietimer “{title}” en de timers die hij heeft ingesteld wissen?
 web.series.deleted Serietimer gewist
 web.series.heading Serietimers
 web.series.hint Neemt elke nieuwe aflevering op zodra die in de EPG staat

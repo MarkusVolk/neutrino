@@ -1866,7 +1866,8 @@ int CTimerList::modifyTimer()
 	int res = timerSettings.exec(this, "");
 
 	/* "all episodes" makes the series timer, any other choice deletes the
-	   one there was; the timer itself records once either way */
+	   one there was with the other timers it has set; the timer itself
+	   records once either way */
 	bool want_series = timer->eventRepeat == CTimerd::TIMERREPEAT_BYEVENTDESCRIPTION;
 	if (want_series)
 		timer->eventRepeat = CTimerd::TIMERREPEAT_ONCE;
@@ -1877,7 +1878,7 @@ int CTimerList::modifyTimer()
 			DisplayErrorMessage(g_Locale->getText(LOCALE_TIMER_SERIES_FAILED));
 	}
 	else if (!want_series && had_series)
-		series_timers::remove(series_rule.id);
+		series_timers::remove(series_rule.id, timer->epg_starttime);
 
 	bool modified = (
 			   timer->alarmTime   != t_old.alarmTime

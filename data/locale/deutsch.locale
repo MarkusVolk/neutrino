@@ -1962,7 +1962,7 @@ menu.hint_theme Wählen Sie ein vordefiniertes Farbschema, speichern oder laden 
 menu.hint_timeouts Anpassen von Timeouts und Anzeigeverhalten für Meldungen, Fenster, Menüs, Infobar usw.
 menu.hint_timeouts_static_messages Anzeigedauer für bestimmte Meldungen mit Benutzerinteraktion
 menu.hint_timer_followscreenings Zeige Terminauswahl mit Folge-Events zur Timerprogrammierung. "Immer" zeigt die Auswahl auch dann, wenn nur ein Event gefunden wurde.
-menu.hint_timer_series Regeln, die jede Folge einer Serie aufnehmen. OK löscht eine Regel, ihre gesetzten Timer bleiben.
+menu.hint_timer_series Regeln, die jede Folge einer Serie aufnehmen. OK löscht eine Regel mit den Timern, die sie gesetzt hat.
 menu.hint_timers Hinzufügen, entfernen und bearbeiten geplanter Aufnahmen oder anderer Timer
 menu.hint_timezone Wählen Sie ihre Zeitzone aus
 menu.hint_tmdb_api_key Geben Sie den TMDb API Schlüssel ein. Eine leere Eingabe schaltet die TMDb-Unterstützung aus
@@ -2982,7 +2982,7 @@ timer.eventtimed.msg Die Sendung wurde vorgemerkt.
 timer.eventtimed.title Sendung vormerken
 timer.series Serien-Timer
 timer.series.conflicts Ohne freien Tuner ausgelassen: %d
-timer.series.delete_ask Serien-Timer löschen? Die gesetzten Timer bleiben.
+timer.series.delete_ask Serien-Timer und die Timer, die er gesetzt hat, löschen?
 timer.series.failed Der Serien-Timer konnte nicht angelegt werden.
 timer.series.none Keine Serien-Timer
 timer.series.waiting wartet auf die nächste Folge
@@ -3488,7 +3488,7 @@ web.series.conflicts.few {n} Folgen ohne freien Tuner ausgelassen
 web.series.conflicts.one {n} Folge ohne freien Tuner ausgelassen
 web.series.conflicts.other {n} Folgen ohne freien Tuner ausgelassen
 web.series.delete Serien-Timer löschen
-web.series.delete_ask Den Serien-Timer „{title}“ löschen? Die gesetzten Timer bleiben.
+web.series.delete_ask Den Serien-Timer „{title}“ und die Timer, die er gesetzt hat, löschen?
 web.series.deleted Serien-Timer gelöscht
 web.series.heading Serien-Timer
 web.series.hint Nimmt jede neue Folge auf, sobald sie im EPG steht

@@ -156,7 +156,7 @@ static const struct
 	},
 	{
 		"tv_series_timer_remove",
-		"Remove a series timer by its id from tv_series_timers. The timers it has set stay; remove them with tv_timer_remove.",
+		"Remove a series timer by its id from tv_series_timers, with the record timers it has set; a recording that runs goes on.",
 		"{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\"}},\"required\":[\"id\"]}"
 	},
 	{

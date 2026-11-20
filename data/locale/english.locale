@@ -1962,7 +1962,7 @@ menu.hint_theme Select pre-defined color theme\nSave or load theme from files
 menu.hint_timeouts Customize display behavior and timeouts for messages, windows, menus, infobar, etc.
 menu.hint_timeouts_static_messages Timeout for specific messages with user interaction
 menu.hint_timer_followscreenings Show selection with followscreenings for timer programming. "Always" shows selection even if just one event is found.
-menu.hint_timer_series Rules that record every episode of a series. OK deletes a rule, the timers it has set stay.
+menu.hint_timer_series Rules that record every episode of a series. OK deletes a rule with the timers it has set.
 menu.hint_timers Add/Remove/Edit scheduled\nrecording, reminders etc.
 menu.hint_timezone Select your timezone
 menu.hint_tmdb_api_key Type your TMDb API key. An empty input disables TMDb support
@@ -2982,7 +2982,7 @@ timer.eventtimed.msg The event is scheduled.\nThe box will power on and \nswitch
 timer.eventtimed.title Schedule Event
 timer.series Series timers
 timer.series.conflicts Left out, no tuner free: %d
-timer.series.delete_ask Delete the series timer? The timers it has set stay.
+timer.series.delete_ask Delete the series timer and the timers it has set?
 timer.series.failed The series timer could not be made.
 timer.series.none No series timers
 timer.series.waiting waiting for the next episode
@@ -3488,7 +3488,7 @@ web.series.conflicts.few {n} episodes left out, no tuner free
 web.series.conflicts.one {n} episode left out, no tuner free
 web.series.conflicts.other {n} episodes left out, no tuner free
 web.series.delete Delete series timer
-web.series.delete_ask Delete the series timer “{title}”? The timers it has set stay.
+web.series.delete_ask Delete the series timer “{title}” and the timers it has set?
 web.series.deleted Series timer deleted
 web.series.heading Series timers
 web.series.hint Records every new episode as soon as the EPG has it
