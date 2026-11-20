@@ -1475,6 +1475,11 @@ int CNeutrinoApp::loadSetup(const char *fname)
 			*u = *um;
 			if (u->key == CRCInput::RC_play && g_info.hw_caps->rc_has_playpause && !g_info.hw_caps->rc_has_separate_play)
 				u->key = CRCInput::RC_playpause;
+#if ENABLE_PIP
+			/* yellow starts the PIP where there is one, its menu goes to blue */
+			if (u->key == CRCInput::RC_blue && g_info.hw_caps->can_pip)
+				u->items += ",36,7";
+#endif
 			g_settings.usermenu.push_back(u);
 		}
 	}
@@ -3845,7 +3850,9 @@ void CNeutrinoApp::RealRun()
 					CRecordManager::getInstance()->StartTimeshift();
 			}
 #if ENABLE_PIP
-			else if ((msg == (neutrino_msg_t) g_settings.key_pip_close) && g_info.hw_caps->can_pip) {
+			/* a web channel has no PIP, the key keeps its menu there */
+			else if ((msg == (neutrino_msg_t) g_settings.key_pip_close) && g_info.hw_caps->can_pip &&
+				 mode != NeutrinoModes::mode_webtv && mode != NeutrinoModes::mode_webradio) {
 				int boxmode = getBoxMode();
 				if (boxmode > -1 && boxmode != 12)
 					ShowMsg(LOCALE_MESSAGEBOX_ERROR, LOCALE_BOXMODE12_NOT_ACTIVATED, CMsgBox::mbrOk, CMsgBox::mbOk, NEUTRINO_ICON_ERROR);
@@ -6797,7 +6804,7 @@ void CNeutrinoApp::loadKeys(const char *fname)
 	g_settings.key_pic_mode_active = tconfig->getInt32("key_pic_mode_active", 1);
 	g_settings.key_pic_size_active = tconfig->getInt32("key_pic_size_active", 1);
 #if ENABLE_PIP
-	g_settings.key_pip_close = tconfig->getInt32("key_pip_close", CRCInput::RC_prev);
+	g_settings.key_pip_close = tconfig->getInt32("key_pip_close", CRCInput::RC_yellow);
 	g_settings.key_pip_close_avinput = tconfig->getInt32("key_pip_close_avinput", CRCInput::RC_nokey);
 	g_settings.key_pip_rotate_cw = tconfig->getInt32("key_pip_rotate_cw", CRCInput::RC_nokey);
 	g_settings.key_pip_rotate_ccw = tconfig->getInt32("key_pip_rotate_ccw", CRCInput::RC_nokey);

@@ -300,6 +300,17 @@ void CInfoViewerBB::getBBButtonInfo()
 		default:
 			break;
 		}
+#if ENABLE_PIP
+		/* the key of the picture in picture comes before the colour's menu */
+		static const neutrino_msg_t colour_key[BUTTON_MAX] = {
+			CRCInput::RC_red, CRCInput::RC_green, CRCInput::RC_yellow, CRCInput::RC_blue
+		};
+		if (g_info.hw_caps->can_pip && (mode == NeutrinoModes::mode_tv || mode == NeutrinoModes::mode_radio) &&
+		    (neutrino_msg_t)g_settings.key_pip_close == colour_key[i]) {
+			text = g_Locale->getText(LOCALE_INFOVIEWER_PIP);
+			active = true;
+		}
+#endif
 		//label audio control button in movieplayer mode
 		if (mode == NeutrinoModes::mode_ts && !CMoviePlayerGui::getInstance().timeshift)
 		{

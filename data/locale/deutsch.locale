@@ -1208,6 +1208,7 @@ infoviewer.notavailable.source Quelle: %s
 infoviewer.notavailable.tuner_disabled %s könnte diesen Sender empfangen, steht aber auf "%s".
 infoviewer.notavailable.tuner_disabled_source %s könnte diesen Sender empfangen, steht aber auf "%s", und ihm ist noch kein Satellit zugeordnet.
 infoviewer.now Jetzt
+infoviewer.pip PiP
 infoviewer.subchan_disp_pos Unterkanalanzeige
 infoviewer.subchan_infobar Infobar
 infoviewer.waittime Warte auf Uhrzeit ...

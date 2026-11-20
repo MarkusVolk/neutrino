@@ -1208,6 +1208,7 @@ infoviewer.notavailable.source Source: %s
 infoviewer.notavailable.tuner_disabled %s could receive this channel, but is set to "%s".
 infoviewer.notavailable.tuner_disabled_source %s could receive this channel, but is set to "%s" and has no satellite assigned yet.
 infoviewer.now now
+infoviewer.pip PiP
 infoviewer.subchan_disp_pos Subchannel display
 infoviewer.subchan_infobar Full infobar
 infoviewer.waittime Waiting for time ...

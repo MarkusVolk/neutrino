@@ -1208,6 +1208,7 @@ infoviewer.notavailable.source Zdroj: %s
 infoviewer.notavailable.tuner_disabled %s by mohol tento kanál prijímať, ale je nastavený na "%s".
 infoviewer.notavailable.tuner_disabled_source %s by mohol tento kanál prijímať, ale je nastavený na "%s" a ešte nemá priradený satelit.
 infoviewer.now Teraz
+infoviewer.pip PiP
 infoviewer.subchan_disp_pos Zobrazenie podkanálov
 infoviewer.subchan_infobar Infolišta
 infoviewer.waittime Načítavanie času...

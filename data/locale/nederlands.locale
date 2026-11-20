@@ -1208,6 +1208,7 @@ infoviewer.notavailable.source Bron: %s
 infoviewer.notavailable.tuner_disabled %s zou deze zender kunnen ontvangen, maar staat op "%s".
 infoviewer.notavailable.tuner_disabled_source %s zou deze zender kunnen ontvangen, maar staat op "%s" en heeft nog geen satelliet toegewezen.
 infoviewer.now Nu
+infoviewer.pip PiP
 infoviewer.subchan_disp_pos Toon subkanalen
 infoviewer.subchan_infobar Volledige infobalk
 infoviewer.waittime Wachten op tijd...

@@ -1235,6 +1235,7 @@ const char * locale_real_names[] =
 	"infoviewer.notavailable.tuner_disabled",
 	"infoviewer.notavailable.tuner_disabled_source",
 	"infoviewer.now",
+	"infoviewer.pip",
 	"infoviewer.subchan_disp_pos",
 	"infoviewer.subchan_infobar",
 	"infoviewer.waittime",
