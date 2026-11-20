@@ -1562,20 +1562,18 @@ void CZapit::SendCmdReady(int connfd)
 
 void CZapit::lockPlayBack(const bool sendpmt)
 {
-	/* hack. if standby true, dont blank video */
-	standby = true;
-	StopPlayBack(sendpmt);
-	standby = false;
+	StopPlayBack(sendpmt, false);
 	playbackStopForced = true;
 	lock_channel_id = live_channel_id;
 }
 
-void CZapit::unlockPlayBack(const bool /*sendpmt*/)
+void CZapit::unlockPlayBack(const bool sendpmt)
 {
 	playbackStopForced = false;
 	if (lock_channel_id == live_channel_id) {
 		StartPlayBack(current_channel);
-		SendPMT();
+		if (sendpmt)
+			SendPMT();
 	} else {
 		live_fe->setTsidOnid(0);
 		if (!ZapIt(lock_channel_id))
@@ -2267,10 +2265,7 @@ bool CZapit::ParseCommand(CBasicMessage::Header &rmsg, int connfd)
 	{
 		CZapitMessages::commandBoolean msgBool;
 		CBasicServer::receive_data(connfd, &msgBool, sizeof(msgBool));
-		StopPlayBack(msgBool.truefalse, false);
-		playbackStopForced = true;
-		lock_channel_id = live_channel_id;
-		//lockPlayBack();
+		lockPlayBack(msgBool.truefalse);
 		SendCmdReady(connfd);
 		break;
 	}
@@ -2278,18 +2273,7 @@ bool CZapit::ParseCommand(CBasicMessage::Header &rmsg, int connfd)
 	{
 		CZapitMessages::commandBoolean msgBool;
 		CBasicServer::receive_data(connfd, &msgBool, sizeof(msgBool));
-		playbackStopForced = false;
-		if (lock_channel_id == live_channel_id) {
-			StartPlayBack(current_channel);
-			if (msgBool.truefalse)
-				SendPMT();
-		} else {
-			live_fe->setTsidOnid(0);
-			if (!ZapIt(lock_channel_id))
-				SendEvent(CZapitClient::EVT_ZAP_FAILED, &lock_channel_id, sizeof(lock_channel_id));
-			lock_channel_id = 0;
-		}
-		//unlockPlayBack();
+		unlockPlayBack(msgBool.truefalse);
 		SendCmdReady(connfd);
 		break;
 	}
