@@ -891,6 +891,10 @@ void CHbbtv::run(const CAitApp &ait_app, t_channel_id id, const std::string &cha
 	printf("[hbbtv] start %s for %s\n", url.c_str(), channel.c_str());
 	/* the application has the screen and the keys, pause among them */
 	CRecordManager::getInstance()->StopAutoRecord();
+#if ENABLE_PIP
+	/* a PIP beside the browser is too risky for boxes with only 1 GiB of memory */
+	g_Zapit->stopPip();
+#endif
 	g_InfoViewer->killTitle();
 	fb->paintBackground();
 	fb->blit();

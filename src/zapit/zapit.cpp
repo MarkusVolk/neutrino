@@ -1562,6 +1562,10 @@ void CZapit::SendCmdReady(int connfd)
 
 void CZapit::lockPlayBack(const bool sendpmt)
 {
+#if ENABLE_PIP
+	/* a PIP beside playback is too risky for boxes with only 1 GiB of memory */
+	StopPip();
+#endif
 	StopPlayBack(sendpmt, false);
 	playbackStopForced = true;
 	lock_channel_id = live_channel_id;
