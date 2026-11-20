@@ -191,11 +191,7 @@ void CFbAccelGLFB::blit()
 void CFbAccelGLFB::setDim(int percent)
 {
 	OpenThreads::ScopedLock<OpenThreads::Mutex> lock(blit_mutex);
-	if (dim == percent)
-		return;
 	dim = percent;
-	blit_wanted = true;
-	blit_cond.signal();
 }
 
 void CFbAccelGLFB::mark(int xs, int ys, int xe, int ye)
