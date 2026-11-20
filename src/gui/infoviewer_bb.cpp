@@ -27,6 +27,7 @@
 #include <config.h>
 #endif
 #include "infoviewer_bb.h"
+#include "hbbtv.h"
 
 #include <algorithm>
 
@@ -239,6 +240,12 @@ void CInfoViewerBB::getBBButtonInfo()
 				text = CKeybindSetup::getMoviePlayerButtonName(CRCInput::RC_red, active, g_settings.infobar_buttons_usertitle);
 				if (!text.empty())
 					break;
+			}
+			/* red starts the channel's HbbTV application before its menu */
+			if (g_settings.hbbtv_red_key && CHbbtv::hasAutostart()) {
+				text = g_Locale->getText(LOCALE_INFOVIEWER_HBBTV);
+				active = true;
+				break;
 			}
 			text = CUserMenu::getUserMenuButtonName(0, active, g_settings.infobar_buttons_usertitle);
 			if (!text.empty())

@@ -1216,6 +1216,7 @@ const char * locale_real_names[] =
 	"inetradio.name",
 	"infoviewer.epgnotload",
 	"infoviewer.epgwait",
+	"infoviewer.hbbtv",
 	"infoviewer.motor_moving",
 	"infoviewer.next",
 	"infoviewer.nocurrent",

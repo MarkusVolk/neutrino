@@ -1189,6 +1189,7 @@ inetradio.autostart Internetradio Auto-Start
 inetradio.name Internetradio
 infoviewer.epgnotload Informationen noch nicht geladen ...
 infoviewer.epgwait Warte auf EPG-Informationen ...
+infoviewer.hbbtv HbbTV
 infoviewer.motor_moving Antennenpositionierung
 infoviewer.next Später
 infoviewer.nocurrent Keine Info zu laufendem Programm

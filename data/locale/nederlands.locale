@@ -1189,6 +1189,7 @@ inetradio.autostart Internetradio automatisch starten
 inetradio.name Internetradio
 infoviewer.epgnotload EPG is niet geladen....
 infoviewer.epgwait wachten op EPG...
+infoviewer.hbbtv HbbTV
 infoviewer.motor_moving Schotel positionering
 infoviewer.next Volgende
 infoviewer.nocurrent Geen informatie beschikbaar over huidige programma

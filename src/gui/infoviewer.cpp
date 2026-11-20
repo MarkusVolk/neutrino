@@ -1178,6 +1178,9 @@ void CInfoViewer::loop(bool show_dot)
 					enableRadiotext();
 
 				infoViewerBB->showIcon_16_9();
+				/* the HbbTV application comes a moment after the zap */
+				if (showButtonBar)
+					infoViewerBB->showBBButtons(true);
 				//infoViewerBB->paint_ca_icons(0);
 				infoViewerBB->showIcon_Resolution();
 			}

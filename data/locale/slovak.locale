@@ -1189,6 +1189,7 @@ inetradio.autostart Automatický štart internetového rádia
 inetradio.name Internetové rádio
 infoviewer.epgnotload EPG informácie nie sú načítané...
 infoviewer.epgwait Načítavanie EPG informácie...
+infoviewer.hbbtv HbbTV
 infoviewer.motor_moving Nastavovanie antény
 infoviewer.next Nasleduje
 infoviewer.nocurrent Nedostupné informácie pre aktuálny program

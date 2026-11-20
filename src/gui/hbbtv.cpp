@@ -164,23 +164,39 @@ static bool current_apps(t_channel_id &id, std::string &channel, std::vector<CAi
 	return CZapit::getInstance()->GetAitApps(id, apps);
 }
 
-bool CHbbtv::startAutostart()
+/* the application the red key starts on the running channel */
+static bool autostart_app(t_channel_id &id, std::string &channel, CAitApp &app)
 {
-	t_channel_id id;
-	std::string channel;
 	std::vector<CAitApp> apps;
 	if (!current_apps(id, channel, apps))
 		return false;
 	for (size_t i = 0; i < apps.size(); i++)
-	{
 		if (apps[i].control_code == CAitApp::AUTOSTART)
 		{
-			/* on a TV set the application runs already and gets this red */
-			run(apps[i], id, channel, 403);
+			app = apps[i];
 			return true;
 		}
-	}
 	return false;
+}
+
+bool CHbbtv::hasAutostart()
+{
+	t_channel_id id;
+	std::string channel;
+	CAitApp app;
+	return autostart_app(id, channel, app);
+}
+
+bool CHbbtv::startAutostart()
+{
+	t_channel_id id;
+	std::string channel;
+	CAitApp app;
+	if (!autostart_app(id, channel, app))
+		return false;
+	/* on a TV set the application runs already and gets this red */
+	run(app, id, channel, 403);
+	return true;
 }
 
 bool CHbbtv::startPage(const CHbbtvPage &page)

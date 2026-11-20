@@ -54,6 +54,8 @@ class CHbbtv
 		/* starts the AUTOSTART application of the running channel; false if
 		 * there is none, so the key can do what it does otherwise */
 		static bool startAutostart();
+		/* the running channel has such an application */
+		static bool hasAutostart();
 		/* starts the application of the running channel with this URL;
 		 * false if the channel has none such */
 		static bool start(const std::string &url);
