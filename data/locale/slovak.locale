@@ -3561,7 +3561,7 @@ widevine.install Inštalovať od Google
 widevine.install_ask Inštalovať teraz Widevine CDM od Google?
 widevine.loads pripravené
 widevine.not_installed Nenainštalované
-widevine.off Tento stream potrebuje Widevine, ktorý je vypnutý: Nastavenia, Multimédia, Prehrávač filmov, Widevine CDM.
+widevine.off Widevine je vypnutý (nastavenia prehrávača filmov).
 widevine.remove Odstrániť
 widevine.remove_ask Odstrániť Widevine CDM?
 widevine.update Aktualizovať od Google

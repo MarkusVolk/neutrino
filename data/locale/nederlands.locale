@@ -3561,7 +3561,7 @@ widevine.install Van Google installeren
 widevine.install_ask Widevine-CDM nu van Google installeren?
 widevine.loads gereed
 widevine.not_installed Niet geïnstalleerd
-widevine.off Deze stream heeft Widevine nodig, dat is uitgeschakeld: Instellingen, Multimedia, Videospeler, Widevine-CDM.
+widevine.off Widevine is uitgeschakeld (Videospeler-instellingen).
 widevine.remove Verwijderen
 widevine.remove_ask Widevine-CDM verwijderen?
 widevine.update Van Google bijwerken
