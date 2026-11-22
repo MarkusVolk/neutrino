@@ -151,6 +151,11 @@ int CWidevineSetup::exec(CMenuTarget *parent, const std::string &actionKey)
 		if (ShowMsg(LOCALE_WIDEVINE_HEAD, LOCALE_WIDEVINE_REMOVE_ASK, CMsgBox::mbrNo, CMsgBox::mbYes | CMsgBox::mbNo) == CMsgBox::mbrYes)
 			run("remove");
 		refresh();
+		if (version.empty())
+		{
+			g_settings.widevine = 0;
+			refresh();
+		}
 		return menu_return::RETURN_REPAINT;
 	}
 
