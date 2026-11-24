@@ -974,6 +974,14 @@ fsk.from_7 ab 7
 fsk.to_12 bis 12
 fsk.to_16 bis 16
 fsk.to_7 bis 7
+gamewall.details Details
+gamewall.empty Keine Spiele
+gamewall.failed Das Spiel konnte nicht geladen werden.
+gamewall.other Weitere
+gamewall.programs Programme
+gamewall.recent Zuletzt gespielt
+gamewall.sort Sortierung
+gamewall.start Starten
 glcd.align_center zentriert
 glcd.align_left links
 glcd.align_none keine

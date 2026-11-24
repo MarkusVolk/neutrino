@@ -1,0 +1,333 @@
+/*
+	Game wall: the games of the box as a wall of covers
+
+	License: GPL
+
+	This program is free software; you can redistribute it and/or
+	modify it under the terms of the GNU General Public License as published
+	by the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#include <config.h>
+
+#include "gamewall.h"
+
+#include <global.h>
+#include <neutrino.h>
+#include <driver/fontrenderer.h>
+#include <driver/screen_max.h>
+#include <gui/color.h>
+#include <gui/components/cc.h>
+#include <gui/infoviewer.h>
+#include <gui/pluginlist.h>
+#include <gui/plugins.h>
+#include <gui/widget/buttons.h>
+#include <gui/widget/icons.h>
+#include <gui/widget/msgbox.h>
+#include <gui/widget/remote_list.h>
+#include <system/helpers.h>
+#include <system/settings.h>
+
+#include <algorithm>
+#include <map>
+#include <unistd.h>
+
+extern CPlugins *g_Plugins;
+extern CInfoViewer *g_InfoViewer;
+
+/* hardware with fewer games has no shelf of its own */
+static const size_t MIN_SHELF = 4;
+static const size_t RECENT_TILES = 12;
+
+/* the title without what the table says about the version */
+static std::string shortTitle(const std::string &title)
+{
+	size_t end = title.find(" (");
+	return end == std::string::npos || end == 0 ? title : title.substr(0, end);
+}
+
+static std::string joined(const std::string &a, const std::string &b)
+{
+	return a.empty() || b.empty() ? a + b : a + " \xc2\xb7 " + b;
+}
+
+static std::string hardwareOf(const games::game &g)
+{
+	return g.hardware.substr(0, g.hardware.find(" / "));
+}
+
+CCoverWall::Tile CGameWall::gameTile(size_t item) const
+{
+	if (item >= list.size()) {
+		const Plugin &p = plugins[item - list.size()];
+		return { p.name, "", { item }, false };
+	}
+	const games::game &g = list[item];
+	return { shortTitle(g.title), joined(g.year, g.maker), { item }, false };
+}
+
+CCoverWall::Tile CGameWall::part(size_t item) const
+{
+	return gameTile(item);
+}
+
+/* a shelf for each initial */
+std::vector<CCoverWall::Shelf> CGameWall::byTitle() const
+{
+	std::vector<std::pair<std::string, std::vector<Tile>>> letters;
+	for (size_t i = 0; i < list.size(); i++) {
+		const std::string &t = list[i].title;
+		std::string letter = t.empty() || !isalpha((unsigned char) t[0]) ? "0-9" : std::string(1, toupper((unsigned char) t[0]));
+		auto it = std::find_if(letters.begin(), letters.end(), [&letter](const auto &l) { return l.first == letter; });
+		if (it == letters.end())
+			it = letters.insert(letters.end(), { letter, {} });
+		it->second.push_back(gameTile(i));
+	}
+	std::vector<Shelf> shelves;
+	for (auto &l : letters)
+		addShelf(shelves, l.first, std::move(l.second));
+	return shelves;
+}
+
+/* played last, then the systems; one with many games has a shelf for each
+   hardware they ran on */
+std::vector<CCoverWall::Shelf> CGameWall::bySystem() const
+{
+	std::vector<Shelf> shelves;
+	std::vector<Tile> tiles;
+	for (const std::string &id : games::recent())
+		for (size_t i = 0; i < list.size() && tiles.size() < RECENT_TILES; i++)
+			if (list[i].system + "/" + list[i].id == id)
+				tiles.push_back(gameTile(i));
+	addShelf(shelves, g_Locale->getText(LOCALE_GAMEWALL_RECENT), std::move(tiles));
+
+	for (const games::system &s : systems) {
+		std::map<std::string, std::vector<Tile>> hardware;
+		for (size_t i = 0; i < list.size(); i++)
+			if (list[i].system == s.id)
+				hardware[hardwareOf(list[i])].push_back(gameTile(i));
+		std::vector<std::pair<std::string, std::vector<Tile>>> big;
+		std::vector<Tile> rest;
+		for (auto &h : hardware) {
+			if (hardware.size() > 1 && !h.first.empty() && h.second.size() >= MIN_SHELF)
+				big.push_back({ h.first, std::move(h.second) });
+			else
+				rest.insert(rest.end(), h.second.begin(), h.second.end());
+		}
+		std::stable_sort(big.begin(), big.end(), [](const auto &a, const auto &b) { return a.second.size() > b.second.size(); });
+		std::stable_sort(rest.begin(), rest.end(), [](const Tile &a, const Tile &b) { return a.items.front() < b.items.front(); });
+		for (auto &b : big)
+			addShelf(shelves, s.name + ": " + b.first, std::move(b.second));
+		addShelf(shelves, big.empty() ? s.name : s.name + ": " + g_Locale->getText(LOCALE_GAMEWALL_OTHER), std::move(rest));
+	}
+
+	tiles.clear();
+	for (size_t i = 0; i < plugins.size(); i++)
+		tiles.push_back(gameTile(list.size() + i));
+	addShelf(shelves, g_Locale->getText(LOCALE_GAMEWALL_PROGRAMS), std::move(tiles));
+	return shelves;
+}
+
+void CGameWall::build(const std::vector<games::system> &sys, const std::vector<games::game> &found,
+		      const std::vector<Plugin> &plug, bool by_title)
+{
+	std::string was;
+	if (game())
+		was = game()->file;
+	else if (plugin())
+		was = plugin()->name;
+	systems = sys;
+	list = found;
+	plugins = plug;
+	show(by_title ? byTitle() : bySystem(), [this, &was](size_t item) {
+		return was == (item < list.size() ? list[item].file : plugins[item - list.size()].name);
+	});
+}
+
+const games::game *CGameWall::game() const
+{
+	const Tile *t = tile();
+	return t && t->items.front() < list.size() ? &list[t->items.front()] : NULL;
+}
+
+const CGameWall::Plugin *CGameWall::plugin() const
+{
+	const Tile *t = tile();
+	return t && t->items.front() >= list.size() ? &plugins[t->items.front() - list.size()] : NULL;
+}
+
+std::string CGameWall::picture(size_t item) const
+{
+	return item < list.size() ? games::picture(list[item]) : plugins[item - list.size()].picture;
+}
+
+std::string CGameWall::info(const Tile &t) const
+{
+	size_t item = t.items.front();
+	if (item >= list.size())
+		return joined(t.caption, plugins[item - list.size()].description);
+	const games::game &g = list[item];
+	return joined(joined(g.title, g.year), joined(g.maker, g.hardware));
+}
+
+std::string CGameWall::details() const
+{
+	const Tile *t = tile();
+	if (!t)
+		return "";
+	if (plugin())
+		return plugin()->name + "\n" + plugin()->description;
+	const games::game &g = *game();
+	std::string text = g.title;
+	for (const std::string &line : { g.year, g.maker, g.hardware, g.file })
+		if (!line.empty())
+			text += "\n" + line;
+	return text;
+}
+
+const char *CGameWall::emptyText() const
+{
+	return g_Locale->getText(LOCALE_GAMEWALL_EMPTY);
+}
+
+static std::vector<CGameWall::Plugin> gamePlugins()
+{
+	std::vector<CGameWall::Plugin> list;
+	for (int i = 0; i < g_Plugins->getNumberOfPlugins(); i++) {
+		if (g_Plugins->getType(i) != CPlugins::P_TYPE_GAME || g_Plugins->isHidden(i))
+			continue;
+		std::string picture = g_Plugins->getHintIcon(i);
+		if (picture.find('/') == std::string::npos)
+			picture = CFrameBuffer::getInstance()->getIconPath(picture);
+		list.push_back({ i, g_Plugins->getName(i), g_Plugins->getDescription(i), picture });
+	}
+	return list;
+}
+
+bool CGames::available()
+{
+	/* the menu is built before the drives are there */
+	return g_Plugins->hasPlugin(CPlugins::P_TYPE_GAME) || !games::systems().empty();
+}
+
+int CGames::exec(CMenuTarget *parent, const std::string &)
+{
+	if (!games::available())
+		return CPluginList(LOCALE_MAINMENU_GAMES, CPlugins::P_TYPE_GAME).exec(parent, "");
+	if (parent)
+		parent->hide();
+	return show();
+}
+
+void CGames::start(const games::game &g)
+{
+	for (const games::system &s : games::systems()) {
+		if (s.id != g.system)
+			continue;
+		const char *argv[] = { "/bin/sh", s.run.c_str(), g.id.c_str(), g.file.c_str(), NULL };
+		printf("[games] %s %s\n", s.run.c_str(), g.id.c_str());
+		int status = g_Plugins->runProgram(shortTitle(g.title), argv, games::picture(g), true);
+		if (status > 0)
+			ShowMsg(LOCALE_MESSAGEBOX_ERROR, g_Locale->getText(LOCALE_GAMEWALL_FAILED), CMsgBox::mbrBack, CMsgBox::mbBack, NEUTRINO_ICON_ERROR);
+		else
+			games::played(g);
+	}
+}
+
+int CGames::show()
+{
+	CFrameBuffer *fb = CFrameBuffer::getInstance();
+	int w = fb->getWindowWidth(), h = fb->getWindowHeight();
+	int x = getScreenStartX(w), y = getScreenStartY(h);
+	CComponentsHeader header(x, y, w, 0, LOCALE_MAINMENU_GAMES, NEUTRINO_ICON_GAMES, CComponentsHeader::CC_BTN_EXIT);
+	int head_h = header.getHeight();
+	const struct button_label buttons[] = {
+		{ NEUTRINO_ICON_BUTTON_YELLOW, LOCALE_GAMEWALL_SORT },
+		{ NEUTRINO_ICON_BUTTON_OKAY, LOCALE_GAMEWALL_START },
+		{ NEUTRINO_ICON_BUTTON_INFO, LOCALE_GAMEWALL_DETAILS },
+	};
+	const int button_count = sizeof(buttons) / sizeof(buttons[0]);
+	CComponentsFooter footer;
+	int foot_h = footer.getHeight();
+
+	std::vector<games::system> systems = games::systems();
+	std::vector<games::game> found = games::find(systems);
+	CGameWall wall;
+	wall.setArea(x, y + head_h, w, h - head_h - foot_h);
+	wall.build(systems, found, gamePlugins(), by_title);
+
+	auto paint = [&] {
+		header.paint(CC_SAVE_SCREEN_NO);
+		wall.paint();
+		footer.paintButtons(x, y + h - foot_h, w, foot_h, button_count, buttons);
+	};
+	paint();
+
+	CRemoteList::Access access;
+	access.title = [] { return std::string(g_Locale->getText(LOCALE_MAINMENU_GAMES)); };
+	access.count = [&wall] { return wall.count(); };
+	access.text = [&wall](size_t i) { return wall.text(i); };
+	access.selected = [&wall] { return wall.current(); };
+	access.select = [&wall](size_t i) { wall.select(i); wall.paint(); };
+	CRemoteList remote(access, "starts the game", "yellow: by system or by title, info: details");
+
+	int ret = menu_return::RETURN_REPAINT;
+	bool loop = true;
+	int timeout = g_settings.timing[SNeutrinoSettings::TIMING_FILEBROWSER];
+	uint64_t timeout_end = CRCInput::calcTimeoutEnd(timeout);
+	while (loop) {
+		neutrino_msg_t msg;
+		neutrino_msg_data_t data;
+		g_RCInput->getMsgAbsoluteTimeout(&msg, &data, &timeout_end);
+		if (msg <= CRCInput::RC_MaxRC)
+			timeout_end = CRCInput::calcTimeoutEnd(timeout);
+
+		if (msg == CRCInput::RC_timeout || CNeutrinoApp::getInstance()->backKey(msg) || msg == CRCInput::RC_home)
+			loop = false;
+		else if (msg == CRCInput::RC_ok) {
+			const games::game *g = wall.game();
+			const CGameWall::Plugin *p = wall.plugin();
+			if (!g && !p)
+				continue;
+			if (g) {
+				games::game chosen = *g;
+				start(chosen);
+			} else
+				g_Plugins->startPlugin(p->number);
+			wall.build(systems, found, gamePlugins(), by_title);
+			paint();
+			timeout_end = CRCInput::calcTimeoutEnd(timeout);
+		} else if (msg == CRCInput::RC_yellow) {
+			by_title = !by_title;
+			wall.build(systems, found, gamePlugins(), by_title);
+			wall.paint();
+		} else if (msg == CRCInput::RC_info) {
+			std::string text = wall.details();
+			if (!text.empty()) {
+				ShowMsg(LOCALE_MAINMENU_GAMES, text, CMsgBox::mbrBack, CMsgBox::mbBack, NEUTRINO_ICON_GAMES);
+				paint();
+			}
+		} else if (wall.key(msg))
+			;
+		else if (msg == NeutrinoMessages::STANDBY_ON || msg == NeutrinoMessages::LEAVE_ALL ||
+			 msg == NeutrinoMessages::SHUTDOWN || msg == NeutrinoMessages::SLEEPTIMER) {
+			ret = menu_return::RETURN_EXIT_ALL;
+			loop = false;
+			g_RCInput->postMsg(msg, data);
+		} else if (CNeutrinoApp::getInstance()->handleMsg(msg, data) & messages_return::cancel_all) {
+			ret = menu_return::RETURN_EXIT_ALL;
+			loop = false;
+		}
+	}
+	fb->paintBackgroundBoxRel(x, y, w, h);
+	return ret;
+}

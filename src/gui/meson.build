@@ -35,6 +35,7 @@ libneutrino_gui_sources = [
 	'filebrowser.cpp',
 	'followscreenings.cpp',
 	'frontend_label.cpp',
+	'gamewall.cpp',
 	'hbbtv.cpp',
 	'imageinfo.cpp',
 	'info_menue.cpp',

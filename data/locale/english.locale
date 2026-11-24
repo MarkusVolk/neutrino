@@ -974,6 +974,14 @@ fsk.from_7 from 7
 fsk.to_12 to 12
 fsk.to_16 to 16
 fsk.to_7 to 7
+gamewall.details Details
+gamewall.empty No games
+gamewall.failed The game could not be loaded.
+gamewall.other Other
+gamewall.programs Programs
+gamewall.recent Played last
+gamewall.sort Sort
+gamewall.start Start
 glcd.align_center centered
 glcd.align_left left
 glcd.align_none none

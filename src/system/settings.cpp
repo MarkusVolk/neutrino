@@ -47,7 +47,7 @@ const struct personalize_settings_t personalize_settings[SNeutrinoSettings::P_SE
 	{"personalize_timer"			, CPersonalizeGui::PERSONALIZE_MODE_VISIBLE}, 
 	{"personalize_media"			, CPersonalizeGui::PERSONALIZE_MODE_VISIBLE}, 
 	
-	{"personalize_games"			, CPersonalizeGui::PERSONALIZE_MODE_NOTVISIBLE},	
+	{"personalize_games"			, CPersonalizeGui::PERSONALIZE_MODE_VISIBLE},	
 	{"personalize_tools"			, CPersonalizeGui::PERSONALIZE_MODE_NOTVISIBLE},
 	{"personalize_avinput"			, CPersonalizeGui::PERSONALIZE_MODE_VISIBLE},
 #if ENABLE_PIP

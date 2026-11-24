@@ -35,6 +35,7 @@ dir_defaults = {
 	'FONTDIR' : ['fontdir', datadir / 'fonts'],
 	'FONTDIR_VAR' : ['fontdir_var', localstatedir / 'tuxbox/fonts'],
 	'GAMESDIR' : ['gamesdir', localstatedir / 'tuxbox/games'],
+	'GAMESYSTEMDIR' : ['gamesystemdir', datadir / 'tuxbox/neutrino/games'],
 	'LIBDIR' : ['tuxboxlibdir', prefix / get_option('libdir') / 'tuxbox'],
 	'PLUGINDIR' : ['plugindir', datadir / 'tuxbox/neutrino/plugins'],
 	'PLUGINDIR_VAR' : ['plugindir_var', localstatedir / 'tuxbox/plugins'],

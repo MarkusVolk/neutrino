@@ -7,6 +7,7 @@ option('controldir', type : 'string', value : '', description : 'Control scripts
 option('controldir_var', type : 'string', value : '', description : 'Control scripts in /var, default localstatedir/tuxbox/control')
 option('fontdir', type : 'string', value : '', description : 'Fonts, default datadir/fonts')
 option('fontdir_var', type : 'string', value : '', description : 'Fonts in /var, default localstatedir/tuxbox/fonts')
+option('gamesystemdir', type : 'string', value : '', description : 'Descriptions of game systems, default datadir/tuxbox/neutrino/games')
 option('gamesdir', type : 'string', value : '', description : 'Games, default localstatedir/tuxbox/games')
 option('tuxboxlibdir', type : 'string', value : '', description : 'Internal libraries, default libdir/tuxbox')
 option('plugindir', type : 'string', value : '', description : 'Plugins, default datadir/tuxbox/neutrino/plugins')

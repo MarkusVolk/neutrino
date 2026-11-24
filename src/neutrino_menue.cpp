@@ -60,6 +60,7 @@
 #include "gui/osd_setup.h"
 #include "gui/osdlang_setup.h"
 #include "gui/parentallock_setup.h"
+#include "gui/gamewall.h"
 #include "gui/pluginlist.h"
 #include "gui/plugins.h"
 #include "gui/record_setup.h"
@@ -190,10 +191,12 @@ void CNeutrinoApp::InitMenuMain()
 	CMenuForwarder *mf;
 
 	// games
-	bool show_games = g_Plugins->hasPlugin(CPlugins::P_TYPE_GAME);
-	mf = new CMenuForwarder(LOCALE_MAINMENU_GAMES, show_games, NULL, new CPluginList(LOCALE_MAINMENU_GAMES, CPlugins::P_TYPE_GAME));
-	mf->setHint(NEUTRINO_ICON_HINT_GAMES, LOCALE_MENU_HINT_GAMES);
-	personalize.addItem(MENU_MAIN, mf, &g_settings.personalize[SNeutrinoSettings::P_MAIN_GAMES]);
+	if (CGames::available())
+	{
+		mf = new CMenuForwarder(LOCALE_MAINMENU_GAMES, true, NULL, new CGames());
+		mf->setHint(NEUTRINO_ICON_HINT_GAMES, LOCALE_MENU_HINT_GAMES);
+		personalize.addItem(MENU_MAIN, mf, &g_settings.personalize[SNeutrinoSettings::P_MAIN_GAMES]);
+	}
 
 #if 0
 	// tools

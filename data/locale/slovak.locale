@@ -974,6 +974,14 @@ fsk.from_7 od 7
 fsk.to_12 do 12
 fsk.to_16 do 16
 fsk.to_7 do 7
+gamewall.details Podrobnosti
+gamewall.empty Žiadne hry
+gamewall.failed Hru sa nepodarilo načítať.
+gamewall.other Ostatné
+gamewall.programs Programy
+gamewall.recent Naposledy hrané
+gamewall.sort Triedenie
+gamewall.start Spustiť
 glcd.align_center zarovnaný
 glcd.align_left vľavo
 glcd.align_none žiadne

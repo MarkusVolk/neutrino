@@ -974,6 +974,14 @@ fsk.from_7 vanaf 7
 fsk.to_12 tot 12
 fsk.to_16 tot 16
 fsk.to_7 tot 7
+gamewall.details Details
+gamewall.empty Geen spellen
+gamewall.failed Het spel kon niet worden geladen.
+gamewall.other Overige
+gamewall.programs Programma's
+gamewall.recent Laatst gespeeld
+gamewall.sort Sortering
+gamewall.start Starten
 glcd.align_center gecentreerd
 glcd.align_left links
 glcd.align_none geen
