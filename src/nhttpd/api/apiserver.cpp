@@ -1296,16 +1296,23 @@ void ep_remote_key(Call &c)
 	 * device would drop, goes to neutrino's own queue */
 	if (!CRCInput::deviceHasKey(fd, dev_code)) {
 		close(fd);
-		g_RCInput->postMsg((neutrino_msg_t) code, 0);
-		send_empty(c.out, 202);
-		return;
+		fd = -1;
 	}
-	input_event(fd, EV_KEY, dev_code, 1);
-	input_event(fd, EV_SYN, SYN_REPORT, 0);
-	input_event(fd, EV_KEY, dev_code, 0);
-	input_event(fd, EV_SYN, SYN_REPORT, 0);
-	close(fd);
-	send_empty(c.out, 202);
+	bool pressed = CRemoteUi::pressKey([fd, code, dev_code] {
+		if (fd < 0)
+			return g_RCInput->postMsg((neutrino_msg_t) code, CRemoteUi::REMOTE_KEY);
+		input_event(fd, EV_KEY, dev_code, 1);
+		input_event(fd, EV_SYN, SYN_REPORT, 0);
+		input_event(fd, EV_KEY, dev_code, 0);
+		input_event(fd, EV_SYN, SYN_REPORT, 0);
+		return true;
+	});
+	if (fd >= 0)
+		close(fd);
+	if (pressed)
+		send_empty(c.out, 202);
+	else
+		problem(c.out, 403, "screen-for-the-viewer", "a question for the viewer at the TV is open");
 }
 
 pthread_mutex_t screenshot_mutex = PTHREAD_MUTEX_INITIALIZER;

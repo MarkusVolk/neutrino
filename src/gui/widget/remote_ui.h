@@ -39,6 +39,8 @@ class CRemoteUi
 		/* the data of the OK a remote client's choice posts, so that only
 		 * this OK carries the choice and not the viewer's next one */
 		enum { PICK = 0x7069636b };
+		/* the data of a key a remote client posts: not the viewer's */
+		enum { REMOTE_KEY = 0x726b6579 };
 		virtual ~CRemoteUi() {}
 		/* what the viewer sees, as text */
 		virtual std::string remoteDescribe() = 0;
@@ -66,6 +68,11 @@ class CRemoteUi
 		static bool viewerOnly();
 		/* the dialog on top takes no keys or answers of a remote client */
 		static bool readOnly();
+		/* runs press, which puts a key of a remote client into the input;
+		 * false without it while a question is open whose answer gives
+		 * access to the box. From any thread. */
+		static bool pressKey(const std::function<bool()> &press);
+		static bool keysRefused();
 		/* the index of what in names: the same name first, else the one name
 		 * that contains it; -1 with the reason in error, noun names the kind */
 		static int match(const std::vector<std::string> &names, const std::string &what,
@@ -82,11 +89,15 @@ class CRemoteUi
 		};
 
 		/* the dialogs opened while one lives, such as a consent, are
-		 * answered by the viewer, never by a remote client */
+		 * answered by the viewer, never by a remote client; with
+		 * gives_access not by the keys of a web remote control either,
+		 * which would let who asks answer */
 		class ViewerOnly
 		{
+			private:
+				bool gives_access;
 			public:
-				ViewerOnly();
+				ViewerOnly(bool gives_access = false);
 				~ViewerOnly();
 		};
 };

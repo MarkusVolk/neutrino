@@ -28,6 +28,7 @@
 #include <global.h>
 
 #include <algorithm>
+#include <mutex>
 #include <vector>
 
 namespace
@@ -41,6 +42,8 @@ namespace
 
 static std::vector<open_dialog> open_dialogs;
 static int viewer_only = 0;
+static std::mutex key_lock;
+static int keys_refused = 0;	/* under key_lock */
 
 bool CRemoteUi::remoteSelect(const std::string &, std::string &error)
 {
@@ -115,15 +118,39 @@ CRemoteUi::Guard::~Guard()
 		}
 }
 
-CRemoteUi::ViewerOnly::ViewerOnly()
+bool CRemoteUi::pressKey(const std::function<bool()> &press)
+{
+	std::lock_guard<std::mutex> l(key_lock);
+	return keys_refused == 0 && press();
+}
+
+bool CRemoteUi::keysRefused()
+{
+	std::lock_guard<std::mutex> l(key_lock);
+	return keys_refused > 0;
+}
+
+CRemoteUi::ViewerOnly::ViewerOnly(bool GivesAccess) : gives_access(GivesAccess)
 {
 	viewer_only++;
+	if (gives_access) {
+		{
+			std::lock_guard<std::mutex> l(key_lock);
+			keys_refused++;
+		}
+		/* what was pressed ahead of the question */
+		g_RCInput->clearRCMsg();
+	}
 	remote_path::reveal();
 }
 
 CRemoteUi::ViewerOnly::~ViewerOnly()
 {
 	viewer_only--;
+	if (gives_access) {
+		std::lock_guard<std::mutex> l(key_lock);
+		keys_refused--;
+	}
 }
 
 std::string CRemoteUi::speakValue(const std::string &value, bool secret)

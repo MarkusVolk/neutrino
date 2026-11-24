@@ -1113,31 +1113,34 @@ void CControlAPI::RCEmCGI(CyhookHandler *hh)
 	 * device would drop, goes to neutrino's own queue */
 	if (!CRCInput::deviceHasKey(evd, g_RCInput->translateRevert(sendcode))) {
 		close(evd);
-		g_RCInput->postMsg((neutrino_msg_t) sendcode, 0);
-		hh->SendOk();
+		if (CRemoteUi::pressKey([sendcode] { return g_RCInput->postMsg((neutrino_msg_t) sendcode, CRemoteUi::REMOTE_KEY); }))
+			hh->SendOk();
+		else
+			hh->SendError();
 		return;
 	}
 	sendcode = g_RCInput->translateRevert(sendcode);
-	if (rc_send(evd, sendcode, KEY_PRESSED) < 0) {
-		perror("writing 'KEY_PRESSED' event failed");
-		hh->SendError();
-		close(evd);
-		return;
-	}
-	rc_sync(evd);
-	if (rc_send(evd, sendcode, KEY_RELEASED) < 0) {
-		perror("writing 'KEY_RELEASED' event failed");
-		hh->SendError();
-		close(evd);
-		return;
-	}
-	rc_sync(evd);
+	bool pressed = CRemoteUi::pressKey([this, evd, sendcode] {
+		if (rc_send(evd, sendcode, KEY_PRESSED) < 0) {
+			perror("writing 'KEY_PRESSED' event failed");
+			return false;
+		}
+		rc_sync(evd);
+		if (rc_send(evd, sendcode, KEY_RELEASED) < 0) {
+			perror("writing 'KEY_RELEASED' event failed");
+			return false;
+		}
+		rc_sync(evd);
+		return true;
+	});
 	close(evd);
 #else
-	/* 0 == KEY_PRESSED in rcinput.cpp */
-	g_RCInput->postMsg((neutrino_msg_t) sendcode, 0);
+	bool pressed = CRemoteUi::pressKey([sendcode] { return g_RCInput->postMsg((neutrino_msg_t) sendcode, CRemoteUi::REMOTE_KEY); });
 #endif
-	hh->SendOk();
+	if (pressed)
+		hh->SendOk();
+	else
+		hh->SendError();
 }
 //-----------------------------------------------------------------------------
 void CControlAPI::AspectRatioCGI(CyhookHandler *hh)

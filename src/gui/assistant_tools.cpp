@@ -1599,7 +1599,7 @@ static bool press_key(const Json::Value &input, std::string &result)
 		return false;
 	}
 	for (int t = key_times(input); t > 0; t--)
-		g_RCInput->postMsg(key, 0, false);
+		g_RCInput->postMsg(key, CRemoteUi::REMOTE_KEY, false);
 	result = "pressed; look with tv_screen";
 	return true;
 }
@@ -1797,7 +1797,7 @@ static void presses_step(unsigned int id)
 		presses_end("pressed " + count + " times, then the screen changed");
 	else if (presses->viewer_pressed)
 		presses_end("pressed " + count + " times, then the viewer pressed a key");
-	else if (g_RCInput->postMsg(presses->key, 0, false) && main_call::post([id] { presses_step(id); }))
+	else if (g_RCInput->postMsg(presses->key, CRemoteUi::REMOTE_KEY, false) && main_call::post([id] { presses_step(id); }))
 		presses->pressed++;
 	else
 		presses_end("pressed " + count + " times, then the box took no more");

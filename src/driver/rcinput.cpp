@@ -65,6 +65,7 @@
 #include <cs_api.h>
 #ifdef ENABLE_SPEECH
 #include <driver/speech.h>
+#include <gui/widget/remote_ui.h>
 
 /* how long help is held to switch the speech output */
 #define SPEECH_TOGGLE_MS	1500
@@ -635,6 +636,17 @@ bool CRCInput::mayRepeat(uint32_t key, bool bAllowRepeatLR)
 /* Every loop waits for its next message here. Waiting again means the key
  * before is done with and the screen settled: the speech output says what
  * changed; a key cuts off what it is saying. */
+/* a key a remote client posted is like any other, but is dropped when it
+ * comes to a question whose answer gives access to the box */
+static void fromRemoteClient(neutrino_msg_t *msg, neutrino_msg_data_t *data)
+{
+	if (*data != CRemoteUi::REMOTE_KEY || *msg > CRCInput::RC_MaxRC)
+		return;
+	if (CRemoteUi::keysRefused())
+		*msg = CRCInput::RC_nokey;
+	*data = 0;
+}
+
 void CRCInput::getMsg_us(neutrino_msg_t * msg, neutrino_msg_data_t * data, uint64_t Timeout, bool bAllowRepeatLR)
 {
 #ifdef ENABLE_SPEECH
@@ -769,6 +781,7 @@ void CRCInput::waitMsg_us(neutrino_msg_t * msg, neutrino_msg_data_t * data, uint
 
 			*msg  = buf.msg;
 			*data = buf.data;
+			fromRemoteClient(msg, data);
 
 			// printf("got event from high-pri pipe %x %x\n", *msg, *data );
 
@@ -1558,6 +1571,7 @@ void CRCInput::waitMsg_us(neutrino_msg_t * msg, neutrino_msg_data_t * data, uint
 
 			*msg  = buf.msg;
 			*data = buf.data;
+			fromRemoteClient(msg, data);
 
 			// printf("got event from low-pri pipe %x %x\n", *msg, *data );
 
