@@ -2461,9 +2461,28 @@ int httpdPort()
 	return port;
 }
 
+/* an address for the log: without the keys of the services in it */
+static std::string withoutKeys(const std::string &url)
+{
+	static const char *names[] = { "api_key=", "apikey=", "appid=", "key=", "token=", NULL };
+	std::string out = url;
+	for (size_t at = out.find_first_of("?&"); at != std::string::npos; at = out.find_first_of("?&", at)) {
+		at++;
+		for (unsigned int i = 0; names[i]; i++) {
+			size_t len = strlen(names[i]);
+			if (strncasecmp(out.c_str() + at, names[i], len) != 0)
+				continue;
+			size_t end = out.find_first_of("&#", at);
+			out.replace(at + len, end == std::string::npos ? end : end - at - len, "***");
+			break;
+		}
+	}
+	return out;
+}
+
 bool getUrl(std::string &url, std::string &answer, std::string userAgent, unsigned int timeout, const char *header)
 {
-	dprintf(DEBUG_NORMAL, "getUrl: url: %s\n", url.c_str());
+	dprintf(DEBUG_NORMAL, "getUrl: url: %s\n", withoutKeys(url).c_str());
 
 	CURL *curl_handle = curl_easy_init();
 
@@ -2505,7 +2524,7 @@ bool getUrl(std::string &url, std::string &answer, std::string userAgent, unsign
 
 	if (httpres != 0 || answer.empty())
 	{
-		dprintf(DEBUG_NORMAL, "getUrl: error: %s (%s)\n", cerror, url.c_str());
+		dprintf(DEBUG_NORMAL, "getUrl: error: %s (%s)\n", cerror, withoutKeys(url).c_str());
 		return false;
 	}
 
