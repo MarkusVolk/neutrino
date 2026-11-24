@@ -253,7 +253,7 @@ class LatmBitReader
 
 		int getBits(int n)
 		{
-			if (n <= 0 || bitpos + n > bitlen)
+			if (n <= 0 || n > 32 || n > bitlen - bitpos)
 				return -1;
 			int val = 0;
 			for (int i = 0; i < n; i++)
@@ -268,7 +268,7 @@ class LatmBitReader
 
 		bool skipBits(int n)
 		{
-			if (n < 0 || bitpos + n > bitlen)
+			if (n < 0 || n > bitlen - bitpos)
 				return false;
 			bitpos += n;
 			return true;
@@ -283,7 +283,7 @@ class LatmBitReader
 
 		bool readBytes(unsigned char *out, int count)
 		{
-			if (count < 0 || bitpos + count * 8 > bitlen)
+			if (count < 0 || count > (bitlen - bitpos) / 8)
 				return false;
 			for (int i = 0; i < count; i++)
 			{
