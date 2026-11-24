@@ -426,8 +426,10 @@ void CBoxDiscovery::found(const std::string &their_usn, const std::string &loc)
 	bool known = it != boxes.end() && it->second.host == host;
 	if (known)
 		it->second.seen = time_monotonic();
+	/* a home has a few */
+	bool full = !known && boxes.size() >= 16;
 	pthread_mutex_unlock(&mutex);
-	if (known)
+	if (known || full)
 		return;
 
 	/* a new box or a new address: it must answer before its lists are asked for */
