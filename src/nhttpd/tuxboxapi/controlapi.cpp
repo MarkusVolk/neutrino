@@ -2411,7 +2411,7 @@ void CControlAPI::ScreenshotCGI(CyhookHandler *hh)
 	screenshot->EnableOSD(enableOSD);
 	screenshot->EnableVideo(enableVideo);
 	std::shared_ptr<bool> taken(new bool(false));
-	if (main_call::run([screenshot, taken] { *taken = !CRemoteUi::viewerOnly() && screenshot->StartSync(); }, 30000) && *taken)
+	if (main_call::run([screenshot, taken] { *taken = !CRemoteUi::viewerOnly() && !CRemoteUi::secretShown() && screenshot->StartSync(); }, 30000) && *taken)
 		hh->SendOk();
 	else
 		hh->SendError();

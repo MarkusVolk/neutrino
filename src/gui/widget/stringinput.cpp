@@ -929,8 +929,29 @@ void CPINInput::paintChar(int pos)
 	CStringInput::paintChar(pos, (valueString->at(pos) == ' ') ? ' ' : '*');
 }
 
+/* A PIN that keys of remote clients were part of counts as theirs, and once
+ * they are refused a PIN, so are their keys while one is asked. */
+class CPinKeys
+{
+	private:
+		unsigned int before;
+		bool &entered;
+	public:
+		CPinKeys(bool &Entered) : before(CRemoteUi::remoteKeys()), entered(Entered)
+		{
+			CRemoteUi::refuseKeys(remote_pin_until > time(NULL));
+		}
+		~CPinKeys()
+		{
+			CRemoteUi::refuseKeys(false);
+			if (CRemoteUi::remoteKeys() != before)
+				entered = true;
+		}
+};
+
 int CPINInput::exec( CMenuTarget* parent, const std::string & )
 {
+	CPinKeys pin_keys(remote_entered);
 	CStringInputOpen counted;
 	neutrino_msg_t      msg;
 	neutrino_msg_data_t data;

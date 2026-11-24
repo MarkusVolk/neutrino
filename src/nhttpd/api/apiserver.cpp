@@ -1346,14 +1346,14 @@ void ep_screenshot(Call &c)
 	/* a question for the viewer, such as a pairing code, is not for a client's eyes either */
 	std::shared_ptr<bool> viewer(new bool(false));
 	bool ok = main_call::run([shot, taken, viewer] {
-			*viewer = CRemoteUi::viewerOnly();
+			*viewer = CRemoteUi::viewerOnly() || CRemoteUi::secretShown();
 			*taken = !*viewer && shot->StartSync();
 		}, 30000) && *taken
 		&& send_file(c, file, jpeg ? "image/jpeg" : "image/png", true);
 	unlink(file.c_str());
 	pthread_mutex_unlock(&screenshot_mutex);
 	if (*viewer)
-		problem(c.out, 403, "screen-for-the-viewer", "a question for the viewer at the TV is open");
+		problem(c.out, 403, "screen-for-the-viewer", "a question for the viewer or a secret is on the screen");
 	else if (!ok)
 		problem(c.out, 501, "screen-not-captured", "the screen could not be captured");
 }

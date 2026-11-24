@@ -644,6 +644,8 @@ static void fromRemoteClient(neutrino_msg_t *msg, neutrino_msg_data_t *data)
 		return;
 	if (CRemoteUi::keysRefused())
 		*msg = CRCInput::RC_nokey;
+	else
+		CRemoteUi::remoteKey();
 	*data = 0;
 }
 

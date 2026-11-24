@@ -1937,7 +1937,7 @@ bool CAssistantTools::screenshot(std::string &jpeg)
 	std::shared_ptr<CScreenShot> shot(new CScreenShot(file, CScreenShot::FORMAT_JPG));
 	std::shared_ptr<bool> taken(new bool(false));
 	/* a question for the viewer is not for a client's eyes either */
-	bool ok = main_call::run([shot, taken] { *taken = !CRemoteUi::viewerOnly() && shot->StartSync(); }, 20000) && *taken;
+	bool ok = main_call::run([shot, taken] { *taken = !CRemoteUi::viewerOnly() && !CRemoteUi::secretShown() && shot->StartSync(); }, 20000) && *taken;
 	FILE *f = ok ? fopen(file.c_str(), "rb") : NULL;
 	if (f)
 	{

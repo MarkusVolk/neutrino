@@ -73,6 +73,13 @@ class CRemoteUi
 		 * access to the box. From any thread. */
 		static bool pressKey(const std::function<bool()> &press);
 		static bool keysRefused();
+		/* a dialog that is open shows a password or key: not for a screenshot */
+		static bool secretShown();
+		/* the keys that came from remote clients so far, and while a PIN is
+		 * asked: refuse them once too many PINs were wrong */
+		static unsigned int remoteKeys();
+		static void refuseKeys(bool refuse);
+		static void remoteKey();
 		/* the index of what in names: the same name first, else the one name
 		 * that contains it; -1 with the reason in error, noun names the kind */
 		static int match(const std::vector<std::string> &names, const std::string &what,

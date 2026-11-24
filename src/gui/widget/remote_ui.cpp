@@ -23,11 +23,13 @@
 
 #include "remote_ui.h"
 #include "remote_path.h"
+#include "remote_secret.h"
 
 #include <driver/rcinput.h>
 #include <global.h>
 
 #include <algorithm>
+#include <atomic>
 #include <mutex>
 #include <vector>
 
@@ -44,6 +46,8 @@ static std::vector<open_dialog> open_dialogs;
 static int viewer_only = 0;
 static std::mutex key_lock;
 static int keys_refused = 0;	/* under key_lock */
+static bool pin_blocked = false;	/* under key_lock */
+static std::atomic<unsigned int> remote_keys(0);
 
 bool CRemoteUi::remoteSelect(const std::string &, std::string &error)
 {
@@ -121,13 +125,40 @@ CRemoteUi::Guard::~Guard()
 bool CRemoteUi::pressKey(const std::function<bool()> &press)
 {
 	std::lock_guard<std::mutex> l(key_lock);
-	return keys_refused == 0 && press();
+	if (keys_refused > 0 || pin_blocked || !press())
+		return false;
+	remote_keys++;
+	return true;
+}
+
+void CRemoteUi::remoteKey()
+{
+	remote_keys++;
+}
+
+unsigned int CRemoteUi::remoteKeys()
+{
+	return remote_keys;
+}
+
+void CRemoteUi::refuseKeys(bool refuse)
+{
+	std::lock_guard<std::mutex> l(key_lock);
+	pin_blocked = refuse;
+}
+
+bool CRemoteUi::secretShown()
+{
+	for (size_t i = 0; i < open_dialogs.size(); i++)
+		if (open_dialogs[i].ui->remoteDescribe().find(remote_secret::hidden("x")) != std::string::npos)
+			return true;
+	return false;
 }
 
 bool CRemoteUi::keysRefused()
 {
 	std::lock_guard<std::mutex> l(key_lock);
-	return keys_refused > 0;
+	return keys_refused > 0 || pin_blocked;
 }
 
 CRemoteUi::ViewerOnly::ViewerOnly(bool GivesAccess) : gives_access(GivesAccess)
