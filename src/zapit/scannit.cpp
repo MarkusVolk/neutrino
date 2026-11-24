@@ -18,6 +18,7 @@
  *
  */
 
+#include "section.h"
 #include "debug.h"
 #include "getservices.h"
 #include "scannit.h"
@@ -88,7 +89,7 @@ bool CNit::Read()
 	cDemux * dmx = new cDemux(dmxnum);
 	dmx->Open(DMX_PSI_CHANNEL);
 
-	unsigned char buffer[NIT_SECTION_SIZE];
+	unsigned char buffer[SECTION_SIZE + SECTION_PADDING] = { 0 };
 
 	unsigned char filter[DMX_FILTER_SIZE];
 	unsigned char mask[DMX_FILTER_SIZE];
@@ -117,7 +118,8 @@ bool CNit::Read()
 	}
 
 	do {
-		if (dmx->Read(buffer, NIT_SECTION_SIZE) < 0) {
+		int len = dmx->Read(buffer, SECTION_SIZE);
+		if (len < 0) {
 			delete dmx;
 #ifdef DEBUG_NIT
 			printf("[NIT] read failed\n");
@@ -126,6 +128,11 @@ bool CNit::Read()
 		}
 
 		if (CServiceScan::getInstance()->Aborted()) {
+			ret = false;
+			goto _return;
+		}
+
+		if (!sectionComplete(buffer, len)) {
 			ret = false;
 			goto _return;
 		}

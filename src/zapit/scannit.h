@@ -33,7 +33,6 @@
 #include <dvbsi++/service_list_descriptor.h>
 #include <dvbsi++/logical_channel_descriptor.h>
 
-#define NIT_SECTION_SIZE 1024
 
 typedef std::map <t_channel_id, int> channel_number_map_t;
 

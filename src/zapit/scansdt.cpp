@@ -18,6 +18,7 @@
  *
  */
 
+#include "section.h"
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -65,7 +66,7 @@ bool CSdt::PMTPing(unsigned short pid, unsigned short sid)
 	bool ret = false;
 	unsigned char filter[DMX_FILTER_SIZE];
 	unsigned char mask[DMX_FILTER_SIZE];
-	unsigned char buffer[PMT_SECTION_SIZE];
+	unsigned char buffer[SECTION_SIZE + SECTION_PADDING] = { 0 };
 
 	cDemux * dmx = new cDemux(dmxnum);
 	bool badservice = false;
@@ -88,7 +89,7 @@ bool CSdt::PMTPing(unsigned short pid, unsigned short sid)
 		if (!dmx->sectionFilter(pid, filter, mask, 1)) {
 			ret = false;
 		}else{
-			if(dmx->Read(buffer, PMT_SECTION_SIZE) > 0){
+			if(sectionComplete(buffer, dmx->Read(buffer, SECTION_SIZE))){
 				ProgramMapSection pmt(buffer);
 				if(0x1fff==pmt.getPcrPid()){
 					ret = false;
@@ -118,7 +119,7 @@ bool CSdt::Read()
 	cDemux * dmx = new cDemux(dmxnum);
 	dmx->Open(DMX_PSI_CHANNEL);
 
-	unsigned char buffer[SDT_SECTION_SIZE];
+	unsigned char buffer[SECTION_SIZE + SECTION_PADDING] = { 0 };
 	unsigned char filter[DMX_FILTER_SIZE];
 	unsigned char mask[DMX_FILTER_SIZE];
 
@@ -150,10 +151,13 @@ _repeat:
 		if(current && current_tp_id != CFEManager::getInstance()->getLiveFE()->getTsidOnid())
 			break;
 
-		if (dmx->Read(buffer, SDT_SECTION_SIZE) < 0) {
+		int len = dmx->Read(buffer, SECTION_SIZE);
+		if (len < 0) {
 			delete dmx;
 			return false;
 		}
+		if (!sectionComplete(buffer, len))
+			continue;
 		unsigned char secnum = buffer[6];
 		if(cable_hack_done) {
 			if( (transport_stream_id == ((buffer[3] << 8) | buffer[4])) &&

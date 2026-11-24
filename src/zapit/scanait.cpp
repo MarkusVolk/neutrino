@@ -18,6 +18,7 @@
  *
  */
 
+#include "section.h"
 #include "debug.h"
 #include "getservices.h"
 #include "scanait.h"
@@ -103,7 +104,7 @@ bool CAit::Read()
 	cDemux *dmx = new cDemux(dmxnum);
 	dmx->Open(DMX_PSI_CHANNEL);
 
-	unsigned char buffer[AIT_SECTION_SIZE];
+	unsigned char buffer[SECTION_SIZE + SECTION_PADDING] = { 0 };
 	unsigned char filter[DMX_FILTER_SIZE];
 	unsigned char mask[DMX_FILTER_SIZE];
 
@@ -118,10 +119,10 @@ bool CAit::Read()
 	int waited = 0;
 	while (ok && running && waited < AIT_READ_TIMEOUT_MS)
 	{
-		int len = dmx->Read(buffer, AIT_SECTION_SIZE, AIT_READ_SLICE_MS);
+		int len = dmx->Read(buffer, SECTION_SIZE, AIT_READ_SLICE_MS);
 		if (len < 0)
 			break;
-		if (len == 0)
+		if (!sectionComplete(buffer, len))
 		{
 			waited += AIT_READ_SLICE_MS;
 			continue;

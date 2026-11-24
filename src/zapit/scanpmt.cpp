@@ -83,7 +83,8 @@ bool CPmt::Read(unsigned short pid, unsigned short sid)
 	mask[2] = 0xFF;
 	mask[3] = 0x01;
 	mask[4] = 0xFF;
-	if ((!dmx->sectionFilter(pid, filter, mask, 5)) || (dmx->Read(buffer, PMT_SECTION_SIZE) < 0)) {
+	memset(buffer, 0, sizeof(buffer));
+	if ((!dmx->sectionFilter(pid, filter, mask, 5)) || !sectionComplete(buffer, dmx->Read(buffer, SECTION_SIZE))) {
 		printf("CPmt::Read: pid %x failed\n", pid);
 		ret = false;
 	}
@@ -158,7 +159,7 @@ bool CPmt::Parse(CZapitChannel * const channel)
 		channel->camap = camap;
 		channel->capids = capids;
 		int pmtlen= pmt.getSectionLength() + 3;
-		unsigned char * p = new unsigned char[pmtlen];
+		unsigned char * p = new unsigned char[pmtlen + SECTION_PADDING]();
 		memmove(p, buffer, pmtlen);
 		channel->setRawPmt(p, pmtlen);
 	}
