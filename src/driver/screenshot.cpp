@@ -595,53 +595,56 @@ bool CScreenShot::SaveBmp()
  */
 void CScreenShot::MakeFileName(const t_channel_id channel_id)
 {
-	char		fname[512]; // UTF-8
 	std::string	channel_name;
 	CEPGData	epgData;
-	unsigned int	pos = 0;
+	char		stamp[64];
+	/* the names are from the signal, and file names are limited */
+	auto add = [this](const std::string &name)
+	{
+		std::string part = name.substr(0, 100);
+		while (part.size() < name.size() && !part.empty() && ((unsigned char) name[part.size()] & 0xC0) == 0x80)
+			part.resize(part.size() - 1);
+		std::vector<char> text(part.c_str(), part.c_str() + part.size() + 1);
+		ZapitTools::replace_char(&text[0]);
+		filename += &text[0];
+	};
 
-	snprintf(fname, sizeof(fname), "%s/", g_settings.screenshot_dir.c_str());
-	pos = strlen(fname);
+	filename = g_settings.screenshot_dir + "/";
 
 	channel_name = CServiceManager::getInstance()->GetServiceName(channel_id);
 	if (!(channel_name.empty())) {
-		strcpy(&(fname[pos]), UTF8_TO_FILESYSTEM_ENCODING(channel_name.c_str()));
-		ZapitTools::replace_char(&fname[pos]);
-		strcat(fname, "_");
+		add(UTF8_TO_FILESYSTEM_ENCODING(channel_name.c_str()));
+		filename += "_";
 	}
-	pos = strlen(fname);
 
 	if(CEitManager::getInstance()->getActualEPGServiceKey(channel_id, &epgData)) {
 		CShortEPGData epgdata;
 		if(CEitManager::getInstance()->getEPGidShort(epgData.eventID, &epgdata)) {
-			if (!(epgdata.title.empty())) {
-				strcpy(&(fname[pos]), epgdata.title.c_str());
-				ZapitTools::replace_char(&fname[pos]);
-			}
+			if (!(epgdata.title.empty()))
+				add(epgdata.title);
 		}
 	}
-	pos = strlen(fname);
 
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
-	strftime(&(fname[pos]), sizeof(fname) - pos - 1, "_%Y%m%d_%H%M%S", localtime(&tv.tv_sec));
-	pos = strlen(fname);
-	snprintf(&(fname[pos]), sizeof(fname) - pos - 1, "_%03d", (int) tv.tv_usec/1000);
+	strftime(stamp, sizeof(stamp), "_%Y%m%d_%H%M%S", localtime(&tv.tv_sec));
+	filename += stamp;
+	snprintf(stamp, sizeof(stamp), "_%03d", (int) tv.tv_usec/1000);
+	filename += stamp;
 
 	switch (format) {
 	case FORMAT_PNG:
-		strcat(fname, ".png");
+		filename += ".png";
 		break;
 	default:
 		printf("CScreenShot::MakeFileName unsupported format %d, using jpeg\n", format);
 		/* fall through */
 	case FORMAT_JPG:
-		strcat(fname, ".jpg");
+		filename += ".jpg";
 		break;
 	case FORMAT_BMP:
-		strcat(fname, ".bmp");
+		filename += ".bmp";
 		break;
 	}
-	printf("CScreenShot::MakeFileName: [%s]\n", fname);
-	filename = std::string(fname);
+	printf("CScreenShot::MakeFileName: [%s]\n", filename.c_str());
 }
