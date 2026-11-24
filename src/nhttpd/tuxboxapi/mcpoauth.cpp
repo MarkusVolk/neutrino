@@ -191,6 +191,14 @@ static std::string host_of(const std::string &url)
 /* a client may come back to an https address, or to the machine it runs on */
 static bool redirect_allowed(const std::string &uri)
 {
+	/* it becomes a header, and its host is what the viewer is asked about */
+	if (uri.size() > 2048)
+		return false;
+	for (size_t i = 0; i < uri.size(); i++)
+		if ((unsigned char) uri[i] <= ' ' || uri[i] == 0x7f || uri[i] == '\\')
+			return false;
+	if (host_of(uri).find('@') != std::string::npos)
+		return false;
 	if (starts_with(uri, "https://"))
 		return true;
 	if (!starts_with(uri, "http://"))
@@ -546,7 +554,7 @@ static void do_register(CyhookHandler *hh)
 		return;
 	}
 	const Json::Value &uris = req["redirect_uris"];
-	if (!uris.isArray() || uris.empty())
+	if (!uris.isArray() || uris.empty() || uris.size() > 8)
 	{
 		json_error(hh, "invalid_redirect_uri", "redirect_uris is needed");
 		return;
@@ -563,6 +571,9 @@ static void do_register(CyhookHandler *hh)
 		cl.redirects.push_back(uri);
 	}
 	cl.name = json_text(req, "client_name").substr(0, 64);
+	for (size_t i = 0; i < cl.name.size(); i++)
+		if ((unsigned char) cl.name[i] < ' ' || cl.name[i] == 0x7f)
+			cl.name[i] = ' ';
 	if (cl.name.empty())
 		cl.name = host_of(cl.redirects[0]);
 	cl.created = time(NULL);
