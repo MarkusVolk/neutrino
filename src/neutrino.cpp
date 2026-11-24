@@ -4596,7 +4596,9 @@ int CNeutrinoApp::handleMsg(const neutrino_msg_t _msg, neutrino_msg_data_t data)
 			   decoder without a picture gives no size */
 			int w = 0, h = 0, r = 0;
 			videoDecoder->getPictureInfo(w, h, r);
-			if ((videoDecoder->getBlank() || w <= 0 || h <= 0) && videoDecoder->getPlayState()) {
+			/* a program that has the display took the picture */
+			if (!CFrameBuffer::getInstance()->displayHandedOver() &&
+			    (videoDecoder->getBlank() || w <= 0 || h <= 0) && videoDecoder->getPlayState()) {
 				/* no picture: a timeshift would only keep what cannot be played */
 				if (mode == NeutrinoModes::mode_tv && !CMoviePlayerGui::getInstance().timeshift)
 					CRecordManager::getInstance()->StopAutoRecord();
