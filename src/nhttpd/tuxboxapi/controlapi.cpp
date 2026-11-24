@@ -274,7 +274,7 @@ const CControlAPI::TyCgiCall CControlAPI::yCgiCallList[]=
 	{"xmltv.data",		&CControlAPI::xmltvepgCGI,		"+xml",	yapi::L_READ},
 	{"xmltv.xml",		&CControlAPI::xmltvepgCGI,		"+xml",	yapi::L_READ},
 	{"xmltv.m3u",		&CControlAPI::xmltvm3uCGI,		"",	yapi::L_READ},
-	{"xmltvlist",		&CControlAPI::xmltvlistCGI,		"text/plain",	yapi::L_READ},
+	{"xmltvlist",		&CControlAPI::xmltvlistCGI,		"text/plain",	yapi::L_SYSTEM},
 	// utils
 	{"build_live_url",	&CControlAPI::build_live_url,		"",	yapi::L_READ},
 	{"build_playlist",	&CControlAPI::build_playlist,		"",	yapi::L_READ},
@@ -3661,67 +3661,41 @@ void CControlAPI::xmltvm3uCGI(CyhookHandler *hh)
 	hh->SendResult(result);
 }
 
+/* webtv, webradio, xmltv: the list of that name, one entry per line; a list
+ * that is not given stays */
 void CControlAPI::xmltvlistCGI(CyhookHandler *hh)
 {
-	std::vector<std::string>::iterator it;
-	std::vector<std::string> url_list;
-	std::string tmp;
-
-	if (!hh->ParamList["webtv"].empty())
+	static const char *const names[] = { "webtv", "webradio", "xmltv" };
+	std::list<std::string> lists[3];
+	bool given[3];
+	bool any = false;
+	for (int l = 0; l < 3; l++)
 	{
-		std::string webtv_url = hh->ParamList["webtv"];
-		g_settings.webtv_xml.clear();
-		url_list = ::split(webtv_url, '\n');
-		for (it = url_list.begin(); it != url_list.end(); it++)
+		CStringList::const_iterator param = hh->ParamList.find(names[l]);
+		given[l] = param != hh->ParamList.end();
+		any |= given[l];
+		if (!given[l])
+			continue;
+		std::vector<std::string> lines = ::split(param->second, '\n');
+		for (std::vector<std::string>::iterator it = lines.begin(); it != lines.end(); ++it)
 		{
-			tmp = (*it);
-			tmp.erase(std::remove(tmp.begin(), tmp.end(), '\n'), tmp.end());
-			tmp.erase(std::remove(tmp.begin(), tmp.end(), '\r'), tmp.end());
-			tmp.erase(std::remove(tmp.begin(), tmp.end(), '\t'), tmp.end());
-			if (!tmp.empty())
-				g_settings.webtv_xml.push_back(tmp);
+			it->erase(std::remove_if(it->begin(), it->end(), [](unsigned char ch) { return iscntrl(ch); }), it->end());
+			if (!it->empty())
+				lists[l].push_back(*it);
 		}
 	}
+	/* zapit and the guide read the lists in the main loop's turn */
+	if (any && main_call::run([=] {
+		if (given[0])
+			g_settings.webtv_xml = lists[0];
+		if (given[1])
+			g_settings.webradio_xml = lists[1];
+		if (given[2])
+			g_settings.xmltv_xml = lists[2];
+	}, 5000))
+		hh->SendOk();
 	else
-		g_settings.webtv_xml.clear();
-
-	if (!hh->ParamList["webradio"].empty())
-	{
-		std::string webradio_url = hh->ParamList["webradio"];
-		g_settings.webradio_xml.clear();
-		url_list = ::split(webradio_url, '\n');
-		for (it = url_list.begin(); it != url_list.end(); it++)
-		{
-			tmp = (*it);
-			tmp.erase(std::remove(tmp.begin(), tmp.end(), '\n'), tmp.end());
-			tmp.erase(std::remove(tmp.begin(), tmp.end(), '\r'), tmp.end());
-			tmp.erase(std::remove(tmp.begin(), tmp.end(), '\t'), tmp.end());
-			if (!tmp.empty())
-				g_settings.webradio_xml.push_back(tmp);
-		}
-	}
-	else
-		g_settings.webradio_xml.clear();
-
-	if (!hh->ParamList["xmltv"].empty())
-	{
-		std::string xmltv_url = hh->ParamList["xmltv"];
-		g_settings.xmltv_xml.clear();
-		url_list = ::split(xmltv_url, '\n');
-		for (it = url_list.begin(); it != url_list.end(); it++)
-		{
-			tmp = (*it);
-			tmp.erase(std::remove(tmp.begin(), tmp.end(), '\n'), tmp.end());
-			tmp.erase(std::remove(tmp.begin(), tmp.end(), '\r'), tmp.end());
-			tmp.erase(std::remove(tmp.begin(), tmp.end(), '\t'), tmp.end());
-			if (!tmp.empty())
-				g_settings.xmltv_xml.push_back(tmp);
-		}
-	}
-	else
-		g_settings.xmltv_xml.clear();
-
-	hh->SendOk();
+		hh->SendError();
 }
 //-------------------------------------------------------------------------
 // host : (optional) ip of dbox
@@ -3775,18 +3749,38 @@ void CControlAPI::netmountCGI(CyhookHandler *hh)
 	auto &n = g_settings.network_nfs[nr];
 	if (action == "set")
 	{
-		n.type = hh->ParamList["type"] == "cifs" ? CFSMounter::CIFS : CFSMounter::NFS;
-		n.ip = hh->ParamList["ip"];
-		n.dir = hh->ParamList["dir"];
-		n.local_dir = hh->ParamList["local_dir"];
-		n.automount = atoi(hh->ParamList["automount"].c_str()) ? 1 : 0;
-		n.username = hh->ParamList["username"];
-		if (!hh->ParamList["password"].empty() || n.username.empty())
-			n.password = hh->ParamList["password"];
-		n.mount_options1 = hh->ParamList["options1"];
-		n.mount_options2 = hh->ParamList["options2"];
-		n.mac = hh->ParamList["mac"];
-		CNeutrinoApp::getInstance()->saveSetup(NEUTRINO_SETTINGS_FILE);
+		std::map<std::string, std::string> p;
+		static const char *const names[] = { "type", "ip", "dir", "local_dir", "automount", "username", "password",
+			"options1", "options2", "mac" };
+		for (size_t k = 0; k < sizeof(names) / sizeof(names[0]); k++)
+		{
+			std::string v = hh->ParamList[names[k]];
+			if (std::find_if(v.begin(), v.end(), [](unsigned char ch) { return iscntrl(ch); }) != v.end())
+			{
+				hh->SendError();
+				return;
+			}
+			p[names[k]] = v;
+		}
+		if (!main_call::run([nr, p] {
+			auto &e = g_settings.network_nfs[nr];
+			e.type = p.at("type") == "cifs" ? CFSMounter::CIFS : CFSMounter::NFS;
+			e.ip = p.at("ip");
+			e.dir = p.at("dir");
+			e.local_dir = p.at("local_dir");
+			e.automount = atoi(p.at("automount").c_str()) ? 1 : 0;
+			e.username = p.at("username");
+			if (!p.at("password").empty() || e.username.empty())
+				e.password = p.at("password");
+			e.mount_options1 = p.at("options1");
+			e.mount_options2 = p.at("options2");
+			e.mac = p.at("mac");
+			CNeutrinoApp::getInstance()->saveSetup(NEUTRINO_SETTINGS_FILE);
+		}, 5000))
+		{
+			hh->SendError();
+			return;
+		}
 		hh->WriteLn("ok");
 	}
 	else if (action == "mount")
