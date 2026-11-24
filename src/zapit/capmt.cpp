@@ -128,7 +128,18 @@ bool CCam::makeCaPmt(CZapitChannel * channel, bool add_private, uint8_t list, co
 		capmt.injectDescriptor(tmp, false);
 	}
 
-	calen = capmt.writeToBuffer(cabuf);
+	/* a descriptor may claim more bytes than its loop has: every two bytes of
+	   the section can make one of 257 */
+	int section = ((buffer[1] & 0x0F) << 8) | buffer[2];
+	std::vector<uint8_t> out((section / 2 + 16) * 264);
+	size_t written = capmt.writeToBuffer(&out[0]);
+	calen = 0;
+	if (written > sizeof(cabuf)) {
+		printf("CCam::makeCaPmt: CA PMT of %d bytes refused\n", (int) written);
+		return false;
+	}
+	calen = written;
+	memcpy(cabuf, &out[0], written);
 #ifdef DEBUG_CAPMT
 	printf("CAPMT: ");
 	for(int i = 0; i < calen; i++)
