@@ -154,7 +154,9 @@ THandleStatus CmodSendfile::Hook_PrepareResponse(CyhookHandler *hh) {
 
 	log_level_printf(4, "mod_sendfile prepare hook start url:%s\n", hh->UrlData["fullurl"].c_str());
 
-	std::string mime = sendfileTypes[hh->UrlData["fileext"]];
+	/* several web threads look up here: operator[] would add what is not there */
+	CStringList::const_iterator type = sendfileTypes.find(hh->UrlData["fileext"]);
+	std::string mime = type == sendfileTypes.end() ? std::string() : type->second;
 	if (!mime.empty()) {
 		std::string fullfilename = GetFileName(hh, hh->UrlData["path"],
 				hh->UrlData["filename"]);

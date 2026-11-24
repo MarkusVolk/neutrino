@@ -19,7 +19,6 @@ class CControlAPI : public Cyhook
 private:
 	// Dispatcher Array
 	typedef void (CControlAPI::*TyFunc)(CyhookHandler *hh);
-	std::string func_req;
 	typedef struct
 	{
 		const char *func_name;

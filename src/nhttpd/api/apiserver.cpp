@@ -460,7 +460,9 @@ std::string random_hex(size_t bytes)
 
 std::string config(const char *key)
 {
-	return Cyhttpd::ConfigList[key];
+	/* one of several web threads: operator[] would add what is not there */
+	CStringList::const_iterator it = Cyhttpd::ConfigList.find(key);
+	return it == Cyhttpd::ConfigList.end() ? std::string() : it->second;
 }
 
 // api.tokens as parsed by yapi::read_config()
@@ -1866,8 +1868,8 @@ Json::Value session_state(Call &c, const Session *s, const pairing::Device *d = 
 	v["user"] = s ? s->user : "";
 	v["device"] = d ? d->name : "";
 	v["secure"] = c.in.secure;
-	v["https_port"] = Cyhttpd::ConfigList["WebsiteMain.https"] == "true" ? (Json::UInt) yhttpd_https_port() : 0;
-	v["http_port"] = atoi(Cyhttpd::ConfigList["WebsiteMain.port"].c_str());
+	v["https_port"] = config("WebsiteMain.https") == "true" ? (Json::UInt) yhttpd_https_port() : 0;
+	v["http_port"] = atoi(config("WebsiteMain.port").c_str());
 	v["language"] = box_language();
 	v["csrf"] = s ? s->csrf : d ? pairing::csrf_of(device_token) : "";
 	v["csrf_header"] = kCsrfHeaderName;

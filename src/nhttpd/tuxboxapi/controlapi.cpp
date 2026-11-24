@@ -12,6 +12,7 @@
 #include <string>
 #include <fstream>
 #include <map>
+#include <mutex>
 #include <set>
 // system
 #include <sys/types.h>
@@ -127,7 +128,8 @@ CControlAPI::CControlAPI(CNeutrinoAPI *_NeutrinoAPI)
 //-----------------------------------------------------------------------------
 void CControlAPI::init(CyhookHandler *hh)
 {
-	if(PLUGIN_DIRS[0].empty())
+	static std::once_flag once;
+	std::call_once(once, [&]
 	{	// given in nhttpd.conf
 		PLUGIN_DIRS[0]=PLUGIN_DIRS[1]=hh->WebserverConfigList["WebsiteMain.override_directory"];
 		PLUGIN_DIRS[1].append("/scripts");
@@ -138,7 +140,7 @@ void CControlAPI::init(CyhookHandler *hh)
 		PLUGIN_DIRS[6]=PLUGINDIR_MNT;
 		PLUGIN_DIRS[7]=PLUGINDIR_VAR;
 		PLUGIN_DIRS[8]=PLUGINDIR;
-	}
+	});
 }
 
 //=============================================================================
@@ -297,7 +299,7 @@ void CControlAPI::Execute(CyhookHandler *hh)
 	for(unsigned int i = 0; i < filename.length(); i++)
 		filename[i] = tolower(filename[i]);
 
-	func_req = filename;
+	const std::string &func_req = filename;
 
 	// debugging informations
 	if(CLogging::getInstance()->getDebug())
@@ -753,7 +755,7 @@ void CControlAPI::GetUBouquetsxmlCGI(CyhookHandler *hh)
 void CControlAPI::GetChannelIDCGI(CyhookHandler *hh)
 {
 	t_channel_id channel_id = CZapit::getInstance()->GetCurrentChannelID();
-	if (func_req == "getonidsid") //what a terrible name!
+	if (strcasecmp(hh->UrlData["filename"].c_str(), "getonidsid") == 0) //what a terrible name!
 	{
 		hh->WriteLn(string_printf(PRINTF_CHANNEL_ID_TYPE_NO_LEADING_ZEROS, channel_id & 0xFFFFFFFFFFFFULL));
 		return;
