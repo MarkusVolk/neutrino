@@ -325,7 +325,9 @@ void CControlAPI::Execute(CyhookHandler *hh)
 	int need = yCgiCallList[index].level;
 	if (need == LEVEL_READ_BARE)
 		need = only_format(hh->ParamList) ? yapi::L_READ : yapi::L_WRITE;
-	if (yapi::foreign_page(hh->HeaderList)) {
+	/* a GET is enough here, so a link or a picture on any page: the pages
+	 * of the box say that they are the ones that ask */
+	if (yapi::foreign_page(hh->HeaderList) || (need > yapi::L_READ && yapi::unknown_page(hh->HeaderList))) {
 		hh->SetError(HTTP_FORBIDDEN, HANDLED_ERROR);
 		return;
 	}

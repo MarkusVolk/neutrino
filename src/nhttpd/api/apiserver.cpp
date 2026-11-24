@@ -78,6 +78,7 @@
 #include <algorithm>
 #include <fstream>
 #include <iterator>
+#include <sstream>
 #include <map>
 #include <memory>
 #include <set>
@@ -3478,14 +3479,109 @@ yapi::Level yapi::level_of(const std::string &client, const CStringList &headers
 	return network_level(in);
 }
 
+namespace {
+
+std::string header(const CStringList &headers, const char *name)
+{
+	CStringList::const_iterator it = headers.find(name);
+	return it == headers.end() ? std::string() : it->second;
+}
+
+/* "Box.fritz.box:8080" -> "box.fritz.box", "[::1]:80" -> "::1" */
+std::string host_name(std::string host)
+{
+	if (!host.empty() && host[0] == '[') {
+		size_t end = host.find(']');
+		return end == std::string::npos ? host : host.substr(1, end - 1);
+	}
+	host = host.substr(0, host.find(':'));
+	if (!host.empty() && host[host.size() - 1] == '.')
+		host.resize(host.size() - 1);
+	std::transform(host.begin(), host.end(), host.begin(), ::tolower);
+	return host;
+}
+
+bool ends_with(const std::string &s, const std::string &end)
+{
+	return s.size() > end.size() && s.compare(s.size() - end.size(), end.size(), end) == 0;
+}
+
+/* A name under which the box is asked for at home: an address, a name
+ * without a domain, one below a domain no one outside can have, or below
+ * the one the router gave. Whoever owns another name can point it at the
+ * box and is then one origin with it. server.host_names of nhttpd.conf
+ * lists more names. */
+bool own_host(const std::string &host)
+{
+	std::string name = host_name(host);
+	unsigned char buf[sizeof(struct in6_addr)];
+	if (name.find('.') == std::string::npos || inet_pton(AF_INET, name.c_str(), buf) == 1
+			|| inet_pton(AF_INET6, name.substr(0, name.find('%')).c_str(), buf) == 1)
+		return true;
+	static const char *const domains[] = { ".local", ".localhost", ".lan", ".home", ".home.arpa", ".internal",
+		".localdomain", ".intranet", ".private", ".fritz.box", ".speedport.ip", NULL };
+	for (const char *const *d = domains; *d; d++)
+		if (ends_with(name, *d))
+			return true;
+	std::string list = config("server.host_names"), entry;
+	while (!list.empty()) {
+		ySplitStringExact(list, ",", entry, list);
+		if (host_name(trim(entry)) == name)
+			return true;
+	}
+	std::ifstream resolv("/etc/resolv.conf");
+	for (std::string line; std::getline(resolv, line);) {
+		std::istringstream words(line);
+		std::string word;
+		if (!(words >> word) || (word != "search" && word != "domain"))
+			continue;
+		while (words >> word)
+			if (word != "." && ends_with(name, "." + host_name(word)))
+				return true;
+	}
+	return false;
+}
+
+/* the host and port of an address, "null" of a page without an origin */
+std::string origin_host(const std::string &url)
+{
+	size_t start = url.find("://");
+	if (start == std::string::npos)
+		return url;
+	std::string host = url.substr(start + 3);
+	host = host.substr(0, host.find_first_of("/?#"));
+	std::transform(host.begin(), host.end(), host.begin(), ::tolower);
+	return host;
+}
+
+}
+
 bool yapi::foreign_page(const CStringList &headers)
 {
-	CStringList::const_iterator it = headers.find("Sec-Fetch-Site");
-	if (it == headers.end() || it->second == "same-origin" || it->second == "none")
-		return false;
 	Request in;
 	in.headers = headers;
-	return bearer(in).empty();
+	if (!bearer(in).empty())
+		return false;
+	std::string host = header(headers, "Host");
+	if (!own_host(host))
+		return true;
+	std::transform(host.begin(), host.end(), host.begin(), ::tolower);
+	/* browsers leave Sec-Fetch-Site out over plain HTTP, but send Origin
+	 * with every POST from elsewhere */
+	std::string site = header(headers, "Sec-Fetch-Site");
+	if (!site.empty())
+		return site != "same-origin" && site != "none";
+	std::string from = header(headers, "Origin");
+	if (from.empty())
+		from = header(headers, "Referer");
+	return !from.empty() && origin_host(from) != host;
+}
+
+bool yapi::unknown_page(const CStringList &headers)
+{
+	return header(headers, "User-Agent").compare(0, 8, "Mozilla/") == 0 && header(headers, "Sec-Fetch-Site").empty()
+		&& header(headers, "Origin").empty() && header(headers, "Referer").empty()
+		&& header(headers, "Authorization").empty();
 }
 
 void yapi::dispatch(const Request &in, Response &out)

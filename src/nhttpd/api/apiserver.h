@@ -75,9 +75,13 @@ namespace yapi
 	/* What such a request may reach: MCP and its sign-in, in a build with
 	 * the assistant; nothing else of the box. */
 	bool open_to_internet(const std::string &path);
-	/* A browser sent the request for a page of another site or port and
-	 * it carries no token, which only a script of the box itself sets. */
+	/* A browser sent the request for a page of another site or port, or
+	 * for a page that reached the box under a name that is not its own
+	 * (DNS rebinding), and it carries no token, which only a script of the
+	 * box itself sets. */
 	bool foreign_page(const CStringList &headers);
+	/* A browser sent the request and does not say for which page. */
+	bool unknown_page(const CStringList &headers);
 	// after nhttpd read its configuration: the tokens of api.tokens
 	void read_config();
 	bool handles(const std::string &path);
