@@ -1099,6 +1099,16 @@ void CRecordInstance::RemoveTimeshiftName()
 	timeshift_name.clear();
 }
 
+/* the first max bytes of a name, in whole characters */
+static std::string fileNamePart(const std::string &name, size_t max)
+{
+	if (name.size() <= max)
+		return name;
+	while (max > 0 && ((unsigned char) name[max] & 0xC0) == 0x80)
+		max--;
+	return name.substr(0, max);
+}
+
 record_error_msg_t CRecordInstance::MakeFileName(CZapitChannel * channel)
 {
 	std::string ext_channel_name;
@@ -1123,6 +1133,8 @@ record_error_msg_t CRecordInstance::MakeFileName(CZapitChannel * channel)
 
 	// Create filename for recording
 	pos = Directory.size();
+	if (pos + 2 >= FILENAMEBUFFERSIZE)
+		return RECORD_INVALID_DIRECTORY;
 	strcpy(filename, Directory.c_str());
 
 	if ((pos == 0) || (filename[pos - 1] != '/')) {
@@ -1135,7 +1147,9 @@ record_error_msg_t CRecordInstance::MakeFileName(CZapitChannel * channel)
 	ext_channel_name = channel->getName();
 
 	if (!(ext_channel_name.empty())) {
-		strcpy(&(filename[pos]), UTF8_TO_FILESYSTEM_ENCODING(ext_channel_name.c_str()));
+		/* a name from the signal; a file name has at most 255 bytes */
+		ext_channel_name = fileNamePart(ext_channel_name, 100);
+		cstrncpy(&(filename[pos]), UTF8_TO_FILESYSTEM_ENCODING(ext_channel_name.c_str()), FILENAMEBUFFERSIZE - pos);
 		ZapitTools::replace_char(&filename[pos]);
 
 		if (!autoshift && g_settings.recording_save_in_channeldir) {
@@ -1161,7 +1175,7 @@ record_error_msg_t CRecordInstance::MakeFileName(CZapitChannel * channel)
 
 	std::string ext_file_name = g_settings.recording_filename_template;
 	MakeExtFileName(channel, ext_file_name);
-	strcpy(&(filename[pos]), UTF8_TO_FILESYSTEM_ENCODING(ext_file_name.c_str()));
+	cstrncpy(&(filename[pos]), UTF8_TO_FILESYSTEM_ENCODING(ext_file_name.c_str()), FILENAMEBUFFERSIZE - pos);
 
 	if(autoshift)
 		strncat(filename, "_temp",FILENAMEBUFFERSIZE - strlen(filename)-1);
