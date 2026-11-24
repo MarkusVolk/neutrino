@@ -217,9 +217,13 @@ void CHintBox::initTimeOutBar(bool do_init, int start_ticks)
 		}
 
 		if(timeout_pb){
-			timeout_pb->setValues(100, 100);
-			timeout_pb->paint0();
-			timeout_pb->kill();
+			/* the screen is cleared in standby */
+			if (CNeutrinoApp::getInstance()->getMode() != NeutrinoModes::mode_standby)
+			{
+				timeout_pb->setValues(100, 100);
+				timeout_pb->paint0();
+				timeout_pb->kill();
+			}
 			delete timeout_pb; timeout_pb = NULL;
 		}
 	}
@@ -227,7 +231,8 @@ void CHintBox::initTimeOutBar(bool do_init, int start_ticks)
 	{
 		if(timeout_pb){
 			timeout_pb->setValues(timeout_pb->getValue()+1, 10*timeout);
-			timeout_pb->paint0();
+			if (CNeutrinoApp::getInstance()->getMode() != NeutrinoModes::mode_standby)
+				timeout_pb->paint0();
 		}else{
 			if (!timeout_pb){
 				timeout_pb = new CProgressBar();
@@ -299,6 +304,7 @@ int CHintBox::exec()
 		}
 		else
 		{
+			bool standby = CNeutrinoApp::getInstance()->getMode() == NeutrinoModes::mode_standby;
 			res = CNeutrinoApp::getInstance()->handleMsg(msg, data);
 			if (res & messages_return::unhandled)
 			{
@@ -306,6 +312,8 @@ int CHintBox::exec()
 				g_RCInput->postMsg(msg, data);
 				res = messages_return::cancel_all;
 			}
+			else if (!standby && CNeutrinoApp::getInstance()->getMode() == NeutrinoModes::mode_standby)
+				res = messages_return::cancel_all;
 		}
 	}
 

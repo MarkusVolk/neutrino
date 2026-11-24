@@ -426,9 +426,12 @@ int CMsgBox::exec()
 			uint64_t t_app = time_monotonic_us();
 			clearTimeOutBar();
 
+			bool standby = CNeutrinoApp::getInstance()->getMode() == NeutrinoModes::mode_standby;
 			int handled = CNeutrinoApp::getInstance()->handleMsg(msg, data);
 
-			if (handled & messages_return::cancel_all)
+			/* no one answers a question left open in standby */
+			if ((handled & messages_return::cancel_all) ||
+			    (!standby && CNeutrinoApp::getInstance()->getMode() == NeutrinoModes::mode_standby))
 			{
 				dprintf(DEBUG_INFO, "\033[32m[CMsgBox]   [%s - %d]  messages_return::cancel_all\033[0m\n", __func__, __LINE__);
 				result = getBackResult();
