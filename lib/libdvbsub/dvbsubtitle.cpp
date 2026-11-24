@@ -11,6 +11,7 @@
  * dvbsubtitle for HD1 ported by Coolstream LTD
  */
 
+#include <algorithm>
 #include "dvbsubtitle.h"
 
 extern "C" {
@@ -118,6 +119,8 @@ void cDvbSubtitleBitmaps::Draw(int &min_x, int &min_y, int &max_x, int &max_y)
 		int height = sub.rects[i]->h;
 		int xoff, yoff;
 
+		if (width < 1 || height < 1 || width > 8192 || height > 8192)
+			continue;
 		int h2 = 576;
 		switch (width)
 		{
@@ -129,6 +132,13 @@ void cDvbSubtitleBitmaps::Draw(int &min_x, int &min_y, int &max_x, int &max_y)
 		yoff = sub.rects[i]->y * sh / h2;
 		int nw = width * sw / width;
 		int nh = height * sh / h2;
+		/* drawn by way of the back buffer, which holds one screen */
+		if (xoff < 0 || yoff < 0 || xoff >= sw || yoff >= sh)
+			continue;
+		nw = std::min(nw, sw - xoff);
+		nh = std::min(nh, sh - yoff);
+		if (nw < 1 || nh < 1)
+			continue;
 
 		dbgconverter("cDvbSubtitleBitmaps::Draw: #%d at %d,%d size %dx%d colors %d (x=%d y=%d w=%d h=%d) \n", i+1, 
 				sub.rects[i]->x, sub.rects[i]->y, sub.rects[i]->w, sub.rects[i]->h, sub.rects[i]->nb_colors, xoff, yoff, nw, nh);
