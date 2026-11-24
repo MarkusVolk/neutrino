@@ -378,8 +378,16 @@ bool mcp_oauth::viaPublicAddress(const CStringList &headers)
 	std::string pub = public_url();
 	if (pub.empty())
 		return false;
-	CStringList::const_iterator host = headers.find("Host");
-	return (host == headers.end() ? std::string() : host->second) == host_of(pub);
+	CStringList::const_iterator it = headers.find("Host");
+	std::string host = it == headers.end() ? std::string() : it->second, mine = host_of(pub);
+	std::transform(host.begin(), host.end(), host.begin(), ::tolower);
+	std::transform(mine.begin(), mine.end(), mine.begin(), ::tolower);
+	/* the port is the proxy's, and a name may end with a dot */
+	host = host.substr(0, host.find_last_not_of("0123456789:") + 1);
+	mine = mine.substr(0, mine.find_last_not_of("0123456789:") + 1);
+	if (!host.empty() && host[host.size() - 1] == '.')
+		host.resize(host.size() - 1);
+	return !host.empty() && host == mine;
 }
 
 bool mcp_oauth::viaPublicAddress(CyhookHandler *hh)
