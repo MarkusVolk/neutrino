@@ -1570,7 +1570,7 @@ void CBouquetManager::loadWebchannels(int mode)
 				{
 					infile.getline(cLine, sizeof(cLine));
 					// remove CR
-					if(cLine[strlen(cLine) - 1] == '\r')
+					if(cLine[0] && cLine[strlen(cLine) - 1] == '\r')
 						cLine[strlen(cLine) - 1] = 0;
 					std::string strLine = cLine;
 

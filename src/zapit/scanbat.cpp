@@ -200,7 +200,7 @@ bool CBat::Parse()
 					{
 #ifdef DEBUG_BAT_UNUSED
 						printf("BAT: descriptor %02x: ", d->getTag());
-						uint8_t len = 2+d->getLength();
+						unsigned int len = 2+d->getLength();
 						uint8_t *buf = new uint8_t[len];
 						if(buf){
 							d->writeToBuffer(buf);
@@ -247,7 +247,7 @@ bool CBat::Parse()
 						{
 #ifdef DEBUG_BAT_UNUSED
 							printf("BAT: descriptor %02x: ", d->getTag());
-							uint8_t len = 2+d->getLength();
+							unsigned int len = 2+d->getLength();
 							uint8_t *buf = new uint8_t[len];
 							if(buf){
 								d->writeToBuffer(buf);

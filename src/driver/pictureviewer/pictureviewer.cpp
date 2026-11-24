@@ -165,7 +165,10 @@ CPictureViewer::CFormathandler * CPictureViewer::fh_getsize (const char *name, i
 std::string CPictureViewer::DownloadImage(std::string url)
 {
 	if (strstr(url.c_str(), "://")) {
-		std::string tmpname = "/tmp/pictureviewer" + url.substr(url.find_last_of("."));
+		std::string::size_type dot = url.find_last_of(".");
+		std::string tmpname = "/tmp/pictureviewer";
+		if (dot != std::string::npos && url.find('/', dot) == std::string::npos)
+			tmpname += url.substr(dot);
 		FILE *tmpFile = fopen(tmpname.c_str(), "wb");
 		if (tmpFile) {
 			CURL *ch = curl_easy_init();
