@@ -3268,6 +3268,9 @@ void CControlAPI::doNewTimer(CyhookHandler *hh)
 	}
 	else if(type==CTimerd::TIMER_EXEC_PLUGIN)
 	{
+		/* as startplugin */
+		if (yapi::level_of(hh->UrlData["clientaddr"], hh->HeaderList) < yapi::L_SYSTEM)
+			return;
 		memset(msg, 0, EXEC_PLUGIN_NAME_MAXLEN);
 		strncpy(msg, hh->ParamList["PluginName"].c_str(),EXEC_PLUGIN_NAME_MAXLEN-1);
 		data = msg;
@@ -4104,6 +4107,19 @@ std::string CControlAPI::getSubdirectories(CyhookHandler *hh, std::string path, 
  *
  */
 //-----------------------------------------------------------------------------
+/* a directory on a drive or share, or the one of the recordings */
+static bool mediaDir(const std::string &dir)
+{
+	char real[PATH_MAX], records[PATH_MAX];
+	if (!realpath(dir.c_str(), real))
+		return false;
+	std::string path = std::string(real) + "/";
+	if (path.compare(0, 7, "/media/") == 0 || path.compare(0, 5, "/mnt/") == 0)
+		return true;
+	std::string base = settingsText(g_settings.network_nfs_recordingdir);
+	return realpath(base.c_str(), records) && path.compare(0, strlen(records) + 1, std::string(records) + "/") == 0;
+}
+
 void CControlAPI::getMoviesCGI(CyhookHandler *hh) {
 	std::string result = "";
 	bool subdirs = true;
@@ -4139,7 +4155,7 @@ void CControlAPI::getMoviesCGI(CyhookHandler *hh) {
 	}
 
 	//Shows movie from a given path
-	if (hh->ParamList["dir"][0] == '/') {
+	if (hh->ParamList["dir"][0] == '/' && mediaDir(hh->ParamList["dir"])) {
 		result = readMovies(hh, hh->ParamList["dir"], result, subdirs);
 	}
 

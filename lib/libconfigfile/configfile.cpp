@@ -192,7 +192,12 @@ void CConfigFile::storeInt64(const std::string &key, const int64_t val)
 
 void CConfigFile::storeString(const std::string &key, const std::string &val)
 {
-	configData[key] = val;
+	/* a line break would start an entry of its own */
+	std::string &line = configData[key];
+	line = val;
+	for (std::string::iterator it = line.begin(); it != line.end(); ++it)
+		if (*it == '\n' || *it == '\r')
+			*it = ' ';
 }
 
 

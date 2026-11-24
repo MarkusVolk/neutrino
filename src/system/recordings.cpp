@@ -62,6 +62,8 @@ static bool unhex(const std::string &s, std::string &out)
 		unsigned int b;
 		if (!isxdigit((unsigned char) s[i]) || !isxdigit((unsigned char) s[i + 1]) || sscanf(s.c_str() + i, "%2x", &b) != 1)
 			return false;
+		if (b == 0)
+			return false;
 		out += (char) b;
 	}
 	return true;
