@@ -519,7 +519,11 @@ class CHbbtvControl
 			else if (cmd == "exit")
 				exit_why = args;
 			else if (cmd == "play" && !args.empty())
-				play(args);
+			{
+				/* a page plays what is on the web, not the files of the box */
+				if (args[0] != '/' && strncasecmp(args.c_str(), "file:", 5))
+					play(args);
+			}
 			else if (cmd == "drm")
 			{
 				size_t sp = args.find(' ');
@@ -903,6 +907,13 @@ void CHbbtv::run(const CAitApp &ait_app, t_channel_id id, const std::string &cha
 	CNeutrinoApp *app = CNeutrinoApp::getInstance();
 	const std::string &url = ait_app.url;
 	const int mode = app->getMode();
+
+	/* the address of an application is from the signal */
+	if (!page && url.compare(0, 7, "http://") && url.compare(0, 8, "https://"))
+	{
+		printf("[hbbtv] not a web address: %s\n", url.c_str());
+		return;
+	}
 
 	printf("[hbbtv] start %s for %s\n", url.c_str(), channel.c_str());
 	/* the application has the screen and the keys, pause among them */
