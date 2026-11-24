@@ -1306,6 +1306,15 @@ static void buildWebchannelSources(int mode, std::list<std::string> &sources)
 	}
 }
 
+/* A list from the network may name a script of the box, as the lists of the
+ * WebTV plugins do, but not a file by its path; "" for none. */
+static const char *listScript(const char *script, const std::string &source)
+{
+	if (!script || (source.compare(0, 1, "/") && strchr(script, '/')))
+		return "";
+	return script;
+}
+
 void CBouquetManager::loadWebchannels(int mode)
 {
 	const char *tag = (mode == MODE_WEBTV) ? "webtv" : "webradio";
@@ -1454,7 +1463,7 @@ void CBouquetManager::loadWebchannels(int mode)
 						const char *xmltv = xmlGetAttribute(l1, "xmltv");
 						const char *epgmap = xmlGetAttribute(l1, "epgmap");
 						const char *alogo = xmlGetAttribute(l1, "logo");
-						const char *script = xmlGetAttribute(l1, "script");
+						const char *script = listScript(xmlGetAttribute(l1, "script"), filename);
 						if(alogo && !strlen(alogo))
 						{
 							alogo = NULL;//skip 0 len logo
@@ -1615,7 +1624,7 @@ void CBouquetManager::loadWebchannels(int mode)
 							desc = ReadMarkerValue(strInfoLine, TVG_NAME_MARKER);
 							epgid = ReadMarkerValue(strInfoLine, TVG_ID_MARKER);
 							alogo = ReadMarkerValue(strInfoLine, TVG_LOGO_MARKER);
-							script = ReadMarkerValue(strInfoLine, TVG_SCRIPT_MARKER);
+							script = listScript(ReadMarkerValue(strInfoLine, TVG_SCRIPT_MARKER).c_str(), filename);
 						}
 
 						pbouquet = addBouquetIfNotExist((mode == MODE_WEBTV) ? "WebTV" : "WebRadio");

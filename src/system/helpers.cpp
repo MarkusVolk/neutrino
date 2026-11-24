@@ -2360,6 +2360,17 @@ static std::string urlFileExt(const std::string &url)
 	return path.substr(dot);
 }
 
+/* a list from the network picks the address: nothing but a picture is to get
+   a name that Neutrino runs or loads by */
+static bool pictureExt(const std::string &ext)
+{
+	static const char *const known[] = { ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".svg", ".webp", ".avif", ".heif", ".heic", ".jxl", NULL };
+	for (const char *const *k = known; *k; k++)
+		if (!strcasecmp(ext.c_str(), *k))
+			return true;
+	return false;
+}
+
 /* the extension of a downloaded picture, by its first bytes */
 static std::string pictureFileExt(const std::string &file)
 {
@@ -2397,6 +2408,8 @@ std::string downloadUrlToLogo(std::string url, std::string directory, t_channel_
 		   picture itself tells it once it is here */
 		std::string base = directory + "/" + strChnId;
 		std::string ext = urlFileExt(url);
+		if (!pictureExt(ext))
+			ext.clear();
 		if (!ext.empty() && file_exists(base + ext))
 			return base + ext;
 		if (ext.empty())
