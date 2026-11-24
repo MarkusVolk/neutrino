@@ -44,7 +44,7 @@ static OpenThreads::Mutex languages_lock;
 static std::vector<std::string> languages;
 
 static OpenThreads::Mutex langIndexMutex;
-std::vector<std::string> langIndex;
+static std::vector<std::string> langIndex;
 
 static const std::string languageOFF = "OFF";
 
@@ -59,6 +59,22 @@ unsigned int getLangIndex(const std::string &lang)
 			return ix;
 	langIndex.push_back(lang);
 	return ix;
+}
+
+/* three letters from the signal; what else is there has no place in the file */
+std::string xmlCode(const std::string &code)
+{
+	std::string out = code;
+	for (std::string::iterator it = out.begin(); it != out.end(); ++it)
+		if (!isalnum((unsigned char) *it))
+			*it = '_';
+	return out;
+}
+
+std::string getLangName(unsigned int ix)
+{
+	OpenThreads::ScopedLock<OpenThreads::Mutex> m_lock(langIndexMutex);
+	return xmlCode(ix < langIndex.size() ? langIndex[ix] : std::string());
 }
 
 

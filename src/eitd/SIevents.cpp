@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <time.h>
 
+#include <deque>
 #include <map>
 
 #include <dvbsi++/descriptor_tag.h>
@@ -102,8 +103,15 @@ unsigned int getCountryIndex(const std::string &country)
 	return ix;
 }
 
+static std::string getCountry(unsigned int ix)
+{
+	OpenThreads::ScopedLock<OpenThreads::Mutex> m_lock(countryMutex);
+	return xmlCode(ix < countryVector.size() ? countryVector[ix] : std::string());
+}
+
 static OpenThreads::Mutex componentMutex;
-static std::vector<std::string> componentVector;
+/* a deque, as the names handed out stay where they are */
+static std::deque<std::string> componentVector;
 static std::map<std::string,unsigned int> componentMap;
 
 void SIcomponent::setComponent(const std::string &component_description)
@@ -124,6 +132,7 @@ void SIcomponent::setComponent(const std::string &component_description)
 
 const char *SIcomponent::getComponentName() const
 {
+	OpenThreads::ScopedLock<OpenThreads::Mutex> m_lock(componentMutex);
 	if (component < componentVector.size())
 		return componentVector[component].c_str();
 	return "";
@@ -137,12 +146,12 @@ SIparentalRating::SIparentalRating(const std::string &cc, unsigned char rate)
 
 void SIparentalRating::dump(void) const
 {
-	printf("Rating: %s %hhu (+3)\n", countryVector[countryCode].c_str(), rating);
+	printf("Rating: %s %hhu (+3)\n", getCountry(countryCode).c_str(), rating);
 }
 
 int SIparentalRating::saveXML(FILE *file) const
 {
-	if(fprintf(file, "\t\t\t<parental_rating country=\"%s\" rating=\"%hhu\"/>\n", countryVector[countryCode].c_str(), rating)<0)
+	if(fprintf(file, "\t\t\t<parental_rating country=\"%s\" rating=\"%hhu\"/>\n", getCountry(countryCode).c_str(), rating)<0)
 		return 1;
 	return 0;
 }
@@ -674,14 +683,14 @@ int SIevent::saveXML2(FILE *file) const
 {
 	for (std::list<SILangData>::const_iterator i = langData.begin(); i != langData.end(); ++i) {
 		if (!i->text[SILangData::langName].empty()) {
-			fprintf(file, "\t\t\t<name lang=\"%s\" string=\"", langIndex[i->lang].c_str());
+			fprintf(file, "\t\t\t<name lang=\"%s\" string=\"", getLangName(i->lang).c_str());
 			saveStringToXMLfile(file, i->text[SILangData::langName].c_str());
 			fprintf(file, "\"/>\n");
 		}
 	}
 	for (std::list<SILangData>::const_iterator i = langData.begin(); i != langData.end(); ++i) {
 		if (!i->text[SILangData::langText].empty()) {
-			fprintf(file, "\t\t\t<text lang=\"%s\" string=\"", langIndex[i->lang].c_str());
+			fprintf(file, "\t\t\t<text lang=\"%s\" string=\"", getLangName(i->lang).c_str());
 			saveStringToXMLfile(file, i->text[SILangData::langText].c_str());
 			fprintf(file, "\"/>\n");
 		}
@@ -700,7 +709,7 @@ int SIevent::saveXML2(FILE *file) const
 #endif
 	for (std::list<SILangData>::const_iterator i = langData.begin(); i != langData.end(); ++i) {
 		if (!i->text[SILangData::langExtendedText].empty()) {
-			fprintf(file, "\t\t\t<extended_text lang=\"%s\" string=\"", langIndex[i->lang].c_str());
+			fprintf(file, "\t\t\t<extended_text lang=\"%s\" string=\"", getLangName(i->lang).c_str());
 			saveStringToXMLfile(file, i->text[SILangData::langExtendedText].c_str());
 			fprintf(file, "\"/>\n");
 		}
@@ -741,9 +750,9 @@ void SIevent::dump(void) const
 		printf("Item-Description: %s\n", itemDescription.c_str());
 #endif
 	for (std::list<SILangData>::const_iterator it = langData.begin(); it != langData.end(); ++it) {
-		printf("Name (%s): %s\n",	   langIndex[it->lang].c_str(), it->text[SILangData::langName].c_str());
-		printf("Text (%s): %s\n",	   langIndex[it->lang].c_str(), it->text[SILangData::langText].c_str());
-		printf("Extended-Text (%s): %s\n", langIndex[it->lang].c_str(), it->text[SILangData::langExtendedText].c_str());
+		printf("Name (%s): %s\n",	   getLangName(it->lang).c_str(), it->text[SILangData::langName].c_str());
+		printf("Text (%s): %s\n",	   getLangName(it->lang).c_str(), it->text[SILangData::langText].c_str());
+		printf("Extended-Text (%s): %s\n", getLangName(it->lang).c_str(), it->text[SILangData::langExtendedText].c_str());
 	}
 
 #ifdef FULL_CONTENT_CLASSIFICATION

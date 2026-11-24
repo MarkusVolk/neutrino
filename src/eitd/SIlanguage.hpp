@@ -54,6 +54,8 @@ private:
 	static CSectionsdClient::SIlanguageMode_t mode;
 };
 
-extern std::vector<std::string> langIndex;
+/* the language of an index, checked and safe in an XML attribute */
+std::string getLangName(unsigned int ix);
+std::string xmlCode(const std::string &code);
 unsigned int getLangIndex(const std::string &lang);
 #endif
