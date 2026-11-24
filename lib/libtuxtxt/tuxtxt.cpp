@@ -22,7 +22,11 @@
 #include <hardware/video.h>
 #include <sys/stat.h>
 #include <global.h>
+#include <neutrino.h>
+#include <zapit/zapit.h>
 #include <system/set_threadname.h>
+
+static bool leave_teletext = false;
 
 /* same as in rcinput.h... */
 #define KEY_TTTV	KEY_FN_1
@@ -1681,6 +1685,7 @@ int tuxtx_main(int pid, int page, int source)
 	}
 
 	/* main loop */
+	leave_teletext = false;
 	do {
 		if (GetRCCode() == 1)
 		{
@@ -6177,6 +6182,11 @@ int GetRCCode()
 {
 	neutrino_msg_t msg;
 	neutrino_msg_data_t data;
+	if (leave_teletext)
+	{
+		RCCode = RC_HOME;
+		return 1;
+	}
 	g_RCInput->getMsg_ms(&msg, &data, 40);
 	RCCode = -1;
 
@@ -6185,8 +6195,18 @@ int GetRCCode()
 		return 1;
 	}
 
-	if( ( msg>= CRCInput::RC_WithData ) && ( msg< CRCInput::RC_WithData+ 0x10000000 ) )
-		delete[] (unsigned char*) data;
+	if (msg == CRCInput::RC_timeout || msg == CRCInput::RC_nokey)
+		return 0;
+
+	/* the application's: recordings start and end, standby, timers; it frees
+	   the data too. The teletext ends with the channel or the mode it is of */
+	CNeutrinoApp *app = CNeutrinoApp::getInstance();
+	int mode = app->getMode();
+	t_channel_id channel = CZapit::getInstance()->GetCurrentChannelID();
+	int res = app->handleMsg(msg, data);
+	if ((res & messages_return::cancel_all) || app->getMode() != mode ||
+	    CZapit::getInstance()->GetCurrentChannelID() != channel)
+		leave_teletext = true;
 
 	return 0;
 }
