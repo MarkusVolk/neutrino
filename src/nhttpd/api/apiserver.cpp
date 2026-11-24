@@ -2338,7 +2338,7 @@ void ep_mcp_set(Call &c)
 		}
 	}
 	/* the settings belong to the main loop, which also saves them */
-	bool done = main_call::run([&] {
+	bool done = main_call::run([=] {
 		if (has_enabled)
 			g_settings.assistant_box_server = enabled ? 1 : 0;
 		if (has_url)
@@ -2616,7 +2616,7 @@ bool move_records(Call &c, const std::string &dir, const std::string &target)
 {
 	if (target.empty())
 		return true;
-	bool done = main_call::run([&] {
+	bool done = main_call::run([=] {
 		if (below(g_settings.timeshiftdir, dir))
 			g_settings.timeshiftdir.clear();
 		CHDDMenuHandler::applyRecordPath(target);
@@ -2801,8 +2801,10 @@ void share_store(Call &c, int nr)
 		return;
 	}
 
-	int slot = nr;
-	bool done = main_call::run([&] {
+	/* the job may run after this function gave up: it keeps all it needs */
+	std::shared_ptr<int> taken(new int(nr));
+	bool done = main_call::run([=] {
+		int &slot = *taken;
 		if (slot < 0)
 			for (int i = 0; i < NETWORK_NFS_NR_OF_ENTRIES && slot < 0; i++)
 				if (!share_used(i))
@@ -2826,6 +2828,7 @@ void share_store(Call &c, int nr)
 		problem(c.out, 503, "busy", "the box did not take the change in time");
 		return;
 	}
+	const int slot = *taken;
 	if (slot < 0) {
 		problem(c.out, 409, "no-free-entry", "all " + std::to_string(NETWORK_NFS_NR_OF_ENTRIES) + " shares are in use");
 		return;
@@ -2869,7 +2872,7 @@ void ep_share_delete(Call &c)
 	}
 	if (!move_records(c, dir, target))
 		return;
-	bool done = main_call::run([&] {
+	bool done = main_call::run([=] {
 		auto &n = g_settings.network_nfs[nr];
 		n.ip.clear();
 		n.dir.clear();
@@ -3025,7 +3028,7 @@ void ep_record_dir(Call &c)
 		problem(c.out, 409, "busy", "a recording is running");
 		return;
 	}
-	bool done = main_call::run([&] {
+	bool done = main_call::run([=] {
 		CHDDMenuHandler::applyRecordPath(path);
 		CNeutrinoApp::getInstance()->saveSetup(NEUTRINO_SETTINGS_FILE);
 	}, 5000);
