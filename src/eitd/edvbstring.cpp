@@ -2023,7 +2023,7 @@ std::string convertDVBUTF8(const char *data, int len, int table, int tsidonid)
 #ifdef BOXMODEL_CST_HD2
 	bool gb2312 = false;
 #endif
-	if (!len)
+	if (len <= 0)
 		return "";
 
 	int i=0, t=0;
@@ -2047,6 +2047,8 @@ std::string convertDVBUTF8(const char *data, int len, int table, int tsidonid)
 	case 0x10:
 	{
 //			eDebug("(0x10)text encoded in ISO-8859-%d",n);
+		if (len < 3)
+			return "";
 		int n=(data[i+1]<<8)|(data[i+2]);
 		i += 3;
 		switch(n)
@@ -2132,6 +2134,8 @@ std::string convertDVBUTF8(const char *data, int len, int table, int tsidonid)
 					code=(data[i] << 8) | data[i+1];
 					i += 2;
 				}
+				else /* half a character at the end */
+					break;
 			}
 			else
 				code=recode(data[i++], table);
