@@ -796,6 +796,9 @@ void CStreamManager::run()
 						continue;
 					}
 
+					/* the request is read here: a silent client must not keep others waiting */
+					struct timeval wait = { 5, 0 };
+					setsockopt(connfd, SOL_SOCKET, SO_RCVTIMEO, &wait, sizeof(wait));
 					if (!AddClient(connfd))
 					{
 						close(connfd);
