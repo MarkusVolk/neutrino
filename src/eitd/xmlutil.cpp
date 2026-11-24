@@ -495,6 +495,12 @@ bool readEventsFromXMLTV(std::string &epgname, int &ev_count, bool delete_after)
 		const char *start = xmlGetAttribute(programme, "start");
 		const char *stop  = xmlGetAttribute(programme, "stop");
 
+		if (!chan || !start || !stop)
+		{
+			programme = xmlNextNode(programme);
+			continue;
+		}
+
 		/* XMLTV gives the time of day with its offset to UTC */
 		time_t start_time = xmltvTime(start);
 		time_t duration = xmltvTime(stop) - start_time;
