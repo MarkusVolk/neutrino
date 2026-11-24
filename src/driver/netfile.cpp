@@ -437,7 +437,7 @@ int request_file(URL *url)
 					else
 						return -1;
 				}
-				if(meta_int)
+				if(meta_int && slot >= 0)
 				{
 					if (slot < 0) {
 						dprintf(stderr, "error: meta_int != 0 && slot < 0");
@@ -516,7 +516,7 @@ int request_file(URL *url)
 					return -1;
 			}
 
-			if(meta_int)
+			if(meta_int && slot >= 0)
 			{
 				/* hook in the filter function if there is meta */
 				/* data present in the stream */
@@ -639,6 +639,8 @@ int parse_response(URL *url, void * /*opt*/, CSTATE *state)
 	if(!ptr)
 		return -1;
 
+	if(!strchr(ptr, ' '))
+		return -1;
 	response = atoi(strchr(ptr, ' ') + 1);
 
 	switch(response)
@@ -1090,7 +1092,7 @@ FILE *f_open(const char *filename, const char *acctype)
 				return NULL;
 			}
 
-			for(int i=0; ((ptr != NULL) && (i<25)); ptr = strstr(ptr, "http://") )
+			for(int i=0; ((ptr != NULL) && (i<25)); ptr = ptr ? strstr(ptr, "http://") : NULL )
 			{
 				strncpy(servers[i], ptr, 1023);
 				servers[i][1023] = '\0';
@@ -1642,7 +1644,7 @@ static bool getChunkSizeLine(STREAM_CACHE *scache,char *line,int size)
 	int len = 0;
 	while((len = read(fileno(scache->fd), &c, 1)) != 0)
 	{
-		if(pos >= size)
+		if(pos >= size - 1)
 			break;
 		if(c == '\n' || c == '\r')
 		{
@@ -1881,10 +1883,10 @@ void ShoutCAST_ParseMetaData(char *md, CSTATE *state)
 		if(!ptr)
 		{
 			ptr = strchr(md, '=');
-			strncpy(state->title, ptr + 2, bufsize);
+			strncpy(state->title, ptr[1] ? ptr + 2 : "", bufsize);
 			state->title[bufsize] = '\0';
 			ptr = strchr(state->title, ';');
-			if(ptr)
+			if(ptr && ptr > state->title)
 				*(ptr - 1) = 0;
 			state->artist[0] = 0;
 		}
@@ -1894,13 +1896,14 @@ void ShoutCAST_ParseMetaData(char *md, CSTATE *state)
 			for(int i = 0;(ptr && i < bufsize && *ptr && !isalnum(*ptr)); ++ptr,i++){};
 
 			strncpy(state->title, ptr,bufsize);
+			state->title[bufsize] = '\0';
 			ptr = strchr(state->title, ';');
-			if(ptr)
+			if(ptr && ptr > state->title)
 				*(ptr - 1) = 0;
 
 			ptr = strstr(md, "StreamTitle=");
 			ptr = strchr(ptr, '\'');
-			strncpy(state->artist, ptr + 1, bufsize);
+			strncpy(state->artist, ptr ? ptr + 1 : "", bufsize);
 			state->artist[bufsize] = '\0';
 			ptr = strstr(state->artist, " - ");
 			if(!ptr)
@@ -2018,7 +2021,7 @@ void ShoutCAST_MetaFilter(STREAM_FILTER *arg)
 		meta_start = meta_int - filterdata->cnt;
 
 		/* the first byte of the meta data block tells us how long it is */
-		filterdata->len = 16 * (int)buf[meta_start];
+		filterdata->len = 16 * (int)(unsigned char)buf[meta_start];
 
 		dprintf(stderr, "filter : ---> metadata %d bytes @ %d\n", filterdata->len, meta_start);
 
