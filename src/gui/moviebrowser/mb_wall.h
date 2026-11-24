@@ -21,84 +21,35 @@
 #define __mb_wall_h__
 
 #include <driver/movieinfo.h>
-#include <driver/rcinput.h>
-
-#include <list>
-#include <memory>
-#include <string>
-#include <vector>
+#include <gui/coverwall.h>
 
 /* the shelves are those of the web interface's wall: what to continue
    watching, the newest, films, series, documentaries, the genres and the
    rest; a series, or a title recorded more than once, is one tile that
    opens its recordings */
-class CMovieWall
+class CMovieWall : public CCoverWall
 {
 	public:
-		struct Tile
-		{
-			std::string caption;
-			std::string line2;
-			std::vector<MI_MOVIE_INFO *> items;
-			bool group;
-		};
-		struct Shelf
-		{
-			std::string title;
-			std::vector<Tile> tiles;
-			size_t first;	/* the first tile on screen */
-			size_t cursor;
-		};
-
-		void setArea(int x, int y, int w, int h);
 		/* the shelves of these recordings; the cursor stays on the same
 		   recording where it can */
 		void build(const std::vector<MI_MOVIE_INFO *> &movies);
-		void paint();
-		void hide();
-		/* arrows and pages; true when it moved */
-		bool key(neutrino_msg_t msg);
-
 		/* the recording under the cursor, NULL on a group */
 		MI_MOVIE_INFO *selected() const;
-		bool onGroup() const;
-		bool inGroup() const { return !group.empty(); }
-		/* the group under the cursor as the only shelf, and back */
-		void enter();
-		void leave();
 
-		/* the tiles one after the other, for a remote client */
-		size_t count() const;
-		std::string text(size_t i) const;
-		size_t current() const;
-		void select(size_t i);
+	protected:
+		std::string picture(size_t item) const override;
+		std::string info(const Tile &t) const override;
+		Tile part(size_t item) const override;
+		void paintBadge(const Tile &t, int x, int y) const override;
+		const char *emptyText() const override;
 
 	private:
-		struct Cover
-		{
-			std::string path;
-			time_t mtime;
-			int w, h;
-			std::shared_ptr<fb_pixel_t> pixels;
-		};
+		std::vector<MI_MOVIE_INFO *> movies;
 
-		int x = 0, y = 0, width = 0, height = 0;
-		int tile_w = 0, tile_h = 0, shelf_h = 0, per_row = 0, rows = 0, info_h = 0;
-		std::vector<Shelf> shelves;
-		size_t shelf = 0, first_shelf = 0;
-		/* the open group and the wall it was opened from */
-		std::string group;
-		std::vector<Shelf> outside;
-		size_t outside_shelf = 0, outside_first = 0;
-		std::list<Cover> covers;	/* most recently used first */
-
-		const Tile *tile() const;
-		void layout();
-		void keepVisible();
-		void paintTile(const Tile &t, int tx, int ty, bool cursor);
-		void paintInfo();
-		const Cover *cover(const std::string &path);
-		static std::string coverOf(const MI_MOVIE_INFO *m);
+		Tile single(size_t item) const;
+		Tile groupTile(const std::string &name, const std::vector<size_t> &list, bool series) const;
+		std::vector<Tile> titleTiles(const std::vector<size_t> &list) const;
+		std::vector<Shelf> wall() const;
 };
 
 #endif

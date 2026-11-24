@@ -25,6 +25,7 @@ libneutrino_gui_sources = [
 	'bouquetlist.cpp',
 	'buildinfo.cpp',
 	'channellist.cpp',
+	'coverwall.cpp',
 	'cec_setup.cpp',
 	'dboxinfo.cpp',
 	'epgplus.cpp',
