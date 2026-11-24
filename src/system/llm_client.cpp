@@ -41,6 +41,14 @@ std::string json_compact(const Json::Value &value)
 	return Json::writeString(builder, value);
 }
 
+std::string json_text(const Json::Value &value, const char *name)
+{
+	if (!value.isObject())
+		return "";
+	const Json::Value &member = value[name];
+	return member.isArray() || member.isObject() ? "" : member.asString();
+}
+
 bool json_parse(const std::string &text, Json::Value &value)
 {
 	Json::CharReaderBuilder builder;

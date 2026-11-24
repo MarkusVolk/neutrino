@@ -96,5 +96,8 @@ class CLlmClient
 
 std::string json_compact(const Json::Value &value);
 bool json_parse(const std::string &text, Json::Value &value);
+/* a member of what a client sent as text: "" unless value is an object and
+   the member is no list or object, which asString() ends the program on */
+std::string json_text(const Json::Value &value, const char *name);
 
 #endif

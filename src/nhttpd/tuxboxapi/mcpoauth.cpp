@@ -546,7 +546,7 @@ static void do_register(CyhookHandler *hh)
 	client cl;
 	for (Json::Value::ArrayIndex i = 0; i < uris.size(); i++)
 	{
-		std::string uri = uris[i].asString();
+		std::string uri = uris[i].isString() ? uris[i].asString() : "";
 		if (!redirect_allowed(uri))
 		{
 			json_error(hh, "invalid_redirect_uri", "only https, or http on localhost");
@@ -554,7 +554,7 @@ static void do_register(CyhookHandler *hh)
 		}
 		cl.redirects.push_back(uri);
 	}
-	cl.name = req["client_name"].asString().substr(0, 64);
+	cl.name = json_text(req, "client_name").substr(0, 64);
 	if (cl.name.empty())
 		cl.name = host_of(cl.redirects[0]);
 	cl.created = time(NULL);

@@ -120,7 +120,7 @@ void CMcpAPI::error(CyhookHandler *hh, const Json::Value &id, int code, const st
 Json::Value CMcpAPI::initialize(const Json::Value &params)
 {
 	std::string version = MCP_LATEST_VERSION;
-	std::string asked = params["protocolVersion"].asString();
+	std::string asked = json_text(params, "protocolVersion");
 	for (size_t i = 0; i < sizeof(mcp_versions) / sizeof(mcp_versions[0]); i++)
 		if (asked == mcp_versions[i])
 			version = asked;
@@ -212,7 +212,7 @@ static std::string base64(const std::string &data)
 
 Json::Value CMcpAPI::toolsCall(const Json::Value &params, int &code, std::string &message)
 {
-	std::string name = params["name"].asString();
+	std::string name = json_text(params, "name");
 	if (!known_tool(name))
 	{
 		code = RPC_INVALID_PARAMS;
@@ -303,7 +303,7 @@ THandleStatus CMcpAPI::Hook_SendResponse(CyhookHandler *hh)
 		error(hh, Json::Value(), RPC_PARSE_ERROR, "not JSON");
 		return HANDLED_READY;
 	}
-	if (!msg.isObject() || msg["jsonrpc"].asString() != "2.0")
+	if (!msg.isObject() || json_text(msg, "jsonrpc") != "2.0")
 	{
 		error(hh, Json::Value(), RPC_INVALID_REQUEST, "one JSON-RPC 2.0 message per request");
 		return HANDLED_READY;
@@ -316,7 +316,7 @@ THandleStatus CMcpAPI::Hook_SendResponse(CyhookHandler *hh)
 	}
 
 	const Json::Value &id = msg["id"];
-	const std::string method = msg["method"].asString();
+	const std::string method = json_text(msg, "method");
 	const Json::Value &params = msg["params"];
 	if (method == "initialize")
 		reply(hh, id, initialize(params));

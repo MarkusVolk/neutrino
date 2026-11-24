@@ -301,6 +301,22 @@ static const struct
 	}
 };
 
+/* The tools take texts, numbers and booleans, and a list of them as the
+ * path of tv_menu alone; asString() of anything else ends the program. */
+static bool plain_arguments(const std::string &name, const Json::Value &input, std::string &error)
+{
+	bool ok = input.isObject() || input.isNull();
+	for (Json::Value::const_iterator it = input.begin(); ok && it != input.end(); ++it)
+	{
+		ok = !it->isObject() && (!it->isArray() || (name == "tv_menu" && it.name() == "path"));
+		for (Json::ArrayIndex i = 0; ok && it->isArray() && i < it->size(); i++)
+			ok = !(*it)[i].isObject() && !(*it)[i].isArray();
+	}
+	if (!ok)
+		error = "an argument is not of the type the schema of the tool names";
+	return ok;
+}
+
 /* tools that answer later, which the assistant on the screen cannot wait for */
 static bool remote_only(const char *name)
 {
@@ -1568,7 +1584,7 @@ static bool find_key(const std::string &name, neutrino_msg_t &key)
 
 static int key_times(const Json::Value &input)
 {
-	int times = input["times"].isIntegral() ? input["times"].asInt() : 1;
+	int times = input["times"].isInt() ? input["times"].asInt() : 1;
 	return times < 1 || times > 20 ? 1 : times;
 }
 
@@ -1591,6 +1607,8 @@ static bool press_key(const Json::Value &input, std::string &result)
 bool CAssistantTools::call(const std::string &name, const Json::Value &input, std::string &result)
 {
 	result.clear();
+	if (!plain_arguments(name, input, result))
+		return false;
 	if (name == "tv_status")
 	{
 		result = status();
@@ -1865,6 +1883,12 @@ static void zap_and_wait(const Json::Value &input, CAssistantTools::done_fn done
 
 void CAssistantTools::start(const std::string &name, const Json::Value &input, done_fn done)
 {
+	std::string error;
+	if (!plain_arguments(name, input, error))
+	{
+		done(false, error);
+		return;
+	}
 	if (name == "tv_menu")
 	{
 		menu_walk(input, done);
@@ -1960,7 +1984,7 @@ static void wait_for_screen(int seconds)
 bool CAssistantTools::run(const std::string &name, const Json::Value &input, int timeout_ms,
 			  bool &ok, std::string &text)
 {
-	if (name == "tv_screen" && input["wait"].isIntegral())
+	if (name == "tv_screen" && input.isObject() && input["wait"].isInt())
 		wait_for_screen(input["wait"].asInt());
 	/* the main loop may run the tool after the caller gave up waiting */
 	struct outcome

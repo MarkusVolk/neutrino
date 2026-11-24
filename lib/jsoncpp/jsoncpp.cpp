@@ -391,10 +391,13 @@ bool Reader::readValue() {
   // These methods execute nodes_.push() just before and nodes_.pop)() just
   // after calling readValue(). parse() executes one nodes_.push(), so > instead
   // of >=.
-  if (nodes_.size() > stackLimit_g)
-    throwRuntimeError("Exceeded stackLimit in readValue().");
-
   Token token;
+  if (nodes_.size() > stackLimit_g) {
+    /* an error of the text like any other: nothing catches exceptions here */
+    token.type_ = tokenError;
+    token.start_ = token.end_ = current_;
+    return addError("Exceeded stackLimit in readValue().", token);
+  }
   skipCommentTokens(token);
   bool successful = true;
 
@@ -1293,9 +1296,13 @@ bool OurReader::parse(const char* beginDoc, const char* endDoc, Value& root,
 
 bool OurReader::readValue() {
   //  To preserve the old behaviour we cast size_t to int.
-  if (nodes_.size() > features_.stackLimit_)
-    throwRuntimeError("Exceeded stackLimit in readValue().");
   Token token;
+  if (nodes_.size() > features_.stackLimit_) {
+    /* an error of the text like any other: nothing catches exceptions here */
+    token.type_ = tokenError;
+    token.start_ = token.end_ = current_;
+    return addError("Exceeded stackLimit in readValue().", token);
+  }
   skipCommentTokens(token);
   bool successful = true;
 
