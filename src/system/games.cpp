@@ -31,6 +31,7 @@
 #include <fstream>
 #include <iterator>
 #include <map>
+#include <sstream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
@@ -40,7 +41,8 @@
 #define RECENT_FILE CONFIGDIR "/games.recent"
 static const size_t RECENT_GAMES = 24;
 
-static std::vector<std::string> filesWith(const std::string &dir, const std::string &ext)
+/* the files of a directory that end on one of these, "zip,smc" */
+static std::vector<std::string> filesWith(const std::string &dir, const std::string &exts)
 {
 	std::vector<std::string> names;
 	DIR *d = opendir(dir.c_str());
@@ -49,22 +51,34 @@ static std::vector<std::string> filesWith(const std::string &dir, const std::str
 	while (struct dirent *e = readdir(d)) {
 		std::string name = e->d_name;
 		size_t dot = name.rfind('.');
-		if (dot != std::string::npos && dot > 0 && strcasecmp(name.c_str() + dot + 1, ext.c_str()) == 0)
-			names.push_back(name.substr(0, dot));
+		if (dot == std::string::npos || dot == 0)
+			continue;
+		std::istringstream list(exts);
+		for (std::string ext; getline(list, ext, ',');)
+			if (strcasecmp(name.c_str() + dot + 1, ext.c_str()) == 0) {
+				names.push_back(name);
+				break;
+			}
 	}
 	closedir(d);
 	std::sort(names.begin(), names.end());
 	return names;
 }
 
+static std::string withoutExt(const std::string &name)
+{
+	return name.substr(0, name.rfind('.'));
+}
+
 std::vector<games::system> games::systems()
 {
 	std::vector<system> list;
-	for (const std::string &id : filesWith(GAMESYSTEMDIR, "cfg")) {
+	for (const std::string &file : filesWith(GAMESYSTEMDIR, "cfg")) {
 		system s;
-		s.id = id;
+		s.id = withoutExt(file);
 		s.index = 100;
-		std::ifstream in(std::string(GAMESYSTEMDIR "/") + id + ".cfg");
+		s.unlisted = false;
+		std::ifstream in(std::string(GAMESYSTEMDIR "/") + file);
 		std::string line;
 		while (getline(in, line)) {
 			size_t eq = line.find('=');
@@ -83,6 +97,8 @@ std::vector<games::system> games::systems()
 				s.prefix = value;
 			else if (key == "covers")
 				s.covers = value;
+			else if (key == "unlisted")
+				s.unlisted = atoi(value.c_str());
 			else if (key == "run")
 				s.run = value;
 			else if (key == "index")
@@ -164,7 +180,10 @@ static void readNames(const games::system &s, std::map<std::string, games::game>
 	if (!listed)
 		return;
 	for (auto it = found.begin(); it != found.end();)
-		it = shown[it->first] ? std::next(it) : found.erase(it);
+	{
+		auto known = shown.find(it->first);
+		it = (known == shown.end() ? s.unlisted : known->second) ? std::next(it) : found.erase(it);
+	}
 }
 
 std::vector<games::game> games::find(const std::vector<system> &list)
@@ -178,9 +197,9 @@ std::vector<games::game> games::find(const std::vector<system> &list)
 		for (const std::string &name : filesWith(base + "/" + s.dir, s.ext)) {
 			game g;
 			g.system = s.id;
-			g.id = s.prefix + name;
-			g.file = base + "/" + s.dir + "/" + name + "." + s.ext;
-			g.title = name;
+			g.id = s.prefix + withoutExt(name);
+			g.file = base + "/" + s.dir + "/" + name;
+			g.title = withoutExt(name);
 			found[g.id] = g;
 		}
 		if (!s.names.empty() && !found.empty())

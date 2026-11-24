@@ -32,10 +32,11 @@ namespace games
 		std::string id;
 		std::string name;
 		std::string dir;	/* below the games directory */
-		std::string ext;	/* of its files, "zip" */
+		std::string ext;	/* of its files, "zip,smc" */
 		std::string names;	/* table of titles: | id | status | title | parent | year | maker | hardware | remarks | */
 		std::string prefix;	/* of the ids in that table */
 		std::string covers;	/* the collection its covers come from */
+		bool unlisted;		/* games the table does not know are shown too */
 		std::string run;	/* started with the id and the file of a game */
 		int index;
 	};
@@ -53,8 +54,9 @@ namespace games
 	std::vector<system> systems();
 	/* the directory with one directory per system, empty if there is none */
 	std::string directory();
-	/* the games of these systems by title; what the table of a system does
-	   not know or marks as a BIOS or as not working is left out */
+	/* the games of these systems by title; what the table of a system
+	   marks as a BIOS or as not working is left out, and what it does not
+	   know, unless the system says so */
 	std::vector<game> find(const std::vector<system> &list);
 	/* anything to show, without reading the tables */
 	bool available();

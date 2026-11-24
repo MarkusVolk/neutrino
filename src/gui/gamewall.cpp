@@ -116,10 +116,11 @@ std::vector<CCoverWall::Shelf> CGameWall::bySystem() const
 		for (size_t i = 0; i < list.size(); i++)
 			if (list[i].system == s.id)
 				hardware[hardwareOf(list[i])].push_back(gameTile(i));
+		size_t kinds = hardware.size() - hardware.count("");
 		std::vector<std::pair<std::string, std::vector<Tile>>> big;
 		std::vector<Tile> rest;
 		for (auto &h : hardware) {
-			if (hardware.size() > 1 && !h.first.empty() && h.second.size() >= MIN_SHELF)
+			if (kinds > 1 && !h.first.empty() && h.second.size() >= MIN_SHELF)
 				big.push_back({ h.first, std::move(h.second) });
 			else
 				rest.insert(rest.end(), h.second.begin(), h.second.end());
