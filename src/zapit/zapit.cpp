@@ -1845,11 +1845,27 @@ bool CZapit::ParseCommand(CBasicMessage::Header &rmsg, int connfd)
 	case CZapitMessages::CMD_REINIT_CHANNELS: {
 		// Houdini: save actual channel to restore it later, old version's channel was set to scans.conf initial channel
 		t_channel_id cid = live_channel_id ? live_channel_id : (current_channel ? current_channel->getChannelID() : 0);
+		/* the reload makes a new object of it, with the demuxes of tuner 1;
+		   the PIDs have to be read from the tuner it is live on */
+		CZapitChannel *live = current_channel;
+		bool tuned = live && live->getChannelID() == cid;
+		int record_demux = tuned ? live->getRecordDemux() : 0;
+		int stream_demux = tuned ? live->getStreamDemux() : 0;
+#ifdef ENABLE_PIP
+		int pip_demux = tuned ? live->getPipDemux() : 0;
+#endif
 		PrepareChannels();
 
 		{
 			CServiceManager::ChannelGuard guard;
 			current_channel = CServiceManager::getInstance()->FindChannel(cid);
+		}
+		if (current_channel && tuned) {
+			current_channel->setRecordDemux(record_demux);
+			current_channel->setStreamDemux(stream_demux);
+#ifdef ENABLE_PIP
+			current_channel->setPipDemux(pip_demux);
+#endif
 		}
 		if (current_channel) {
 			/* a web channel has no PAT/PMT; the read would wait for the
