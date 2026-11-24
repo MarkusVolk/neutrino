@@ -437,9 +437,46 @@ struct Session
 pthread_mutex_t session_mutex = PTHREAD_MUTEX_INITIALIZER;
 std::map<std::string, Session> sessions;
 struct Attempts { int failed; time_t last; time_t blocked_until; };
-std::map<std::string, Attempts> attempts;
 const size_t kMaxAttemptEntries = 512;
 const time_t kAttemptsLifetime = 600;
+std::map<std::string, Attempts> attempts;
+
+/* the seconds an address has to wait for its next try, 0 for none; forgotten
+ * addresses go, and the map stays small whatever comes in */
+time_t attempts_wait(const std::string &client)
+{
+	time_t now = time(NULL), wait = 0;
+	pthread_mutex_lock(&session_mutex);
+	for (std::map<std::string, Attempts>::iterator it = attempts.begin(); it != attempts.end();)
+		if (now - it->second.last > kAttemptsLifetime && it->second.blocked_until <= now)
+			attempts.erase(it++);
+		else
+			++it;
+	while (attempts.size() >= kMaxAttemptEntries && !attempts.count(client)) {
+		std::map<std::string, Attempts>::iterator oldest = attempts.begin();
+		for (std::map<std::string, Attempts>::iterator it = attempts.begin(); it != attempts.end(); ++it)
+			if (it->second.last < oldest->second.last)
+				oldest = it;
+		attempts.erase(oldest);
+	}
+	std::map<std::string, Attempts>::iterator a = attempts.find(client);
+	if (a != attempts.end() && a->second.blocked_until > now)
+		wait = a->second.blocked_until - now;
+	pthread_mutex_unlock(&session_mutex);
+	return wait;
+}
+
+void attempt_failed(const std::string &client)
+{
+	time_t now = time(NULL);
+	pthread_mutex_lock(&session_mutex);
+	Attempts &f = attempts[client];
+	f.failed++;
+	f.last = now;
+	if (f.failed > 2)
+		f.blocked_until = now + std::min(60, 1 << std::min(f.failed - 2, 6));
+	pthread_mutex_unlock(&session_mutex);
+}
 
 std::string random_hex(size_t bytes)
 {
@@ -582,8 +619,8 @@ bool private_address(const std::string &a)
 
 /* The name and the password of nhttpd.conf in an "Authorization: Basic"
  * header, which old clients of /control send; only once authentication
- * is on and a password is set. */
-bool basic_sign_in(const CStringList &headers)
+ * is on and a password is set. Guessing is limited as at the sign-in. */
+bool basic_sign_in(const std::string &client, const CStringList &headers)
 {
 	CStringList::const_iterator it = headers.find("Authorization");
 	if (it == headers.end() || it->second.size() <= 6 || strncasecmp(it->second.c_str(), "basic ", 6))
@@ -593,7 +630,16 @@ bool basic_sign_in(const CStringList &headers)
 	std::string pair = CmAuth::decodeBase64(trim(it->second.substr(6)).c_str()), user, password;
 	if (!ySplitStringExact(pair, ":", user, password))
 		return false;
-	return equal_secret(user, config("mod_auth.username")) & equal_secret(password, config("mod_auth.password"));
+	if (attempts_wait(client) > 0)
+		return false;
+	if (equal_secret(user, config("mod_auth.username")) & equal_secret(password, config("mod_auth.password"))) {
+		pthread_mutex_lock(&session_mutex);
+		attempts.erase(client);
+		pthread_mutex_unlock(&session_mutex);
+		return true;
+	}
+	attempt_failed(client);
+	return false;
 }
 
 /* What the network alone grants: public to a request that came through a
@@ -1903,40 +1949,15 @@ void ep_login(Call &c)
 			|| !body_string(c, "password", true, 512, password))
 		return;
 	time_t now = time(NULL);
-	pthread_mutex_lock(&session_mutex);
-	/* forgotten addresses go, and the map stays small whatever comes in */
-	for (std::map<std::string, Attempts>::iterator it = attempts.begin(); it != attempts.end();)
-		if (now - it->second.last > kAttemptsLifetime && it->second.blocked_until <= now)
-			attempts.erase(it++);
-		else
-			++it;
-	while (attempts.size() >= kMaxAttemptEntries && !attempts.count(c.in.client)) {
-		std::map<std::string, Attempts>::iterator oldest = attempts.begin();
-		for (std::map<std::string, Attempts>::iterator it = attempts.begin(); it != attempts.end(); ++it)
-			if (it->second.last < oldest->second.last)
-				oldest = it;
-		attempts.erase(oldest);
-	}
-	Attempts &a = attempts[c.in.client];
-	if (now - a.last > kAttemptsLifetime)
-		a.failed = 0, a.blocked_until = 0;
-	bool blocked = a.blocked_until > now;
-	time_t wait = a.blocked_until - now;
-	pthread_mutex_unlock(&session_mutex);
-	if (blocked) {
+	time_t wait = attempts_wait(c.in.client);
+	if (wait > 0) {
 		problem(c.out, 429, "too-many-attempts", "too many wrong sign-ins; try again later");
 		c.out.headers.push_back(std::make_pair("Retry-After", std::to_string((int) wait)));
 		return;
 	}
 	bool ok = equal_secret(user, config("mod_auth.username")) & equal_secret(password, config("mod_auth.password"));
 	if (!ok) {
-		pthread_mutex_lock(&session_mutex);
-		Attempts &f = attempts[c.in.client];
-		f.failed++;
-		f.last = now;
-		if (f.failed > 2)
-			f.blocked_until = now + std::min(60, 1 << std::min(f.failed - 2, 6));
-		pthread_mutex_unlock(&session_mutex);
+		attempt_failed(c.in.client);
 		problem(c.out, 401, "not-permitted", "the name and the password do not go together");
 		c.out.headers.push_back(std::make_pair("WWW-Authenticate", "Bearer"));
 		return;
@@ -3484,7 +3505,7 @@ yapi::Level yapi::level_of(const std::string &client, const CStringList &headers
 	std::string t = bearer(in);
 	if (!t.empty() && token_level(t, l))
 		return l;
-	if (basic_sign_in(headers))
+	if (basic_sign_in(client, headers))
 		return L_SYSTEM;
 	return network_level(in);
 }
