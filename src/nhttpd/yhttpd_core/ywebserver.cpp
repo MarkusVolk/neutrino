@@ -336,7 +336,11 @@ MHD_Result run_hooks(struct MHD_Connection *connection, TRequest *req)
 	CyhookHandler &hh = handler_of(req);
 
 	CStringList discarded;
+	/* a rewritten request can be rewritten again, to itself too */
+	int rewrites = 0;
 	do {
+		if (rewrites++ > 8)
+			return queue_error(connection, hh, HTTP_INTERNAL_SERVER_ERROR);
 		hh.Hooks_PrepareResponse();
 		if (hh.status == HANDLED_ERROR || hh.status == HANDLED_ABORT)
 			return queue_buffer(connection, hh.httpStatus, hh.BuildHeader(), hh.yresult);
@@ -351,6 +355,8 @@ MHD_Result run_hooks(struct MHD_Connection *connection, TRequest *req)
 
 	if (hh.status != HANDLED_SENDFILE)
 		do {
+			if (rewrites++ > 8)
+				return queue_error(connection, hh, HTTP_INTERNAL_SERVER_ERROR);
 			hh.Hooks_SendResponse();
 			if (hh.status == HANDLED_READY || hh.status == HANDLED_CONTINUE || hh.status == HANDLED_ERROR)
 				return queue_buffer(connection, hh.httpStatus, hh.BuildHeader(), hh.yresult);
