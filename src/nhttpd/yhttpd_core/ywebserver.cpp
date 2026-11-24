@@ -53,12 +53,13 @@ struct TRequest
 	bool		too_large;
 	bool		is_api;
 	MHD_PostProcessor *pp;
+	size_t		form_size;
 	std::string	field_name;
 	std::string	field_value;
 	CyhookHandler	*hh;
 
 	TRequest() : started(false), method(M_UNKNOWN), too_large(false), is_api(false),
-		pp(NULL), hh(NULL) {}
+		pp(NULL), form_size(0), hh(NULL) {}
 	~TRequest();
 };
 
@@ -472,7 +473,10 @@ MHD_Result access_handler(void *, struct MHD_Connection *connection, const char 
 
 	if (*upload_data_size) {
 		if (req->pp) {
-			if (MHD_post_process(req->pp, upload_data, *upload_data_size) != MHD_YES) {
+			req->form_size += *upload_data_size;
+			if (req->form_size > Y_CONFIG_MAX_JSON_BODY)
+				req->too_large = true;
+			else if (MHD_post_process(req->pp, upload_data, *upload_data_size) != MHD_YES) {
 				*upload_data_size = 0;
 				return MHD_NO;
 			}
@@ -497,14 +501,14 @@ MHD_Result access_handler(void *, struct MHD_Connection *connection, const char 
 		return queue(connection, MHD_HTTP_FOUND, response);
 	}
 
-	if (req->pp) {
-		MHD_destroy_post_processor(req->pp);
-		req->pp = NULL;
-		finish_field(req);
-	} else if (req->too_large) {
+	if (req->too_large) {
 		CyhookHandler hh;
 		hh.Method = req->method;
 		return queue_error(connection, hh, HTTP_REQUEST_ENTITY_TOO_LARGE);
+	} else if (req->pp) {
+		MHD_destroy_post_processor(req->pp);
+		req->pp = NULL;
+		finish_field(req);
 	} else if (req->method == M_POST) {
 		// the type may carry parameters: "...; charset=UTF-8"
 		if (req->content_type.compare(0, 33, "application/x-www-form-urlencoded") == 0) {
@@ -577,6 +581,7 @@ struct MHD_Daemon *CWebserver::start(unsigned int _port, bool tls) {
 		{ MHD_OPTION_URI_LOG_CALLBACK, (intptr_t) uri_logger, NULL },
 		{ MHD_OPTION_NOTIFY_COMPLETED, (intptr_t) request_completed, NULL },
 		{ MHD_OPTION_CONNECTION_LIMIT, HTTPD_MAX_CONNECTIONS, NULL },
+		{ MHD_OPTION_PER_IP_CONNECTION_LIMIT, HTTPD_MAX_CONNECTIONS / 2, NULL },
 		{ MHD_OPTION_CONNECTION_TIMEOUT, 60, NULL },
 		{ tls ? MHD_OPTION_HTTPS_MEM_KEY : MHD_OPTION_END, 0, (void *) tls_key.c_str() },
 		{ tls ? MHD_OPTION_HTTPS_MEM_CERT : MHD_OPTION_END, 0, (void *) tls_chain.c_str() },
