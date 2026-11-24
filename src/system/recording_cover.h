@@ -31,6 +31,7 @@ namespace recording_cover
 		std::string ts;		/* the recording */
 		std::string title;
 		std::string episode;	/* the EPG's second title, mostly the episode */
+		std::string text;	/* the EPG's description */
 		std::string channel;	/* ARD, ZDF and arte ones are asked in their media library */
 		int year;		/* 0 if unknown */
 		int length;		/* minutes, 0 if unknown */

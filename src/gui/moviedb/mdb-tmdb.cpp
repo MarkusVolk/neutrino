@@ -304,7 +304,7 @@ static std::string titleKey(const std::string &title)
 	return key;
 }
 
-static bool tmdbSearch(const std::string &url, const std::string &want, std::string &poster, tmdbPoster &found)
+static bool tmdbSearch(const std::string &url, const std::string &want, std::string &poster, tmdbPoster &found, bool german = false)
 {
 	std::string answer, err;
 	std::string u = url;
@@ -316,6 +316,8 @@ static bool tmdbSearch(const std::string &url, const std::string &want, std::str
 		const Json::Value &r = results[i];
 		std::string type = r.get("media_type", "movie").asString();
 		if (type != "movie" && type != "tv")
+			continue;
+		if (german && r.get("original_language", "").asString() != "de")
 			continue;
 		/* the poster, else the wide backdrop: the same picture for every
 		   episode either way */
@@ -332,6 +334,7 @@ static bool tmdbSearch(const std::string &url, const std::string &want, std::str
 				poster = path;
 				found.type = type;
 				found.documentary = false;
+				found.year = atoi(r.get("release_date", "").asString().c_str());
 				const Json::Value &genres = r["genre_ids"];
 				for (unsigned int g = 0; g < genres.size(); g++)
 					if (genres[g].asInt() == 99)	/* Documentary */
@@ -400,6 +403,7 @@ bool CTMDB::findPoster(const std::string &title, int year, tmdbPoster &found)
 			words.push_back(w);
 		static const char *small[] = { "der", "die", "das", "den", "dem", "des", "ein", "eine", "einer",
 			"the", "a", "an", "de", "het", "een", "la", "le", "il", NULL };
+		/* one word alone ("Happy") names a series too easily: a German one only */
 		for (size_t n = std::min<size_t>(words.size() - 1, 6); n >= 1 && !hit; n--) {
 			std::string series = words[0];
 			for (size_t i = 1; i < n; i++)
@@ -413,7 +417,7 @@ bool CTMDB::findPoster(const std::string &title, int year, tmdbPoster &found)
 					break;
 			}
 			common = "?api_key=" + key + "&language=" + lang + "&query=" + encodeUrl(series);
-			if (tmdbSearch(api + "search/tv" + common, titleKey(series), poster, found)) {
+			if (tmdbSearch(api + "search/tv" + common, titleKey(series), poster, found, n == 1)) {
 				hit = true;
 				found.type = "tv";
 				query = series;

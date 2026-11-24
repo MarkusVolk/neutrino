@@ -1454,6 +1454,7 @@ static void queueCover(CRecordInstance *inst, bool start)
 	j.ts = std::string(inst->GetFileName()) + ".ts";
 	j.title = mi->epgTitle;
 	j.episode = mi->epgInfo1;
+	j.text = mi->epgInfo2;
 	j.channel = mi->channelName;
 	j.year = mi->productionDate;
 	j.length = mi->length;

@@ -33,6 +33,7 @@ struct tmdbPoster
 	std::string type;	/* "movie" or "tv" */
 	std::string name;	/* the title it was found by */
 	bool documentary;
+	int year;		/* a film came out, 0 if unknown */
 };
 
 typedef struct
