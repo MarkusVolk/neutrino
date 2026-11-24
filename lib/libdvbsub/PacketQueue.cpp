@@ -28,12 +28,15 @@ void PacketQueue::push(uint8_t* data)
 
 uint8_t* PacketQueue::pop()
 {
-	uint8_t* retval;
+	uint8_t* retval = NULL;
 
 	pthread_mutex_lock(&mutex);
 
-	retval = queue.front();
-	queue.pop_front();
+	/* another thread may have cleared the queue */
+	if (!queue.empty()) {
+		retval = queue.front();
+		queue.pop_front();
+	}
 
 	pthread_mutex_unlock(&mutex);
 	

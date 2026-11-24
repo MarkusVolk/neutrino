@@ -239,7 +239,7 @@ static void* reader_thread(void * /*arg*/)
 	uint8_t tmp[16];  /* actually 6 should be enough */
 	int count;
 	int len;
-	uint16_t packlen;
+	int packlen;
 	uint8_t* buf;
 	bool bad_startcode = false;
 	set_threadname("dvbsub:reader");
@@ -297,7 +297,8 @@ static void* reader_thread(void * /*arg*/)
 
 		packlen =  getbits(tmp, 4*8, 16) + 6;
 
-		buf = (uint8_t*) malloc(packlen);
+		/* the decoder reads ahead */
+		buf = (uint8_t*) calloc(1, packlen + 64);
 		if (!buf)
 			continue;
 
