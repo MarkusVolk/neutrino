@@ -25,4 +25,13 @@ static inline bool sectionComplete(const unsigned char *buffer, int len)
 	return len >= 3 && len >= (((buffer[1] & 0x0F) << 8) | buffer[2]) + 3;
 }
 
+/* the extension tag of an EXTENSION_DESCRIPTOR: libdvbsi++ has classes of their
+ * own for some of them, which are not ExtensionDescriptors */
+template<class D> static inline unsigned char extensionTag(const D *d)
+{
+	unsigned char raw[2 + 256];
+	d->writeToBuffer(raw);
+	return raw[2];
+}
+
 #endif

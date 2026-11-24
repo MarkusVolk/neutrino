@@ -235,6 +235,8 @@ bool CPmt::ParseEsInfo(ElementaryStreamInfo *esinfo, CZapitChannel * const chann
 				 * the editorial classification (1 being audio description) and
 				 * the language, which ZDF gives here while the ISO 639
 				 * descriptor of the same track says "mis" */
+				if (extensionTag(d) != SUPPLEMENTARY_AUDIO_DESCRIPTOR)
+					break;
 				ExtensionDescriptor *ed = (ExtensionDescriptor*) d;
 				const SelectorByteVector *sb = ed->getSelectorBytes();
 				if (ed->getExtensionTag() == SUPPLEMENTARY_AUDIO_DESCRIPTOR && sb && !sb->empty()) {

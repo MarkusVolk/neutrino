@@ -261,7 +261,8 @@ bool CNit::Parse()
 						break;
 
 					case EXTENSION_DESCRIPTOR:
-						ParseTerrestrial2Descriptor((T2DeliverySystemDescriptor *)d, tsinfo);
+						if (extensionTag(d) == T2_DELIVERY_SYSTEM_DESCRIPTOR)
+							ParseTerrestrial2Descriptor((T2DeliverySystemDescriptor *)d, tsinfo);
 						break;
 
 					case SERVICE_LIST_DESCRIPTOR:
