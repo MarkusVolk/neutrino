@@ -130,6 +130,8 @@ static void svg_rasterize(NSVGrasterizer *rast, NSVGimage *image, float sx, floa
 	free(big);
 }
 
+#define SVG_SIDE_MAX	8192
+
 int fh_svg_id(const char *name)
 {
 	std::string fn = name;
@@ -164,15 +166,17 @@ int fh_svg_load(const char *name, unsigned char **buffer, int* xp, int* yp)
 		goto error;
 	}
 
+	if (w < 1 || h < 1 || w > SVG_SIDE_MAX || h > SVG_SIDE_MAX)
+		goto error;
 	if(w > *xp || h > *yp)
 	{
 		free(*buffer);
-		*buffer = (unsigned char*) malloc(w*h*4);
+		*buffer = (unsigned char*) malloc((size_t)w*h*4);
 	}
 	*xp = w;
 	*yp = h;
 
-	if (buffer == NULL)
+	if (*buffer == NULL)
 	{
 		printf("[SVG] Could not alloc image buffer.\n");
 		goto error;
@@ -220,13 +224,15 @@ int svg_load_resize(const char *name, unsigned char **buffer, int* ox, int* oy, 
 	w = (int)(w*scale_w);
 	h = (int)(h*scale_h);
 
+	if (w < 1 || h < 1 || w > SVG_SIDE_MAX || h > SVG_SIDE_MAX)
+		goto error;
 	free(*buffer);
-	*buffer = (unsigned char*) malloc(w*h*4);
+	*buffer = (unsigned char*) malloc((size_t)w*h*4);
 
 	*ox = w;
 	*oy = h;
 
-	if (buffer == NULL)
+	if (*buffer == NULL)
 	{
 		printf("[SVG] Could not alloc image buffer.\n");
 		goto error;

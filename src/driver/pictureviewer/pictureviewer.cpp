@@ -226,7 +226,10 @@ bool CPictureViewer::DecodeImage (const std::string & _name, bool showBusySign, 
 			free (m_NextPic_Buffer);
 			m_NextPic_Buffer = NULL;
 		}
-		size_t bufsize = x * y * 3;
+		if (x < 1 || y < 1 || x > INT_MAX / 4 / y)
+			return false;
+		/* a loader may write RGBA, as the one of SVG does */
+		size_t bufsize = (size_t) x * y * 4;
 		size_t resizeBuf = (m_endx - m_startx) * (m_endy - m_starty)*3;
 		if (!checkfreemem(bufsize + resizeBuf)){
 			return false;
