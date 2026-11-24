@@ -625,6 +625,19 @@ std::string CNeutrinoAPI::GetRemoteBoxIP(std::string _rbname)
 	return c_url;
 }
 
+/* the same for a box by its address, with or without the port */
+std::string CNeutrinoAPI::GetRemoteBox(const std::string &address)
+{
+	std::string name;
+	{
+		CSettingsTextGuard lock;
+		for (std::vector<timer_remotebox_item>::iterator it = g_settings.timer_remotebox_ip.begin(); it != g_settings.timer_remotebox_ip.end(); ++it)
+			if (address == it->rbaddress || address == it->rbaddress + ":" + to_string(it->port))
+				name = it->rbname;
+	}
+	return name.empty() ? "" : GetRemoteBoxIP(name);
+}
+
 void CNeutrinoAPI::SendAllTimers(std::string url, bool force)
 {
 	CTimerd::TimerList timerlist;

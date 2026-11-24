@@ -414,8 +414,15 @@ void CControlAPI::TimerSendCGI(CyhookHandler *hh)
 			bool force = (hh->ParamList["force"] == "1") || (hh->ParamList["force"] == "true");
 			if(!hh->ParamList["ip"].empty())
 			{
-				NeutrinoAPI->SendAllTimers(hh->ParamList["ip"],force);
-				hh->SendOk();
+				/* the address of one of the other boxes only: the timers are deleted here */
+				std::string box = NeutrinoAPI->GetRemoteBox(hh->ParamList["ip"]);
+				if (box.empty())
+					hh->SendError();
+				else
+				{
+					NeutrinoAPI->SendAllTimers(box, force);
+					hh->SendOk();
+				}
 			}
 			else if(!hh->ParamList["name"].empty())
 			{
