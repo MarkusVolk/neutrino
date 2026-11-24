@@ -19,6 +19,7 @@
         Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
+#include "section.h"
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -349,11 +350,14 @@ bool CServiceScan::ReadFst(unsigned short pid, unsigned short operator_id, bool 
 		return false;
 	}
 	do {
-		std::vector<uint8_t> section(SEC_SIZE);
+		std::vector<uint8_t> section(SEC_SIZE + SECTION_PADDING);
 		uint8_t * buffer = section.data();
 
-		if (dmx->Read(buffer, SEC_SIZE) < 0)
+		int len = dmx->Read(buffer, SEC_SIZE);
+		if (len < 0)
 			break;
+		if (!sectionComplete(buffer, len))
+			continue;
 
 		if(buffer[0] != 0xBD)
 		        printf("[FST] ******************************************* Bogus section received: 0x%x\n", buffer[0]);
@@ -429,6 +433,8 @@ bool CServiceScan::ParseFst(unsigned short pid, fast_scan_operator_t * op)
 			//printf("[FST] onid %x tid %x sid %x vpid %x apid %x pcr %x\n", original_network_id, transport_stream_id, service_id, video_pid, audio_pid, pcr_pid);
 			descriptors_loop_length = ((buffer[pos + 16] & 0x0F) << 8) | buffer[pos + 17];
 
+			if (pos + 18 + descriptors_loop_length > section_length - 1)
+				break;
 			for (pos2 = pos + 18; pos2 < pos + descriptors_loop_length + 18; pos2 += buffer[pos2 + 1] + 2) {
 				switch (buffer[pos2]) {
 				case 0x48:
@@ -438,6 +444,8 @@ bool CServiceScan::ParseFst(unsigned short pid, fast_scan_operator_t * op)
 						uint8_t service_provider_name_length = dbuf[3];
 						/*uint8_t service_name_length = dbuf[service_provider_name_length + 4];*/
 						int service_name_length = (2 + dbuf[1]) - (4 + service_provider_name_length + 1);
+						if (service_name_length < 0)
+							break;
 
 						t_satellite_position satellitePosition = 0;
 						freq_id_t freq = 0;
@@ -579,7 +587,7 @@ bool CServiceScan::ParseFnt(unsigned short pid, unsigned short operator_id)
 	cDemux * dmx = new cDemux();;
 	dmx->Open(DMX_PSI_CHANNEL);
 
-	unsigned char buffer[SEC_SIZE];
+	unsigned char buffer[SEC_SIZE + SECTION_PADDING] = { 0 };
 
 	/* position in buffer */
 	unsigned short pos;
@@ -612,10 +620,13 @@ bool CServiceScan::ParseFnt(unsigned short pid, unsigned short operator_id)
 		return false;
 	}
 	do {
-		if (dmx->Read(buffer, SEC_SIZE) < 0) {
+		int len = dmx->Read(buffer, SEC_SIZE);
+		if (len < 0) {
 			delete dmx;
 			return false;
 		}
+		if (!sectionComplete(buffer, len))
+			continue;
 		if(buffer[0] != 0xBC)
 			printf("[FNT] ******************************************* Bogus section received: 0x%x\n", buffer[0]);
 
@@ -630,6 +641,8 @@ bool CServiceScan::ParseFnt(unsigned short pid, unsigned short operator_id)
 		secdone[secnum] = 1;
 		sectotal++;
 
+		if (network_descriptors_length + 12 > section_length - 1)
+			continue;
 		for (pos = 10; pos < network_descriptors_length + 10; pos += buffer[pos + 1] + 2)
 		{
 			switch (buffer[pos])
@@ -672,6 +685,8 @@ bool CServiceScan::ParseFnt(unsigned short pid, unsigned short operator_id)
 			t_satellite_position satellitePosition = 0;
 			freq_id_t freq = 0;
 
+			if (pos + 6 + transport_descriptors_length > section_length - 1)
+				break;
 			for (pos2 = pos + 6; pos2 < pos + transport_descriptors_length + 6; pos2 += buffer[pos2 + 1] + 2)
 			{
 				//printf("[FNT] second_descriptor_tag: %02x\n", buffer[pos2]);
