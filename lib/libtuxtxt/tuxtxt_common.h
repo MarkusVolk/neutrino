@@ -246,7 +246,8 @@ void tuxtxt_decode_btt()
 		}
 
 		b1 = b1<<8 | b2<<4 | b3; /* page number */
-		tuxtxt_cache.adippg[++tuxtxt_cache.maxadippg] = b1;
+		if (b1 < 0x900)
+			tuxtxt_cache.adippg[++tuxtxt_cache.maxadippg] = b1;
 	}
 #if TUXTXT_DEBUG
 	printf("TuxTxt <BTT decoded>\n");
@@ -949,6 +950,7 @@ void *tuxtxt_CacheThread(void * /*arg*/)
 								{
 									// workaround for crash on RTL
 									printf("[TuxTxt] page > 0x899 ... ignore!!!!!!\n");
+									p->page = 0;
 									continue;
 								}
 								else if (tuxtxt_cache.astCachetable[p->page][0])	/* link valid && linked page cached */

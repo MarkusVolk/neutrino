@@ -408,7 +408,11 @@ void eval_object(int iONr, tstCachedPage *pstCachedPage,
 	unsigned char drcssubp=0, gdrcssubp=0;
 	signed char endcol = -1; /* last column to which to extend attribute changes */
 	tstPageAttr attrPassive = atrtable[ATR_PassiveDefault]; /* current attribute for passive objects */
+	static int depth = 0;
 
+	if (depth >= 8)	/* an object can invoke itself */
+		return;
+	depth++;
 	do
 	{
 		iOData = iTripletNumber2Data(iONr, pstCachedPage,pagedata);	/* get triplet data, next triplet */
@@ -453,13 +457,14 @@ void eval_object(int iONr, tstCachedPage *pstCachedPage,
 	}
 	while (eval_triplet(iOData, pstCachedPage, pAPx, pAPy, pAPx0, pAPy0, &drcssubp, &gdrcssubp, &endcol, &attrPassive, pagedata) == 0
 			 || iONr1 == iONr); /* repeat until termination reached */
+	depth--;
 }
 
 void eval_NumberedObject(int p, int s, int packet, int triplet, int high,
 								 unsigned char *pAPx, unsigned char *pAPy,
 								 unsigned char *pAPx0, unsigned char *pAPy0)
 {
-	if (!packet || tuxtxt_cache.astCachetable[p][s] == 0)
+	if (!packet || p < 0 || p >= 0x900 || tuxtxt_cache.astCachetable[p][s] == 0)
 		return;
 	unsigned char pagedata[23*40];
 	tuxtxt_decompress_page(p, s,pagedata);
@@ -503,6 +508,8 @@ int eval_triplet(int iOData, tstCachedPage *pstCachedPage,
 		if (iMode != 0x06)
 			*pAPx = iAddress;	/* new Active Column */
 		offset = (*pAPy0 + *pAPy) * 40 + *pAPx0 + *pAPx;	/* offset to page_char and page_atrb */
+		if (offset >= 40 * 25)	/* the origins of nested objects add up */
+			return 0;
 #if TUXTXT_DEBUG
 		if (dumpl25)
 			printf("  M%02xC%02xD%02x %d r:%d ch:%02x", iMode, iAddress, iData, *endcol,*pAPy0 + *pAPy,page_char[offset]);
@@ -537,7 +544,7 @@ int eval_triplet(int iOData, tstCachedPage *pstCachedPage,
 						p->fg = newcolor;
 						p++;
 						c++;
-					} while (c <= *endcol);
+					} while (c <= *endcol && p < page_atrb + 40 * 25);
 				}
 #if TUXTXT_DEBUG
 				if (dumpl25)
@@ -608,7 +615,7 @@ int eval_triplet(int iOData, tstCachedPage *pstCachedPage,
 							p->IgnoreAtBlackBgSubst = 1;
 						p++;
 						c++;
-					} while (c <= *endcol);
+					} while (c <= *endcol && p < page_atrb + 40 * 25);
 				}
 #if TUXTXT_DEBUG
 				if (dumpl25)
@@ -747,7 +754,7 @@ int eval_triplet(int iOData, tstCachedPage *pstCachedPage,
 					if (bw) p->IgnoreAtBlackBgSubst = 0;
 					p++;
 					c++;
-				} while (c < *endcol);
+				} while (c < *endcol && p < page_atrb + 40 * 25);
 			}
 			break;
 		}
@@ -4559,7 +4566,7 @@ void RenderChar(int Char, tstPageAttr *Attribute, int zoom, int yoffset)
 			unsigned char *p;
 			if (Char < 23*2)
 				p = drcs_data + 20*Char;
-			else if (pcache->pageinfo.p24)
+			else if (pcache->pageinfo.p24 && Char < 23*2 + 4)
 				p = pcache->pageinfo.p24 + 20*(Char - 23*2);
 			else
 			{
