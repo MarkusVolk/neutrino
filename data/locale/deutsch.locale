@@ -974,6 +974,10 @@ fsk.from_7 ab 7
 fsk.to_12 bis 12
 fsk.to_16 bis 16
 fsk.to_7 bis 7
+gamewall.covers Cover laden
+gamewall.covers_none Es fehlt kein Cover.
+gamewall.covers_progress Cover %d/%d
+gamewall.covers_stop Laden stoppen
 gamewall.details Details
 gamewall.empty Keine Spiele
 gamewall.failed Das Spiel konnte nicht geladen werden.

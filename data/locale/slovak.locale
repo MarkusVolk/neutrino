@@ -974,6 +974,10 @@ fsk.from_7 od 7
 fsk.to_12 do 12
 fsk.to_16 do 16
 fsk.to_7 do 7
+gamewall.covers Obaly
+gamewall.covers_none Nechýba žiadny obal.
+gamewall.covers_progress Obaly %d/%d
+gamewall.covers_stop Zastaviť
 gamewall.details Podrobnosti
 gamewall.empty Žiadne hry
 gamewall.failed Hru sa nepodarilo načítať.

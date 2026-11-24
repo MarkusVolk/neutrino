@@ -34,6 +34,7 @@
 #include <gui/widget/icons.h>
 #include <gui/widget/msgbox.h>
 #include <gui/widget/remote_list.h>
+#include <system/game_cover.h>
 #include <system/helpers.h>
 #include <system/settings.h>
 
@@ -250,7 +251,8 @@ int CGames::show()
 	int x = getScreenStartX(w), y = getScreenStartY(h);
 	CComponentsHeader header(x, y, w, 0, LOCALE_MAINMENU_GAMES, NEUTRINO_ICON_GAMES, CComponentsHeader::CC_BTN_EXIT);
 	int head_h = header.getHeight();
-	const struct button_label buttons[] = {
+	struct button_label buttons[] = {
+		{ NEUTRINO_ICON_BUTTON_GREEN, LOCALE_GAMEWALL_COVERS },
 		{ NEUTRINO_ICON_BUTTON_YELLOW, LOCALE_GAMEWALL_SORT },
 		{ NEUTRINO_ICON_BUTTON_OKAY, LOCALE_GAMEWALL_START },
 		{ NEUTRINO_ICON_BUTTON_INFO, LOCALE_GAMEWALL_DETAILS },
@@ -265,9 +267,35 @@ int CGames::show()
 	wall.setArea(x, y + head_h, w, h - head_h - foot_h);
 	wall.build(systems, found, gamePlugins(), by_title);
 
+	/* while covers are fetched the title counts them and the wall shows
+	   them as they come */
+	game_cover::progress shown = game_cover::state();
+	uint32_t cover_timer = 0;
+	auto caption = [&shown] {
+		std::string text = g_Locale->getText(LOCALE_MAINMENU_GAMES);
+		if (shown.running) {
+			char buf[128];
+			snprintf(buf, sizeof(buf), g_Locale->getText(LOCALE_GAMEWALL_COVERS_PROGRESS), (int) shown.done, (int) shown.total);
+			text = joined(text, buf);
+		}
+		return text;
+	};
+	auto watch = [&] {
+		shown = game_cover::state();
+		if (shown.running && !cover_timer)
+			cover_timer = g_RCInput->addTimer(2 * 1000 * 1000, false);
+		else if (!shown.running && cover_timer) {
+			g_RCInput->killTimer(cover_timer);
+			cover_timer = 0;
+		}
+	};
+	watch();
+
 	auto paint = [&] {
+		header.setCaption(caption());
 		header.paint(CC_SAVE_SCREEN_NO);
 		wall.paint();
+		buttons[0].locale = shown.running ? LOCALE_GAMEWALL_COVERS_STOP : LOCALE_GAMEWALL_COVERS;
 		footer.paintButtons(x, y + h - foot_h, w, foot_h, button_count, buttons);
 	};
 	paint();
@@ -278,7 +306,7 @@ int CGames::show()
 	access.text = [&wall](size_t i) { return wall.text(i); };
 	access.selected = [&wall] { return wall.current(); };
 	access.select = [&wall](size_t i) { wall.select(i); wall.paint(); };
-	CRemoteList remote(access, "starts the game", "yellow: by system or by title, info: details");
+	CRemoteList remote(access, "starts the game", "green: fetches the missing covers, again: stops, yellow: by system or by title, info: details");
 
 	int ret = menu_return::RETURN_REPAINT;
 	bool loop = true;
@@ -310,6 +338,24 @@ int CGames::show()
 			by_title = !by_title;
 			wall.build(systems, found, gamePlugins(), by_title);
 			wall.paint();
+		} else if (msg == CRCInput::RC_green) {
+			if (game_cover::state().running)
+				game_cover::stop();
+			else if (!game_cover::start(systems, found)) {
+				ShowMsg(LOCALE_MAINMENU_GAMES, g_Locale->getText(LOCALE_GAMEWALL_COVERS_NONE), CMsgBox::mbrBack, CMsgBox::mbBack, NEUTRINO_ICON_GAMES);
+			}
+			watch();
+			paint();
+		} else if (msg == NeutrinoMessages::EVT_TIMER && cover_timer && data == cover_timer) {
+			game_cover::progress was = shown;
+			watch();
+			timeout_end = CRCInput::calcTimeoutEnd(timeout);
+			if (shown.found != was.found || shown.running != was.running)
+				paint();
+			else if (shown.done != was.done) {
+				header.setCaption(caption());
+				header.paint(CC_SAVE_SCREEN_NO);
+			}
 		} else if (msg == CRCInput::RC_info) {
 			std::string text = wall.details();
 			if (!text.empty()) {
@@ -328,6 +374,8 @@ int CGames::show()
 			loop = false;
 		}
 	}
+	if (cover_timer)
+		g_RCInput->killTimer(cover_timer);
 	fb->paintBackgroundBoxRel(x, y, w, h);
 	return ret;
 }

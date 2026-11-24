@@ -5,6 +5,7 @@ libneutrino_system_sources = [
 	'flashtool.cpp',
 	'fsmounter.cpp',
 	'games.cpp',
+	'game_cover.cpp',
 	'hddstat.cpp',
 	'httptool.cpp',
 	'lastchannel.cpp',

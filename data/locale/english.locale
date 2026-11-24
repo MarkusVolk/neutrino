@@ -974,6 +974,10 @@ fsk.from_7 from 7
 fsk.to_12 to 12
 fsk.to_16 to 16
 fsk.to_7 to 7
+gamewall.covers Covers
+gamewall.covers_none No game lacks a cover.
+gamewall.covers_progress Covers %d/%d
+gamewall.covers_stop Stop
 gamewall.details Details
 gamewall.empty No games
 gamewall.failed The game could not be loaded.

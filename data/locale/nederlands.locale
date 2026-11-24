@@ -974,6 +974,10 @@ fsk.from_7 vanaf 7
 fsk.to_12 tot 12
 fsk.to_16 tot 16
 fsk.to_7 tot 7
+gamewall.covers Covers
+gamewall.covers_none Er ontbreekt geen cover.
+gamewall.covers_progress Covers %d/%d
+gamewall.covers_stop Stoppen
 gamewall.details Details
 gamewall.empty Geen spellen
 gamewall.failed Het spel kon niet worden geladen.
