@@ -43,6 +43,9 @@
 #include <signal.h>
 #include <errno.h>
 #include <sys/wait.h>
+#include <linux/input.h>
+#include <memory>
+#include <string.h>
 
 #include <global.h>
 #include <neutrino.h>
@@ -439,33 +442,92 @@ static void endFullscreen(pid_t pid)
 	waitpid(pid, NULL, 0);
 }
 
+/* the exit key of the input devices, which the program reads meanwhile */
+class ExitKey
+{
+	public:
+		ExitKey()
+		{
+			DIR *d = opendir("/dev/input");
+			struct dirent *e;
+			while (d && (e = readdir(d)))
+			{
+				if (strncmp(e->d_name, "event", 5))
+					continue;
+				int fd = open((std::string("/dev/input/") + e->d_name).c_str(), O_RDONLY | O_NONBLOCK | O_CLOEXEC);
+				if (fd < 0)
+					continue;
+				unsigned char keys[KEY_MAX / 8 + 1] = {};
+				if (ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(keys)), keys) >= 0 && (keys[KEY_EXIT / 8] & (1 << (KEY_EXIT % 8))))
+					fds.push_back(fd);
+				else
+					close(fd);
+			}
+			if (d)
+				closedir(d);
+		}
+		~ExitKey()
+		{
+			for (int fd : fds)
+				close(fd);
+		}
+		ExitKey(const ExitKey &) = delete;
+		ExitKey &operator=(const ExitKey &) = delete;
+
+		bool pressed()
+		{
+			bool hit = false;
+			struct input_event ev;
+			for (int fd : fds)
+				while (read(fd, &ev, sizeof(ev)) == (ssize_t)sizeof(ev))
+					if (ev.type == EV_KEY && ev.code == KEY_EXIT && ev.value == 1)
+						hit = true;
+			return hit;
+		}
+
+	private:
+		std::vector<int> fds;
+};
+
 /*
 	While a program has the whole display, Neutrino goes on with its events:
 	recordings start in the background. What needs the screen ends the
 	program first and comes back as the returned message, to be posted once
 	Neutrino has the display again.
 */
-neutrino_msg_t CPlugins::runFullscreen(int number, pid_t pid, neutrino_msg_data_t &data)
+neutrino_msg_t CPlugins::runFullscreen(const std::string &name, pid_t pid, neutrino_msg_data_t &data, bool end_on_exit, int &status)
 {
-	CRemoteView view(plugin_list[number].name, [this, number] {
-		return plugin_list[number].name + " runs on the whole display and has the remote control; "
+	CRemoteView view(name, [&name] {
+		return name + " runs on the whole display and has the remote control; "
 		       "recordings start in the background. exit ends it.";
 	});
 	CNeutrinoApp *app = CNeutrinoApp::getInstance();
 	neutrino_msg_t msg = 0;
 	data = 0;
-	while (waitpid(pid, NULL, WNOHANG) != pid)
+	std::unique_ptr<ExitKey> exit_key(end_on_exit ? new ExitKey() : NULL);
+	int wstatus = 0;
+	status = -1;
+	while (waitpid(pid, &wstatus, WNOHANG) != pid)
 	{
 		SHTDCNT::getInstance()->resetSleepTimer();
 		g_RCInput->getMsg_ms(&msg, &data, 100);
 		if (msg == CRCInput::RC_timeout)
+		{
+			if (exit_key && exit_key->pressed())
+			{
+				printf("[CPlugins] %s ends: exit on the remote control\n", name.c_str());
+				endFullscreen(pid);
+				data = 0;
+				return 0;
+			}
 			continue;
+		}
 		/* keys here come from remote clients, the remote control is the program's */
 		if (msg <= CRCInput::RC_MaxRC)
 		{
 			if (msg == CRCInput::RC_home || msg == CRCInput::RC_standby)
 			{
-				printf("[CPlugins] %s ends: a remote client pressed %s\n", plugin_list[number].name.c_str(),
+				printf("[CPlugins] %s ends: a remote client pressed %s\n", name.c_str(),
 				       msg == CRCInput::RC_home ? "exit" : "standby");
 				endFullscreen(pid);
 				data = 0;
@@ -482,12 +544,14 @@ neutrino_msg_t CPlugins::runFullscreen(int number, pid_t pid, neutrino_msg_data_
 		    msg == NeutrinoMessages::LEAVE_ALL || msg == NeutrinoMessages::SHUTDOWN ||
 		    msg == NeutrinoMessages::REBOOT || (msg == NeutrinoMessages::SLEEPTIMER && !data))
 		{
-			printf("[CPlugins] %s ends for a timer, standby or shutdown\n", plugin_list[number].name.c_str());
+			printf("[CPlugins] %s ends for a timer, standby or shutdown\n", name.c_str());
 			endFullscreen(pid);
 			return msg;
 		}
 		app->handleMsg(msg, data);
 	}
+	if (WIFEXITED(wstatus))
+		status = WEXITSTATUS(wstatus);
 	data = 0;
 	return 0;
 }
@@ -497,46 +561,29 @@ neutrino_msg_t CPlugins::runFullscreen(int number, pid_t pid, neutrino_msg_data_
 	TV stops, and on generic hardware the display and the input devices
 	are given to it until it ends.
 */
-int CPlugins::startFullscreenPlugin(int number)
+int CPlugins::runProgram(const std::string &name, const char *const argv[], const std::string &picture, bool end_on_exit)
 {
-	const char *script = plugin_list[number].pluginfile.c_str();
-	printf("[CPlugins] executing %s on the whole display\n", script);
-	if (!file_exists(script))
-	{
-		printf("[CPlugins] could not find %s\n", script);
-		return menu_return::RETURN_REPAINT;
-	}
 	t_channel_id channel = CZapit::getInstance()->GetCurrentChannelID();
+	running++;
 	g_RCInput->clearRCMsg();
 	g_RCInput->stopInput();
 	CNeutrinoApp::getInstance()->lockPlayBack();
 #ifdef ENABLE_LCD4LINUX
-	/* a game should not share the processor with the display; it shows the
-	   program's own icon (kodi.svg for kodi.sh) where the system has one,
-	   else the hint icon of the plugin */
-	std::string base = plugin_list[number].pluginfile;
-	base = base.substr(base.rfind('/') + 1);
-	base = base.substr(0, base.rfind('.'));
-	std::string picture = "/usr/share/icons/hicolor/scalable/apps/" + base + ".svg";
-	if (access(picture.c_str(), R_OK) != 0)
-		picture = "/usr/share/icons/hicolor/256x256/apps/" + base + ".png";
-	if (access(picture.c_str(), R_OK) != 0) {
-		picture = plugin_list[number].hinticon;
-		if (picture.find('/') == std::string::npos)
-			picture = frameBuffer->getIconPath(picture);
-	}
+	/* a game should not share the processor with the display */
 	CLCD4l::getInstance()->ShowStill(picture);
+#else
+	(void)picture;
 #endif
 	frameBuffer->Lock();
 	frameBuffer->setDisplayHandedOver(true);
 	hal_display_suspend();
 
-	const char *argv[] = { "/bin/sh", script, NULL };
+	int status = -1;
 	pid_t pid = my_spawn(argv);
 	neutrino_msg_t repost = 0;
 	neutrino_msg_data_t repost_data = 0;
 	if (pid > 0)
-		repost = runFullscreen(number, pid, repost_data);
+		repost = runFullscreen(name, pid, repost_data, end_on_exit, status);
 
 	hal_display_resume();
 #ifdef ENABLE_LCD4LINUX
@@ -555,7 +602,37 @@ int CPlugins::startFullscreenPlugin(int number)
 	g_RCInput->clearRCMsg();
 	if (repost)
 		g_RCInput->postMsg(repost, repost_data);
-	return plugin_list[number].menu_return;
+	running--;
+	return status;
+}
+
+int CPlugins::startFullscreenPlugin(int number)
+{
+	const char *script = plugin_list[number].pluginfile.c_str();
+	printf("[CPlugins] executing %s on the whole display\n", script);
+	if (!file_exists(script))
+	{
+		printf("[CPlugins] could not find %s\n", script);
+		return menu_return::RETURN_REPAINT;
+	}
+	/* the program's own icon (kodi.svg for kodi.sh) where the system has
+	   one, else the hint icon of the plugin */
+	std::string base = plugin_list[number].pluginfile;
+	base = base.substr(base.rfind('/') + 1);
+	base = base.substr(0, base.rfind('.'));
+	std::string picture = "/usr/share/icons/hicolor/scalable/apps/" + base + ".svg";
+	if (access(picture.c_str(), R_OK) != 0)
+		picture = "/usr/share/icons/hicolor/256x256/apps/" + base + ".png";
+	if (access(picture.c_str(), R_OK) != 0) {
+		picture = plugin_list[number].hinticon;
+		if (picture.find('/') == std::string::npos)
+			picture = frameBuffer->getIconPath(picture);
+	}
+	const char *argv[] = { "/bin/sh", script, NULL };
+	std::string name = plugin_list[number].name;
+	int menu_ret = plugin_list[number].menu_return;
+	runProgram(name, argv, picture);
+	return menu_ret;
 }
 
 int CPlugins::startLuaPlugin(int number)

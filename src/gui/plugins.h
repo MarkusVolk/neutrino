@@ -89,6 +89,7 @@ class CPlugins
 		std::atomic<int> running;	// plugins started and not returned yet
 
 		int runPlugin(int number);
+		neutrino_msg_t runFullscreen(const std::string &name, pid_t pid, neutrino_msg_data_t &data, bool end_on_exit, int &status);
 		bool parseCfg(plugin *plugin_data);
 		void scanDir(const char *dir);
 		bool plugin_exists(const std::string &filename);
@@ -152,7 +153,12 @@ class CPlugins
 		int startScriptPlugin(int number);
 		int startTerminalPlugin(int number);
 		int startFullscreenPlugin(int number);
-		neutrino_msg_t runFullscreen(int number, pid_t pid, neutrino_msg_data_t &data);
+		/* a program on the whole display, argv its command; picture is what
+		   the display of the box shows meanwhile. With end_on_exit the exit
+		   key of the remote control ends it, for a program that does not know
+		   the key. Its exit status, -1 when it was ended or could not be
+		   started. */
+		int runProgram(const std::string &name, const char *const argv[], const std::string &picture, bool end_on_exit = false);
 		int popenScriptPlugin(int number, const char *script);
 		int startLuaPlugin(int number);
 		bool hasPlugin(CPlugins::p_type_t type);
