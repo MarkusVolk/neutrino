@@ -263,13 +263,17 @@ void run(std::vector<job> jobs)
 
 } /* namespace */
 
-bool game_cover::start(const std::vector<games::system> &systems, const std::vector<games::game> &list)
+bool game_cover::start(const std::vector<games::system> &systems, const std::vector<games::game> &list,
+		       const std::vector<std::pair<games::game, std::string>> &programs)
 {
 	std::vector<job> jobs;
 	for (const games::game &g : list)
 		for (const games::system &s : systems)
 			if (s.id == g.system && !s.covers.empty() && games::picture(g).empty())
 				jobs.push_back({ g, s.covers });
+	for (const auto &p : programs)
+		if (!p.second.empty() && games::picture(p.first).empty())
+			jobs.push_back({ p.first, p.second });
 	std::lock_guard<std::mutex> g(lock);
 	if (jobs.empty() || now.running)
 		return false;

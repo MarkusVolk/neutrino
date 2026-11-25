@@ -60,6 +60,8 @@ class CPlugins
 			std::string pluginfile;
 			std::string plugindir;
 			std::string hinticon;
+			std::string covers;	/* of a game: the collection and the name of its cover */
+			std::string cover;
 			int version;
 			std::string name; // UTF-8 encoded
 			std::string description; // UTF-8 encoded
@@ -130,6 +132,8 @@ class CPlugins
 		inline const char           *getPluginFile    (const int number) const { return plugin_list[number].pluginfile.c_str(); }
 		inline const char           *getCfgFile       (const int number) const { return plugin_list[number].cfgfile.c_str()   ; }
 		inline const char           *getPluginDir     (const int number) const { return plugin_list[number].plugindir.c_str() ; }
+		inline const std::string    &getCovers        (const int number) const { return plugin_list[number].covers            ; }
+		inline const std::string    &getCover         (const int number) const { return plugin_list[number].cover             ; }
 		inline const char           *getHintIcon      (const int number) const { return plugin_list[number].hinticon.c_str()  ; }
 		inline const char           *getFileName      (const int number) const { return plugin_list[number].filename.c_str()  ; }
 		inline const std::string    &getDescription   (const int number) const { return plugin_list[number].description       ; }

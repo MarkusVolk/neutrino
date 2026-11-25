@@ -40,6 +40,7 @@
 
 #include <algorithm>
 #include <map>
+#include <strings.h>
 #include <unistd.h>
 
 extern CPlugins *g_Plugins;
@@ -81,17 +82,22 @@ CCoverWall::Tile CGameWall::part(size_t item) const
 	return gameTile(item);
 }
 
-/* a shelf for each initial */
+/* a shelf for each initial, programs among the games */
 std::vector<CCoverWall::Shelf> CGameWall::byTitle() const
 {
+	std::vector<std::pair<std::string, size_t>> titles;
+	for (size_t i = 0; i < list.size() + plugins.size(); i++)
+		titles.push_back({ i < list.size() ? list[i].title : plugins[i - list.size()].name, i });
+	std::stable_sort(titles.begin(), titles.end(), [](const auto &a, const auto &b) { return strcasecmp(a.first.c_str(), b.first.c_str()) < 0; });
+
 	std::vector<std::pair<std::string, std::vector<Tile>>> letters;
-	for (size_t i = 0; i < list.size(); i++) {
-		const std::string &t = list[i].title;
+	for (const auto &title : titles) {
+		const std::string &t = title.first;
 		std::string letter = t.empty() || !isalpha((unsigned char) t[0]) ? "0-9" : std::string(1, toupper((unsigned char) t[0]));
 		auto it = std::find_if(letters.begin(), letters.end(), [&letter](const auto &l) { return l.first == letter; });
 		if (it == letters.end())
 			it = letters.insert(letters.end(), { letter, {} });
-		it->second.push_back(gameTile(i));
+		it->second.push_back(gameTile(title.second));
 	}
 	std::vector<Shelf> shelves;
 	for (auto &l : letters)
@@ -169,7 +175,11 @@ const CGameWall::Plugin *CGameWall::plugin() const
 
 std::string CGameWall::picture(size_t item) const
 {
-	return item < list.size() ? games::picture(list[item]) : plugins[item - list.size()].picture;
+	if (item < list.size())
+		return games::picture(list[item]);
+	const Plugin &p = plugins[item - list.size()];
+	std::string cover = games::picture(p.cover);
+	return cover.empty() ? p.picture : cover;
 }
 
 std::string CGameWall::info(const Tile &t) const
@@ -201,17 +211,46 @@ const char *CGameWall::emptyText() const
 	return g_Locale->getText(LOCALE_GAMEWALL_EMPTY);
 }
 
+/* the program's own icon where the system has one */
+static std::string programIcon(const std::string &file)
+{
+	std::string icon = "/usr/share/icons/hicolor/scalable/apps/" + file + ".svg";
+	if (access(icon.c_str(), R_OK) != 0)
+		icon = "/usr/share/icons/hicolor/256x256/apps/" + file + ".png";
+	return access(icon.c_str(), R_OK) == 0 ? icon : "";
+}
+
 static std::vector<CGameWall::Plugin> gamePlugins()
 {
 	std::vector<CGameWall::Plugin> list;
+	std::string dir = games::directory();
 	for (int i = 0; i < g_Plugins->getNumberOfPlugins(); i++) {
 		if (g_Plugins->getType(i) != CPlugins::P_TYPE_GAME || g_Plugins->isHidden(i))
 			continue;
-		std::string picture = g_Plugins->getHintIcon(i);
-		if (picture.find('/') == std::string::npos)
-			picture = CFrameBuffer::getInstance()->getIconPath(picture);
-		list.push_back({ i, g_Plugins->getName(i), g_Plugins->getDescription(i), picture });
+		std::string file = g_Plugins->getFileName(i);
+		std::string picture = programIcon(file);
+		if (picture.empty()) {
+			picture = g_Plugins->getHintIcon(i);
+			if (picture.find('/') == std::string::npos)
+				picture = CFrameBuffer::getInstance()->getIconPath(picture);
+		}
+		games::game cover;
+		cover.title = g_Plugins->getCover(i).empty() ? g_Plugins->getName(i) : g_Plugins->getCover(i);
+		cover.file = dir + "/programs/" + file + ".game";
+		list.push_back({ i, g_Plugins->getName(i), g_Plugins->getDescription(i), picture, cover,
+				 dir.empty() ? "" : g_Plugins->getCovers(i) });
 	}
+	return list;
+}
+
+static std::vector<std::pair<games::game, std::string>> programCovers()
+{
+	std::vector<std::pair<games::game, std::string>> list;
+	for (const CGameWall::Plugin &p : gamePlugins())
+		if (!p.covers.empty())
+			list.push_back({ p.cover, p.covers });
+	if (!list.empty())
+		safe_mkdir((games::directory() + "/programs").c_str());
 	return list;
 }
 
@@ -223,7 +262,7 @@ bool CGames::available()
 
 int CGames::exec(CMenuTarget *parent, const std::string &)
 {
-	if (!games::available())
+	if (!games::available() && gamePlugins().empty())
 		return CPluginList(LOCALE_MAINMENU_GAMES, CPlugins::P_TYPE_GAME).exec(parent, "");
 	if (parent)
 		parent->hide();
@@ -342,7 +381,7 @@ int CGames::show()
 		} else if (msg == CRCInput::RC_green) {
 			if (game_cover::state().running)
 				game_cover::stop();
-			else if (!game_cover::start(systems, found)) {
+			else if (!game_cover::start(systems, found, programCovers())) {
 				ShowMsg(LOCALE_MAINMENU_GAMES, g_Locale->getText(LOCALE_GAMEWALL_COVERS_NONE), CMsgBox::mbrBack, CMsgBox::mbBack, NEUTRINO_ICON_GAMES);
 			}
 			watch();

@@ -23,6 +23,8 @@
 
 #include <system/games.h>
 
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace game_cover
@@ -35,9 +37,10 @@ namespace game_cover
 		size_t found;
 	};
 
-	/* fetches the covers of the games that have no picture, in a thread of
-	   its own; false when there is nothing to fetch or it runs already */
-	bool start(const std::vector<games::system> &systems, const std::vector<games::game> &list);
+	/* fetches the covers of the games, and of the programs from their
+	   collection, that have no picture, in a thread of its own; false when there is nothing to fetch or it runs already */
+	bool start(const std::vector<games::system> &systems, const std::vector<games::game> &list,
+		   const std::vector<std::pair<games::game, std::string>> &programs);
 	/* after the cover it is at */
 	void stop();
 	progress state();

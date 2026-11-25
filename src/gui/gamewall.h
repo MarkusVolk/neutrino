@@ -32,7 +32,9 @@ class CGameWall : public CCoverWall
 			int number;
 			std::string name;
 			std::string description;
-			std::string picture;
+			std::string picture;	/* without a cover */
+			games::game cover;	/* where its cover is, and its name there */
+			std::string covers;	/* the collection of the cover */
 		};
 
 		void build(const std::vector<games::system> &systems, const std::vector<games::game> &list,
@@ -60,8 +62,8 @@ class CGameWall : public CCoverWall
 		std::vector<Shelf> bySystem() const;
 };
 
-/* "Games" of the main menu: the wall, or the list of game plugins where no
-   system has a game */
+/* "Games" of the main menu: the wall with the games and the game plugins, or
+   the list of plugins where there is nothing to show */
 class CGames : public CMenuTarget
 {
 	public:

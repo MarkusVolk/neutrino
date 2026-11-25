@@ -271,6 +271,14 @@ bool CPlugins::parseCfg(plugin *plugin_data)
 		{
 			plugin_data->hinticon = parm;
 		}
+		else if (cmd == "covers")
+		{
+			plugin_data->covers = parm;
+		}
+		else if (cmd == "cover")
+		{
+			plugin_data->cover = parm;
+		}
 		else if (cmd == "type")
 		{
 			plugin_data->type = getPluginType(atoi(parm));
