@@ -3845,7 +3845,7 @@ void CNeutrinoApp::RealRun()
 #endif
 			else if ((msg == (neutrino_msg_t) g_settings.key_timeshift_back || msg == (neutrino_msg_t) g_settings.mpkey_rewind) && timeshiftJumpBack()) {
 			}
-			else if ((msg == (neutrino_msg_t) g_settings.key_timeshift || msg == CRCInput::RC_playpause) && CMoviePlayerGui::LiveHeld()) {
+			else if ((msg == (neutrino_msg_t) g_settings.key_timeshift || msg == CRCInput::RC_playpause || msg == CRCInput::RC_play) && CMoviePlayerGui::LiveHeld()) {
 				/* the held picture plays on, from the timeshift when the
 				 * stream's buffer does not reach that far */
 				if (!CMoviePlayerGui::getInstance().ResumeLive()) {
@@ -4027,13 +4027,6 @@ void CNeutrinoApp::RealRun()
 				CAudioSelectMenuHandler as;
 				as.exec(NULL, "-1");
 				StartSubtitles();
-			}
-			else if (msg == CRCInput::RC_play && CMoviePlayerGui::LiveHeld())
-			{
-				if (!CMoviePlayerGui::getInstance().ResumeLive()) {
-					CMoviePlayerGui::getInstance().setTimeshiftDelay(CMoviePlayerGui::getInstance().LiveDelay());
-					CRecordManager::getInstance()->StartTimeshift();
-				}
 			}
 			else if( msg == CRCInput::RC_video || msg == CRCInput::RC_play || msg == CRCInput::RC_pvr ||
 				 msg == (CRCInput::RC_playpause | CRCInput::RC_Repeat))
