@@ -109,11 +109,39 @@ static bool isInternal(const storage::Device &d)
 	return d.internal || d.tran == "sata" || d.tran == "ata" || d.tran.empty();
 }
 
+/* on a PC the disks inside hold other systems, they are only used when the
+   user chose them; the drives that were plugged in come by themselves */
+static bool takenByItself(const storage::Device &d)
+{
+	return !g_info.hw_caps->foreign_disks || d.internal || d.tran == "usb" ||
+		(!g_settings.hdd_record_auto && !d.uuid.empty() && d.uuid == g_settings.hdd_record_uuid);
+}
+
 /* a filesystem of its own: not a disk whose partitions carry them (the
    iso9660 of a hybrid image), nothing that belongs to swap, RAID or LUKS */
 static bool own_fs(const storage::Device &d)
 {
 	return !d.fstype.empty() && !storage::foreignFs(d.fstype) && !(d.isDisk() && d.has_parts);
+}
+
+static bool diskTaken(const std::vector<storage::Device> &list, const std::string &disk)
+{
+	for (size_t i = 0; i < list.size(); i++)
+		if (list[i].disk == disk && takenByItself(list[i]))
+			return true;
+	return false;
+}
+
+/* the system holds the record directory on a partition of its own disk */
+static bool recordMountOfSystem(const std::vector<storage::Device> &list)
+{
+	for (size_t i = 0; i < list.size(); i++) {
+		const storage::Device &d = list[i];
+		if (storage::systemDisk(list, d.disk) &&
+		    std::find(d.mountpoints.begin(), d.mountpoints.end(), RECORD_MOUNT) != d.mountpoints.end())
+			return true;
+	}
+	return false;
 }
 
 CHDDMenuHandler::CHDDMenuHandler()
@@ -255,7 +283,7 @@ void CHDDMenuHandler::mountAll()
 	   /media/record, as the udev rule of the boxes did before; a box without
 	   one, like the HD60, records to the first USB drive there is until an
 	   internal disk comes */
-	if (below(g_settings.network_nfs_recordingdir, RECORD_MOUNT)) {
+	if (below(g_settings.network_nfs_recordingdir, RECORD_MOUNT) && !recordMountOfSystem(list)) {
 		const storage::Device *internal = NULL, *usb = NULL, *chosen = NULL;
 		for (size_t i = 0; i < list.size(); i++) {
 			const storage::Device &d = list[i];
@@ -263,7 +291,7 @@ void CHDDMenuHandler::mountAll()
 				continue;
 			if (d.uuid == g_settings.hdd_record_uuid)
 				chosen = &d;
-			if (storage::systemDisk(list, d.disk) || !mountable(d))
+			if (storage::systemDisk(list, d.disk) || !mountable(d) || !takenByItself(d))
 				continue;
 			if (!internal && isInternal(d))
 				internal = &d;
@@ -287,7 +315,7 @@ void CHDDMenuHandler::mountAll()
 	   beside the root */
 	for (size_t i = 0; i < list.size(); i++) {
 		const storage::Device &d = list[i];
-		if (d.type == "rom" || !mountable(d) || storage::systemDisk(list, d.disk))
+		if (d.type == "rom" || !mountable(d) || storage::systemDisk(list, d.disk) || !takenByItself(d))
 			continue;
 		bool record = !d.uuid.empty() && d.uuid == g_settings.hdd_record_uuid;
 		if (d.mounted()) {
@@ -310,7 +338,7 @@ bool CHDDMenuHandler::added(const std::string &name)
 	if (!d || d->mounted() || d->type == "rom" || storage::foreignFs(d->fstype))
 		return false;
 	/* the partitions come on their own */
-	if ((d->isDisk() && d->has_parts) || storage::systemDisk(list, d->disk))
+	if ((d->isDisk() && d->has_parts) || storage::systemDisk(list, d->disk) || !takenByItself(*d))
 		return false;
 	if (!mountable(*d) || !storage::mount(name, mountDir(*d))) {
 		if (hinted.insert(d->disk).second)
@@ -832,7 +860,7 @@ int CHDDDestExec::exec(CMenuTarget* /*parent*/, const std::string&)
 	std::vector<storage::Device> list;
 	storage::scan(list);
 	for (size_t i = 0; i < list.size(); i++) {
-		if (list[i].type != "disk")
+		if (list[i].type != "disk" || !diskTaken(list, list[i].disk))
 			continue;
 		printf("CHDDDestExec: noise %d sleep %d %s\n",
 			 g_settings.hdd_noise, g_settings.hdd_sleep, list[i].path.c_str());
