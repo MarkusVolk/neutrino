@@ -2493,6 +2493,9 @@ static std::string withoutKeys(const std::string &url)
 	return out;
 }
 
+/* seconds; a host that is not there must not take the whole timeout of the transfer */
+#define CONNECT_TIMEOUT 5L
+
 bool getUrl(std::string &url, std::string &answer, std::string userAgent, unsigned int timeout, const char *header)
 {
 	dprintf(DEBUG_NORMAL, "getUrl: url: %s\n", withoutKeys(url).c_str());
@@ -2504,6 +2507,7 @@ bool getUrl(std::string &url, std::string &answer, std::string userAgent, unsign
 	curl_easy_setopt(curl_handle, CURLOPT_FILE, (void *)&answer);
 	curl_easy_setopt(curl_handle, CURLOPT_FAILONERROR, 1);
 	curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, timeout);
+	curl_easy_setopt(curl_handle, CURLOPT_CONNECTTIMEOUT, CONNECT_TIMEOUT);
 	curl_easy_setopt(curl_handle, CURLOPT_NOSIGNAL, (long)1);
 	curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYPEER, false);
 	curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, userAgent.c_str());
@@ -2561,6 +2565,7 @@ bool downloadUrl(std::string url, std::string file, std::string userAgent, unsig
 	curl_easy_setopt(curl_handle, CURLOPT_FILE, fp);
 	curl_easy_setopt(curl_handle, CURLOPT_FAILONERROR, 1);
 	curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, timeout);
+	curl_easy_setopt(curl_handle, CURLOPT_CONNECTTIMEOUT, CONNECT_TIMEOUT);
 	curl_easy_setopt(curl_handle, CURLOPT_NOSIGNAL, (long)1);
 	curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYPEER, false);
 	curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, userAgent.c_str());
