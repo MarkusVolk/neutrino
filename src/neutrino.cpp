@@ -43,6 +43,7 @@
 #include <dirent.h>
 
 #include <fstream>
+#include <thread>
 
 #include "global.h"
 #include "neutrino.h"
@@ -151,6 +152,7 @@
 #include <system/series_timers.h>
 #include <system/udev_hotplug.h>
 #include <system/setting_helpers.h>
+#include <system/set_threadname.h>
 #include <system/settings.h>
 #include <system/helpers.h>
 #include <system/proc_tools.h>
@@ -2706,10 +2708,10 @@ void CNeutrinoApp::channelsInit(bool bOnly)
 	if (!webchannels_boot_check_done)
 	{
 		webchannels_boot_check_done = true;
-		if (g_RCInput && g_bouquetManager && g_bouquetManager->getWebchannelsFailedDownloads() > 0)
+		int failed = g_bouquetManager ? g_bouquetManager->getWebchannelsFailed().size() : 0;
+		if (g_RCInput && failed > 0)
 		{
-			printf("[neutrino] webchannels: %d remote source(s) failed at boot, scheduling one retry\n",
-			       g_bouquetManager->getWebchannelsFailedDownloads());
+			printf("[neutrino] webchannels: %d remote source(s) failed at boot, scheduling one retry\n", failed);
 			fflush(stdout);
 			webchannels_retry_timer = g_RCInput->addTimer(30*1000*1000, true);
 		}
@@ -4426,6 +4428,68 @@ void CNeutrinoApp::checkOsdSize()
 	COsdHelpers::getInstance()->applyOsdSize();
 }
 
+/* the file of each source, or none */
+static std::map<std::string, std::string> fetchWebchannels(std::vector<std::string> sources)
+{
+	set_threadname("n:webchannels");
+	std::map<std::string, std::string> fetched;
+	for (size_t i = 0; i < sources.size(); i++)
+	{
+		std::string file = randomFile(getFileExt(sources[i]), LOGODIR_TMP);
+		fetched[sources[i]] = downloadUrl(sources[i], file) ? file : "";
+	}
+	return fetched;
+}
+
+/* The channels are only loaded again when a source can be had now, and the
+   main loop, which waits for that, does not wait for the network. The thread
+   owns what it touches: the end of the box does not wait for it. */
+void CNeutrinoApp::retryWebchannels()
+{
+	if (!g_bouquetManager)
+		return;
+
+	std::vector<std::string> sources = g_bouquetManager->getWebchannelsFailed();
+	if (!webchannels_retry.valid())
+	{
+		/* an intervening reload may have fixed the sources already */
+		if (sources.empty())
+			return;
+		std::packaged_task<std::map<std::string, std::string>(std::vector<std::string>)> task(fetchWebchannels);
+		webchannels_retry = task.get_future();
+		std::thread(std::move(task), sources).detach();
+	}
+
+	if (webchannels_retry.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
+	{
+		webchannels_retry_timer = g_RCInput->addTimer(1000*1000, true);
+		return;
+	}
+
+	std::map<std::string, std::string> fetched = webchannels_retry.get();
+	bool got = false;
+	for (std::map<std::string, std::string>::iterator it = fetched.begin(); it != fetched.end();)
+	{
+		if (std::find(sources.begin(), sources.end(), it->first) != sources.end())
+		{
+			got |= !it->second.empty();
+			++it;
+		}
+		else
+		{
+			unlink(it->second.c_str());
+			it = fetched.erase(it);
+		}
+	}
+	printf("[neutrino] webchannels: retry %s\n", got ? "succeeded" : "failed");
+	fflush(stdout);
+	if (!got)
+		return;
+	g_bouquetManager->setWebchannelsFetched(fetched);
+	g_bouquetManager->setWebchannelsReloadReason("boot_retry");
+	g_Zapit->reinitChannels();
+}
+
 int CNeutrinoApp::handleMsg(const neutrino_msg_t _msg, neutrino_msg_data_t data)
 {
 	int res = 0;
@@ -4626,11 +4690,7 @@ int CNeutrinoApp::handleMsg(const neutrino_msg_t _msg, neutrino_msg_data_t data)
 		}
 		if(webchannels_retry_timer && data == webchannels_retry_timer) {
 			webchannels_retry_timer = 0;
-			/* an intervening reload may have fixed the sources already */
-			if (g_bouquetManager && g_bouquetManager->getWebchannelsFailedDownloads() > 0) {
-				g_bouquetManager->setWebchannelsReloadReason("boot_retry");
-				g_Zapit->reinitChannels();
-			}
+			retryWebchannels();
 			return messages_return::handled;
 		}
 	}

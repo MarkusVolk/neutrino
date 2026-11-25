@@ -166,14 +166,16 @@ class CBouquetManager : public OpenThreads::Thread
 		bool LogoStop();
 		bool logo_running;
 		std::list<t_channel_id> LogoList;
-		/* handover slot, written by GUI/webif threads under mutex */
-		OpenThreads::Mutex webchannels_reason_mutex;
+		/* handover slots, shared with GUI/webif threads under mutex */
+		OpenThreads::Mutex webchannels_mutex;
 		std::string webchannels_reload_reason;
+		std::vector<std::string> webchannels_failed;
+		std::map<std::string, std::string> webchannels_fetched;
 		/* zapit-thread-local copy for one reload pass */
 		std::string webchannels_active_reason;
-		int webchannels_failed_downloads;
+		std::map<std::string, std::string> webchannels_active_fetched;
 	public:
-		CBouquetManager() { remainChannels = NULL; logo_running = false; empty = false; webchannels_reload_reason = "boot"; webchannels_active_reason = "boot"; webchannels_failed_downloads = 0; };
+		CBouquetManager() { remainChannels = NULL; logo_running = false; empty = false; webchannels_reload_reason = "boot"; webchannels_active_reason = "boot"; };
 		~CBouquetManager();
 		bool empty;
 		class ChannelIterator
@@ -233,7 +235,11 @@ class CBouquetManager : public OpenThreads::Thread
 		void loadLogos();
 		void loadWebchannels(int mode);
 		void setWebchannelsReloadReason(const std::string &reason);
-		int getWebchannelsFailedDownloads() { return webchannels_failed_downloads; }
+		/* the remote sources the last reload could not download */
+		std::vector<std::string> getWebchannelsFailed();
+		/* for the next reload: the file of a source, or none for one that
+		   cannot be had, in place of the download of it */
+		void setWebchannelsFetched(const std::map<std::string, std::string> &fetched);
 		std::string ReadMarkerValue(std::string strLine, const char* strMarkerName);
 		//bouquet writeChannelsNames selection options
 		enum{

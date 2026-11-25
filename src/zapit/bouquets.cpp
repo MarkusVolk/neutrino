@@ -737,13 +737,18 @@ void CBouquetManager::loadBouquets(bool ignoreBouquetFile)
 
 	CNeutrinoApp::getInstance()->g_settings_xmltv_xml_auto_clear();
 	{
-		OpenThreads::ScopedLock<OpenThreads::Mutex> lock(webchannels_reason_mutex);
+		OpenThreads::ScopedLock<OpenThreads::Mutex> lock(webchannels_mutex);
 		webchannels_active_reason = webchannels_reload_reason;
 		webchannels_reload_reason = "reinit";
+		webchannels_active_fetched.swap(webchannels_fetched);
+		webchannels_failed.clear();
 	}
-	webchannels_failed_downloads = 0;
 	loadWebtv();
 	loadWebradio();
+	for (std::map<std::string, std::string>::iterator it = webchannels_active_fetched.begin(); it != webchannels_active_fetched.end(); ++it)
+		if (!it->second.empty())
+			remove(it->second.c_str());
+	webchannels_active_fetched.clear();
 	parseBouquetsXml(UBOUQUETS_XML, true);
 	CServiceManager::getInstance()->LoadWebNumbers();
 	renumServices();
@@ -1169,8 +1174,20 @@ void CBouquetManager::loadWebradio()
 
 void CBouquetManager::setWebchannelsReloadReason(const std::string &reason)
 {
-	OpenThreads::ScopedLock<OpenThreads::Mutex> lock(webchannels_reason_mutex);
+	OpenThreads::ScopedLock<OpenThreads::Mutex> lock(webchannels_mutex);
 	webchannels_reload_reason = reason;
+}
+
+std::vector<std::string> CBouquetManager::getWebchannelsFailed()
+{
+	OpenThreads::ScopedLock<OpenThreads::Mutex> lock(webchannels_mutex);
+	return webchannels_failed;
+}
+
+void CBouquetManager::setWebchannelsFetched(const std::map<std::string, std::string> &fetched)
+{
+	OpenThreads::ScopedLock<OpenThreads::Mutex> lock(webchannels_mutex);
+	webchannels_fetched = fetched;
 }
 
 /*
@@ -1325,7 +1342,7 @@ void CBouquetManager::loadWebchannels(int mode)
 	collectWebchannelSourceTags(mode, webchannels_sources, tags_by_name);
 
 	int sources_total = 0, sources_loaded = 0, sources_failed = 0, sources_skipped = 0;
-	int sources_failed_download = 0;
+	std::vector<std::string> failed;
 	int channels_total = 0;
 	INFO("[webchannels] reload start reason=%s mode=%s sources=%d", webchannels_active_reason.c_str(), tag, (int)webchannels_sources.size());
 
@@ -1355,7 +1372,16 @@ void CBouquetManager::loadWebchannels(int mode)
 		{
 			/* a list that was kept from the last download stands in while the network is not there */
 			std::string kept = downloadCacheFile(filename);
-			if (::downloadUrl(filename, tmp_name))
+			bool got;
+			std::map<std::string, std::string>::iterator fetched = webchannels_active_fetched.find(filename);
+			if (fetched == webchannels_active_fetched.end())
+				got = ::downloadUrl(filename, tmp_name);
+			else if ((got = !fetched->second.empty()))
+			{
+				tmp_name = fetched->second;
+				webchannels_active_fetched.erase(fetched);
+			}
+			if (got)
 			{
 				remove_tmp = true;
 				if (!kept.empty())
@@ -1363,7 +1389,7 @@ void CBouquetManager::loadWebchannels(int mode)
 			}
 			else
 			{
-				sources_failed_download++;
+				failed.push_back(filename);
 				remove(tmp_name.c_str());
 				if (!kept.empty() && !access(kept.c_str(), R_OK))
 				{
@@ -1843,7 +1869,10 @@ webchannel_done:
 			remove(tmp_name.c_str());
 	}
 
-	webchannels_failed_downloads += sources_failed_download;
+	{
+		OpenThreads::ScopedLock<OpenThreads::Mutex> lock(webchannels_mutex);
+		webchannels_failed.insert(webchannels_failed.end(), failed.begin(), failed.end());
+	}
 	INFO("[webchannels] reload done reason=%s mode=%s sources=%d loaded=%d failed=%d skipped=%d channels=%d",
 	     webchannels_active_reason.c_str(), tag, sources_total, sources_loaded, sources_failed, sources_skipped, channels_total);
 }

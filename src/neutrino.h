@@ -40,6 +40,8 @@
 #include "gui/user_menue.h"
 #include <timerdclient/timerdtypes.h>
 #include <sigc++/signal.h>
+#include <future>
+#include <map>
 #include <string>
 
 #define ANNOUNCETIME (1 * 60)
@@ -104,6 +106,8 @@ private:
 	uint32_t			deferred_recheck_timer;
 	bool				webchannels_boot_check_done;
 	uint32_t			webchannels_retry_timer;
+	std::future<std::map<std::string, std::string> >	webchannels_retry;
+	void retryWebchannels();
 	/* a window that changes its size: the OSD follows once the size holds */
 	uint32_t			osd_size_timer;
 	unsigned			osd_size_seen;
