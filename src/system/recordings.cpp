@@ -251,7 +251,7 @@ static bool all_of(const std::string &s, size_t from, size_t to, int (*is)(int))
 	return true;
 }
 
-/* "S17E4", "S1 E2" or "(12)" */
+/* a number of season and episode, or a number in brackets */
 static bool episode_number(const std::string &part)
 {
 	if (part.size() > 2 && part.front() == '(' && part.back() == ')')
@@ -269,25 +269,28 @@ static bool episode_number(const std::string &part)
 	return n < part.size() && tolower((unsigned char) part[n]) == 'e' && all_of(part, n + 1, part.size(), isdigit);
 }
 
-/* a year, an age like "12+" or a country like "GB": no episode name */
+/* a year, an age rating, a country code or a line that ends with a year:
+   no episode name */
 static bool aside(const std::string &part)
 {
 	if (part.size() == 4 && all_of(part, 0, 4, isdigit))
+		return true;
+	if (part.size() > 5 && part[part.size() - 5] == ' ' && all_of(part, part.size() - 4, part.size(), isdigit))
 		return true;
 	if (part.size() > 1 && part.back() == '+' && all_of(part, 0, part.size() - 1, isdigit))
 		return true;
 	return part.size() <= 3 && all_of(part, 0, part.size(), isupper);
 }
 
-/* "Tatort: Ein Freund, ein guter Freund" gives its part after the series,
-   "S17E4 ║ Ein letzter Tropfen ║ 2015 ║ 12+ ║ GB" the number and the first
-   part that is no year, age or country and does not just name the series
-   again */
+/* what tells one episode from another: the part of the title after the
+   series, and of the second title the number and the first part that is no
+   year, age or country and does not just name the series again; without a
+   number there the one of the title counts */
 std::string recordings::episode_name(const std::string &title, const std::string &serie, const std::string &info1)
 {
-	std::string name;
-	if (!serie.empty() && title.size() > serie.size() && title.compare(0, serie.size(), serie) == 0) {
-		name = title.substr(serie.size());
+	std::string name, base = without_part(title);
+	if (!serie.empty() && base.size() > serie.size() && base.compare(0, serie.size(), serie) == 0) {
+		name = base.substr(serie.size());
 		size_t a = name.find_first_not_of(' ');
 		name = a == std::string::npos ? "" : name.substr(a);
 		for (const char *sep : { ":", "-", "\xe2\x80\x93" })	/* – */
@@ -310,6 +313,8 @@ std::string recordings::episode_name(const std::string &title, const std::string
 				name = part;
 		}
 	}
+	if (number.empty() && base != title)
+		number = title.substr(base.size() + 2, title.size() - base.size() - 3);
 	if (!number.empty() && all_of(number, 0, number.size(), isdigit))
 		number = "#" + number;
 	if (number.empty() || name.empty())
