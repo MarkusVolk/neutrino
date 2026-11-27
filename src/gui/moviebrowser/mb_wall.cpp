@@ -50,7 +50,7 @@ static std::string titleOf(const MI_MOVIE_INFO *m)
 
 static std::string seriesOf(const MI_MOVIE_INFO *m)
 {
-	return recordings::series_of(m->serieName, recordings::numbered(m->epgInfo1, m->epgInfo2), titleOf(m));
+	return recordings::series_of(m->serieName, recordings::numbered(titleOf(m), m->epgInfo1, m->epgInfo2, m->length), titleOf(m));
 }
 
 static std::string episodeOf(const MI_MOVIE_INFO *m)

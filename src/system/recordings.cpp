@@ -145,11 +145,31 @@ static std::vector<std::string> info_parts(const std::string &info1)
 	return out;
 }
 
-/* whether the EPG numbers a programme as an episode: "Staffel 2, Folge 5",
-   "Folge 1234", "Episode 7", "S17E4", or a part "(12)" of the second title;
-   DVB has no mark for a series, so this is what tells one */
-bool recordings::numbered(const std::string &info1, const std::string &info2)
+/* the title without the number of its part in brackets at the end */
+std::string recordings::without_part(const std::string &t)
 {
+	size_t open = t.rfind(" (");
+	if (open == std::string::npos || open == 0 || t[t.size() - 1] != ')')
+		return t;
+	bool digit = false;
+	for (size_t i = open + 2; i < t.size() - 1; i++) {
+		if (isdigit((unsigned char) t[i]))
+			digit = true;
+		else if (!strchr("SE/ ", t[i]))
+			return t;
+	}
+	return digit ? t.substr(0, open) : t;
+}
+
+/* whether a programme is an episode: the EPG numbers it (season and
+   episode, or a part number in brackets in the second title), or its title
+   carries the number of a part and it is no longer than an episode; a film
+   in parts runs longer. DVB has no mark for a series, so this is what
+   tells one */
+bool recordings::numbered(const std::string &title, const std::string &info1, const std::string &info2, int length)
+{
+	if (length <= 70 && without_part(title) != title)
+		return true;
 	const char *words[] = { "staffel", "folge", "episode", "season" };
 	for (const std::string *text : { &info1, &info2 }) {
 		std::string t = *text;
@@ -177,7 +197,7 @@ bool recordings::numbered(const std::string &info1, const std::string &info2)
 				return true;
 		}
 	}
-	/* "(12) ║ Der Fall X": a number alone as one part of the second title */
+	/* a number in brackets alone as one part of the second title */
 	for (const std::string &part : info_parts(info1))
 		if (part.size() > 2 && part.front() == '(' && part.back() == ')'
 		    && part.find_first_not_of("0123456789", 1) == part.size() - 1)
@@ -200,7 +220,7 @@ bool recordings::documentary(int genre)
    has no other mark for a series */
 std::string recordings::series_of(const std::string &serie, bool episode, const std::string &title)
 {
-	return !serie.empty() ? serie : episode ? title : "";
+	return !serie.empty() ? serie : episode ? without_part(title) : "";
 }
 
 /* letters and digits only, in lower case, for comparing names; of the
@@ -318,7 +338,7 @@ recordings::entry recordings::describe(const std::string &rel)
 	e.length = have_info ? mi.length : 0;
 	e.genre = have_info ? mi.genreMajor : 0;
 	e.serie = have_info ? mi.serieName : "";
-	e.episode = have_info && numbered(mi.epgInfo1, mi.epgInfo2);
+	e.episode = have_info && numbered(e.title, mi.epgInfo1, mi.epgInfo2, mi.length);
 	e.episode_name = episode_name(e.title, e.serie, e.info);
 	e.time = st.st_mtime;
 	e.size = st.st_size;

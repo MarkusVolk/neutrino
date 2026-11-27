@@ -183,23 +183,6 @@ std::string plain(const std::string &s)
 	return out;
 }
 
-/* "Sag die Wahrheit (795)", "Golf von Kalifornien (3/4)", "Time (S01/E01)":
-   the title without the number of the part */
-std::string withoutPart(const std::string &t)
-{
-	size_t open = t.rfind(" (");
-	if (open == std::string::npos || open == 0 || t[t.size() - 1] != ')')
-		return t;
-	bool digit = false;
-	for (size_t i = open + 2; i < t.size() - 1; i++) {
-		if (isdigit((unsigned char) t[i]))
-			digit = true;
-		else if (!strchr("SE/ ", t[i]))
-			return t;
-	}
-	return digit ? t.substr(0, open) : t;
-}
-
 /* words() without the article in front */
 std::string withoutArticle(const std::string &w)
 {
@@ -217,7 +200,7 @@ std::string withoutArticle(const std::string &w)
    with it after a dash ("Heiter bis tödlich – Hauptstadtrevier") */
 int nameMatch(const std::string &name, const std::string &title)
 {
-	std::string n = words(withoutPart(name)), t = words(withoutPart(title));
+	std::string n = words(recordings::without_part(name)), t = words(recordings::without_part(title));
 	if (n.empty() || t.empty())
 		return 0;
 	if (withoutArticle(n) == withoutArticle(t))
@@ -230,7 +213,7 @@ int nameMatch(const std::string &name, const std::string &title)
 	size_t dash = name.rfind(" \xe2\x80\x93 ");
 	if (dash == std::string::npos)
 		dash = name.rfind(" - ");
-	if (t.size() >= 10 && dash != std::string::npos && words(withoutPart(name.substr(dash))) == t)
+	if (t.size() >= 10 && dash != std::string::npos && words(recordings::without_part(name.substr(dash))) == t)
 		return 1;
 	return 0;
 }
@@ -302,7 +285,7 @@ void ardTake(const Json::Value &teaser, int match, libPicture &best)
    ("Krieg im Weltraum · Wie verwundbar ist Deutschland?") */
 bool ardPicture(const std::string &title, libPicture &best)
 {
-	std::string query = withoutPart(title);
+	std::string query = recordings::without_part(title);
 	Json::Value teasers;
 	if (ardSearch("grouping", query, teasers))
 		for (unsigned int i = 0; i < teasers.size(); i++)
@@ -855,7 +838,7 @@ void fetch(const recording_cover::job &j)
 		/* from an ARD channel: the poster of this film on a start or
 		   rubric page of the library, else on the page of its series,
 		   before the poster of the series */
-		if (ardRubricPicture(withoutPart(j.title), picture) || (!episode.empty() && ardRubricPicture(episode, picture))) {
+		if (ardRubricPicture(recordings::without_part(j.title), picture) || (!episode.empty() && ardRubricPicture(episode, picture))) {
 			unlink(tmp.c_str());
 			if (downloadUrl(picture, tmp, AGENT, 30) && usable(tmp) && asJpeg(tmp))
 				source = "ARD rubric";
