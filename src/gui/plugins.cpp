@@ -639,7 +639,11 @@ int CPlugins::startFullscreenPlugin(int number)
 	const char *argv[] = { "/bin/sh", script, NULL };
 	std::string name = plugin_list[number].name;
 	int menu_ret = plugin_list[number].menu_return;
-	runProgram(name, argv, picture);
+	/* a game of the games list does not know the exit key: it ends the game
+	   as it ends the games of the emulators */
+	bool end_on_exit = plugin_list[number].type == P_TYPE_GAME
+			   && plugin_list[number].integration == PLUGIN_INTEGRATION_DISABLED;
+	runProgram(name, argv, picture, end_on_exit);
 	return menu_ret;
 }
 
