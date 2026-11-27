@@ -110,7 +110,7 @@ std::string lower(std::string s)
 	return s;
 }
 
-/* the words of a channel name: "ZDFneo HD", "BR Fernsehen Süd HD" */
+/* the words of a channel name */
 bool channelWord(const std::string &channel, bool (*match)(const std::string &))
 {
 	std::string word;
@@ -143,8 +143,7 @@ bool ardWord(const std::string &w)
 }
 
 /* a title as its words alone, lower case: what stands between them
-   differs ("Das Ordnungsamt - Klemmbrett statt Knarre" in the EPG, with
-   "–" in the library) */
+   differs between the EPG and the library */
 std::string words(const std::string &s)
 {
 	std::string out;
@@ -194,10 +193,8 @@ std::string withoutArticle(const std::string &w)
 }
 
 /* the name of the programme the library calls it by: the title itself, or
-   failing that one that begins with it ("tagesthemen mit Gebärdensprache",
-   but not "extra 3" for "Extra"), one the title begins with ("Bayerischer
-   Kabarettpreis 2026", "Die Tagesschau vor 20 Jahren") or one that ends
-   with it after a dash ("Heiter bis tödlich – Hauptstadtrevier") */
+   failing that one that begins with it (but does not just add a number),
+   one the title begins with or one that ends with it after a dash */
 int nameMatch(const std::string &name, const std::string &title)
 {
 	std::string n = words(recordings::without_part(name)), t = words(recordings::without_part(title));
@@ -228,7 +225,7 @@ struct libPicture
 	libPicture() : match(0), upright(false), source(NULL) {}
 };
 
-/* "Narrentanz (2026)", "Narrentanz (2026) (Audiodeskription)": the title alone */
+/* the title alone, without what follows in brackets */
 std::string episodeTitle(std::string t)
 {
 	size_t open = t.find(" (");
@@ -257,7 +254,7 @@ bool ardSearch(const char *kind, const std::string &query, Json::Value &teasers)
 	if (!getUrl(url, answer, AGENT, 20) || !parseJsonFromString(answer, &root, &err))
 		return false;
 	teasers = root["teasers"];
-	/* nothing is found for "Tagesschau-Nachrichten" */
+	/* nothing may be found for a title with a hyphen */
 	std::string apart = query;
 	std::replace(apart.begin(), apart.end(), '-', ' ');
 	if (teasers.empty() && apart != query)
@@ -281,8 +278,7 @@ void ardTake(const Json::Value &teaser, int match, libPicture &best)
 /* shorter videos are trailers and clips */
 #define ARD_VIDEO_MIN	(5 * 60)
 
-/* the show of this title, else the video of a programme that is none
-   ("Krieg im Weltraum · Wie verwundbar ist Deutschland?") */
+/* the show of this title, else the video of a programme that is none */
 bool ardPicture(const std::string &title, libPicture &best)
 {
 	std::string query = recordings::without_part(title);
@@ -297,14 +293,14 @@ bool ardPicture(const std::string &title, libPicture &best)
 				continue;
 			std::string name = teasers[i].get("longTitle", "").asString();
 			int match = nameMatch(episodeTitle(name), query);
-			/* "Wildesten Weihnachtshäuser - Folge 1: ..." */
+			/* a numbered episode after the name of the show */
 			size_t dash = name.find(" - Folge ");
 			if (match < 2 && dash != std::string::npos && nameMatch(name.substr(0, dash), query) == 2)
 				match = 2;
 			if (match == 2)
 				ardTake(teasers[i], match, best);
 		}
-	/* "37°: Pflege lernen fern der Heimat": the show in front */
+	/* the show in front of a colon */
 	size_t colon = query.find(": ");
 	if (!best.match && colon != std::string::npos && ardSearch("grouping", query.substr(0, colon), teasers))
 		for (unsigned int i = 0; i < teasers.size(); i++)
@@ -348,8 +344,7 @@ bool ardEpisodePicture(const std::string &series, const std::string &episode, st
 			}
 		}
 	}
-	/* the search does not find every episode by series and title together
-	   ("Tatort MagicMom") */
+	/* the search does not find every episode by series and title together */
 	std::string queries[] = { series + " " + episode, episode };
 	for (unsigned int q = 0; q < 2; q++) {
 		Json::Value teasers;
@@ -357,7 +352,7 @@ bool ardEpisodePicture(const std::string &series, const std::string &episode, st
 			continue;
 		for (unsigned int i = 0; i < teasers.size(); i++) {
 			const Json::Value &t = teasers[i];
-			/* "Polizeiruf 110 - Klassiker" too */
+			/* a show whose name goes on after the series too */
 			std::string show = t["show"].get("title", "").asString();
 			if (words(show).compare(0, words(series).size(), words(series)) != 0
 			    || t.get("duration", 0).asInt() < ARD_VIDEO_MIN)
@@ -390,8 +385,7 @@ struct ardPoster
 std::vector<ardPoster> ardPosters;
 time_t ardPostersTime = 0;
 
-/* "Dream Scenario | Düstere Komödie", "Das Lied der Tochter · Wolfsland":
-   each part may be the title */
+/* each part of a teaser title may be the title */
 void titleParts(const std::string &teaser, std::vector<std::string> &parts)
 {
 	std::string rest = teaser;
@@ -409,7 +403,7 @@ void titleParts(const std::string &teaser, std::vector<std::string> &parts)
 }
 
 /* the pages with posters: the start pages of ARD and of its channels, and
-   the rubrics as the library lists them under "Alle Rubriken" (films,
+   the rubrics as the library lists them (films,
    series, documentaries, classical music, ...), else a few known ones */
 std::vector<std::string> ardRubrics()
 {
@@ -650,7 +644,7 @@ bool zdfPicture(const std::string &title, libPicture &best)
 		const Json::Value &t = results[i]["http://zdf.de/rels/target"];
 		/* "default" is the page of a series without a brand, such as the
 		   ones of ZDFinfo, "topic" the one of a documentary series of the
-		   new pages ("Natur macht Geschichte"); an episode or a topic counts
+		   new pages; an episode or a topic counts
 		   only by its very title */
 		std::string type = t.get("contentType", "").asString();
 		bool exact = type == "episode" || type == "topic";
@@ -690,8 +684,7 @@ bool libraryPicture(const recording_cover::job &j, libPicture &best)
 	return false;
 }
 
-/* "Spielfilm Brasilien/Frankreich 2024", "Krimi, Österreich 2025": the year
-   at the end of the first line */
+/* the year at the end of the first line */
 int yearOf(const std::string &text)
 {
 	std::string line = text.substr(0, text.find('\n'));
@@ -706,8 +699,7 @@ int yearOf(const std::string &text)
 }
 
 /* a film of TMDB is the one broadcast when it came out about the year the
-   EPG names: without one the title alone is any show's ("SUPER.MARKT",
-   "Shift") */
+   EPG names: without one the title alone is any show's */
 bool sameYear(int epg, int film)
 {
 	return epg > 0 && film > 0 && abs(epg - film) <= 2;
@@ -807,8 +799,7 @@ void fetch(const recording_cover::job &j)
 			began[j.ts] = found;
 	}
 	std::string picture;
-	/* "Tatort: Schweigen", "Schlepper - Der Usedom-Krimi": the episode of
-	   the series TMDB found */
+	/* the episode of the series TMDB found, before or after its name */
 	std::string series, episode;
 	if (tmdb && found.type == "tv" && j.title.size() > found.name.size()) {
 		series = found.name;
@@ -862,8 +853,8 @@ void fetch(const recording_cover::job &j)
 	};
 	if (!source && library) {
 		/* the media library of the channel knows its own programmes better
-		   than TMDB, whose titles may be another one's ("nano" of 3sat and
-		   a telenovela); only a film's poster is better than a wide picture */
+		   than TMDB, whose titles may be another one's; only a film's
+		   poster is better than a wide picture */
 		libPicture lib;
 		libraryPicture(j, lib);
 		auto libraryCover = [&] {
